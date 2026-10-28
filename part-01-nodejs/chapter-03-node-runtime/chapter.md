@@ -611,4 +611,4 @@ node examples/path-report.js ./input.json
 
 官方查阅：[Node 命令行](https://nodejs.org/docs/v24.22.1/api/cli.html)、[npm scripts](https://docs.npmjs.com/cli/v10/using-npm/scripts)、[Bash 环境与命令执行](https://www.gnu.org/software/bash/manual/html_node/Executing-Commands.html)、[Bash 重定向](https://www.gnu.org/software/bash/manual/html_node/Redirections.html)、[Zsh 命令执行](https://zsh.sourceforge.io/Doc/Release/Execution.html)。
 
-[上一章：先启动一个最小记录服务](../chapter-02-minimal-service/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：先启动一个最小记录服务](../chapter-02-minimal-service/chapter.md) · [下一章：事件循环如何影响服务的响应能力](../chapter-04-event-loop/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
