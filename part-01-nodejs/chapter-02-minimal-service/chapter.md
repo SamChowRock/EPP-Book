@@ -671,7 +671,7 @@ npm start
 
 本章对应代码分支：`part-01/chapter-02`。后续章节在此基础上继续演进，本章分支保留这一阶段的实现。
 
-时间参考（估算）：只阅读约 35～40 分钟；按正文复制代码并完成请求、断点和重启观察，额外约 20～30 分钟，边读边做合计约 55～70 分钟。依据主文约 9100 字（不含附录）、约 150 行服务代码及操作步骤估算：阅读包括理解随文代码，跟做只计算建文件与启动约 5 分钟、请求观察约 5～10 分钟、断点与重启约 10～15 分钟，不重复计算阅读。附录按需查阅。不含首次安装 nvm 与 Node.js、逐字手敲全部代码或额外排错；尚未经过读者实测。
+时间参考（估算）：只阅读约 35～40 分钟；按正文复制代码并完成请求、断点和重启观察，额外约 20～30 分钟，边读边做合计约 55～70 分钟。依据主文约 9100 字（不含附录）、约 150 行服务代码及操作步骤估算：阅读包括理解随文代码，跟做只计算建文件与启动约 5 分钟、请求观察约 5～10 分钟、断点与重启约 10～15 分钟，不重复计算阅读。附录按需查阅。不含首次安装 nvm 与 Node.js、逐字手敲全部代码或额外排错。
 
 延伸查阅：[nvm 版本管理](https://github.com/nvm-sh/nvm#nvmrc)、[Node.js 24.22.1 发布说明](https://nodejs.org/en/blog/release/v24.22.1)、[Node.js HTTP 文档](https://nodejs.org/docs/v24.22.1/api/http.html)、[Node.js 流文档](https://nodejs.org/docs/v24.22.1/api/stream.html)、[Node.js 调试说明](https://nodejs.org/en/learn/getting-started/debugging)。这些文档用于核对 API 与按需查错，正文已经给出本章实现所需的关键代码。
 
@@ -738,4 +738,4 @@ npm start
 
 命令与配置查阅：[nvm](https://github.com/nvm-sh/nvm#usage)、[npm 配置](https://docs.npmjs.com/cli/v10/using-npm/config)、[Node.js 调试](https://nodejs.org/en/learn/getting-started/debugging)、[curl 手册](https://curl.se/docs/manpage.html)。HTTP 状态与响应头可查 [MDN HTTP 参考](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Reference)。
 
-[上一章：先认识我们要建设的 EPP](../chapter-01-epp/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：先认识我们要建设的 EPP](../chapter-01-epp/chapter.md) · [下一章：Node.js 程序究竟运行在哪里](../chapter-03-node-runtime/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
