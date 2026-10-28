@@ -330,7 +330,7 @@ echo $?
 
 这里显式使用 `--unhandled-rejections=strict`，把实验中的未处理拒绝策略固定下来。Node 24 的默认模式为 `throw`，但启动参数或监听器可能影响观察。不要把某次运行只显示警告的结果泛化为“遗漏 await 无害”，也不要以为所有失败都应变成进程崩溃：非法输入属于请求可处理的失败；失去所有者的工作失败，暴露的是另一种问题。
 
-给 `process` 加一个 `uncaughtException` 监听器并继续接请求，不能证明状态仍正确。异常可能在一组内存修改的中间发生，继续运行需要恢复依据。常规业务错误应在自己的边界处理；进程级未捕获异常应进入故障退出与外部恢复流程。第十二章建立服务生命周期，第九篇再落实进程托管；当前不要用全局吞错伪造可靠性。
+给 `process` 加一个 `uncaughtException` 监听器并继续接请求，不能证明状态仍正确。异常可能在一组内存修改的中间发生，继续运行需要恢复依据。常规业务错误应在自己的边界处理；进程级未捕获异常应进入故障退出与外部恢复流程。第十三章建立服务生命周期，第九篇再落实进程托管；当前不要用全局吞错伪造可靠性。
 
 ### 超时只描述“谁不再等待”
 
@@ -629,4 +629,4 @@ Worker Threads 可以显式共享特定内存，但默认消息传递不是任�
 
 执行模型参考：[Node 事件循环](https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick)、[不要阻塞事件循环或工作线程池](https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop)。
 
-[上一章：Node.js 程序究竟运行在哪里](../chapter-03-node-runtime/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：Node.js 程序究竟运行在哪里](../chapter-03-node-runtime/chapter.md) · [下一章：TypeScript 如何变成可运行的服务](../chapter-05-typescript/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
