@@ -97,11 +97,14 @@
 
 时间参考（估算）：只阅读约 60～70 分钟；跟做另加约 45～55 分钟，合计约 105～125 分钟。首次下载新增依赖另计，附录按需查阅。
 
-### 第 8 章 Controller 定义系统的 HTTP 入口
+### [第 8 章 Controller 定义系统的 HTTP 入口](part-02-nestjs/chapter-08-controllers/chapter.md)
 
-- 8.1 路由、路径参数、查询参数、请求体与响应映射。
-- 8.2 Controller 怎样将 HTTP 输入交给业务逻辑，哪些工作应留在 Service。
-- 8.3 先用请求和响应观察接口行为，再在依赖注入章节替换组件。
+- [8.1 路由、路径参数、查询参数、请求体与响应映射。](part-02-nestjs/chapter-08-controllers/chapter.md#81-路由路径参数查询参数请求体与响应映射)
+- [8.2 Controller 怎样将 HTTP 输入交给业务逻辑，哪些工作应留在 Service。](part-02-nestjs/chapter-08-controllers/chapter.md#82-controller-怎样将-http-输入交给业务逻辑哪些工作应留在-service)
+- [8.3 先用请求和响应观察接口行为，再在依赖注入章节替换组件。](part-02-nestjs/chapter-08-controllers/chapter.md#83-先用请求和响应观察接口行为再在依赖注入章节替换组件)
+- [章末附录：本章必要技术点速查。](part-02-nestjs/chapter-08-controllers/chapter.md#附录本章必要技术点速查)
+
+时间参考（估算）：只阅读约 45～55 分钟；跟做另加约 35～45 分钟，合计约 80～100 分钟。附录按需查阅，支线单列。
 
 ### 第 9 章 Provider 与依赖注入 把组件组装交给容器
 

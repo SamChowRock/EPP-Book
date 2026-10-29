@@ -615,4 +615,4 @@ node examples/nest-metadata.mjs
 
 官方查阅：[Nest 设计定位](https://docs.nestjs.com/#philosophy)、[依赖组装](https://docs.nestjs.com/fundamentals/custom-providers)、[Nest 11 启动](https://docs.nestjs.com/v11/first-steps)、[Controller](https://docs.nestjs.com/v11/controllers)、[Provider](https://docs.nestjs.com/v11/providers)、[Module](https://docs.nestjs.com/v11/modules)、[Express 5 API](https://expressjs.com/en/5x/api/)、[TypeScript 5.9 装饰器说明](https://www.typescriptlang.org/docs/handbook/decorators.html)、[emitDecoratorMetadata](https://www.typescriptlang.org/tsconfig/emitDecoratorMetadata.html)。本文代码固定 Nest 11.2.5 与 TypeScript 5.9.3，官方站点内容可能随版本更新。
 
-[上一章：第一篇回顾](../../part-01-nodejs/chapter-06-review/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：第一篇回顾](../../part-01-nodejs/chapter-06-review/chapter.md) · [下一章：Controller 定义系统的 HTTP 入口](../chapter-08-controllers/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
