@@ -106,12 +106,15 @@
 
 时间参考（估算）：只阅读约 45～55 分钟；跟做另加约 35～45 分钟，合计约 80～100 分钟。附录按需查阅，支线单列。
 
-### 第 9 章 Provider 与依赖注入 把组件组装交给容器
+### [第 9 章 Provider 与依赖注入：把组件组装交给容器](part-02-nestjs/chapter-09-providers/chapter.md)
 
-- 9.1 从手动组装对象到构造函数注入，解决真实出现的依赖问题。
-- 9.2 Provider、注入令牌，以及类、工厂、值 Provider 的选择。
-- 9.3 将内存存储放在可替换接口后面，为数据库接入留下边界。
-- 9.4 开发中的依赖替换与 Fake：用最小固定返回示例说明接入条件、开发效率和外部费用的取舍，不建设独立模拟体系。
+- [9.1 从手动组装对象到构造函数注入，解决真实出现的依赖问题。](part-02-nestjs/chapter-09-providers/chapter.md#91-从手动组装对象到构造函数注入解决真实出现的依赖问题)
+- [9.2 Provider、注入令牌，以及类、工厂、值 Provider 的选择。](part-02-nestjs/chapter-09-providers/chapter.md#92-provider注入令牌以及类工厂值-provider-的选择)
+- [9.3 将内存存储放在可替换接口后面，为数据库接入留下边界。](part-02-nestjs/chapter-09-providers/chapter.md#93-将内存存储放在可替换接口后面为数据库接入留下边界)
+- [9.4 开发中的依赖替换与 Fake：用固定详情返回观察替换位置与适用范围。](part-02-nestjs/chapter-09-providers/chapter.md#94-开发中的依赖替换与-fake)
+- [章末附录：本章必要技术点速查。](part-02-nestjs/chapter-09-providers/chapter.md#附录本章必要技术点速查)
+
+时间参考（估算）：只阅读约 55～65 分钟；跟做另加约 45～55 分钟，合计约 100～120 分钟。附录按需查阅，支线单列。
 
 ### 第 10 章 Module 建立清楚的业务边界
 

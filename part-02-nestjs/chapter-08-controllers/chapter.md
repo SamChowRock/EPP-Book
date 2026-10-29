@@ -435,4 +435,4 @@ JS
 
 官方查阅：[Nest 11 Controller](https://docs.nestjs.com/v11/controllers)、[Nest 11 内置异常处理](https://docs.nestjs.com/v11/exception-filters)、[Express 5 查询行为变更](https://expressjs.com/en/guide/migrating-5/#req.query)、[Node.js 24 URL 与 URLSearchParams](https://nodejs.org/docs/latest-v24.x/api/url.html)。框架机制对应本章固定版本；业务查询规则与兼容策略由本章代码明确实现。
 
-[上一章：从手写服务走向 Nest](../chapter-07-enter-nest/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：从手写服务走向 Nest](../chapter-07-enter-nest/chapter.md) · [下一章：Provider 与依赖注入](../chapter-09-providers/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
