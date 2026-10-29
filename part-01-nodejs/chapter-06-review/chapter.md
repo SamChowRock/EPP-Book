@@ -123,4 +123,4 @@ curl -sS http://127.0.0.1:3001/captures
 
 官方查阅：[Node 24 Process](https://nodejs.org/docs/v24.22.1/api/process.html)、[Buffer](https://nodejs.org/docs/v24.22.1/api/buffer.html)、[Timers](https://nodejs.org/docs/v24.22.1/api/timers.html)、[Worker Threads](https://nodejs.org/docs/v24.22.1/api/worker_threads.html)。具体推导与完整实现回查第 2～5 章及其支线。
 
-[上一章：TypeScript 如何变成可运行的服务](../chapter-05-typescript/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：TypeScript 如何变成可运行的服务](../chapter-05-typescript/chapter.md) · [下一章：从手写服务走向 Nest](../../part-02-nestjs/chapter-07-enter-nest/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
