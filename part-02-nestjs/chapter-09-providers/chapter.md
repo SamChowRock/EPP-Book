@@ -672,4 +672,4 @@ node dist/examples/provider-values/main.js
 
 官方查阅：[Nest 11 自定义 Provider](https://docs.nestjs.com/v11/fundamentals/custom-providers)、[异步 Provider](https://docs.nestjs.com/v11/fundamentals/async-providers)、[作用域](https://docs.nestjs.com/v11/fundamentals/injection-scopes)、[独立应用容器](https://docs.nestjs.com/v11/standalone-applications)、[TypeScript 结构类型兼容](https://www.typescriptlang.org/docs/handbook/type-compatibility.html)。Provider 实验对应本章固定的 Nest 11.2.5，存储行为以本文契约与实际实现为依据。
 
-[上一章：Controller 定义系统的 HTTP 入口](../chapter-08-controllers/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：Controller 定义系统的 HTTP 入口](../chapter-08-controllers/chapter.md) · [下一章：Module 建立清楚的业务边界](../chapter-10-modules/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)

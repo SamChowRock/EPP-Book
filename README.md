@@ -116,11 +116,14 @@
 
 时间参考（估算）：只阅读约 55～65 分钟；跟做另加约 45～55 分钟，合计约 100～120 分钟。附录按需查阅，支线单列。
 
-### 第 10 章 Module 建立清楚的业务边界
+### [第 10 章 Module 建立清楚的业务边界](part-02-nestjs/chapter-10-modules/chapter.md)
 
-- 10.1 imports、providers、controllers 与 exports 如何组装已有记录服务。
-- 10.2 模块公开能力与内部实现，避免把数据库操作随意泄漏给调用方。
-- 10.3 通过一处循环依赖理解职责划分；复杂业务模块在对应篇章再对照。
+- [10.1 imports、providers、controllers 与 exports 如何组装已有记录服务。](part-02-nestjs/chapter-10-modules/chapter.md#101-importsproviderscontrollers-与-exports-如何组装已有记录服务)
+- [10.2 模块公开能力与内部实现，避免把数据库操作随意泄漏给调用方。](part-02-nestjs/chapter-10-modules/chapter.md#102-模块公开能力与内部实现避免把数据库操作随意泄漏给调用方)
+- [10.3 通过一处循环依赖理解职责划分；复杂业务模块在对应篇章再对照。](part-02-nestjs/chapter-10-modules/chapter.md#103-通过一处循环依赖理解职责划分复杂业务模块在对应篇章再对照)
+- [章末附录：本章必要技术点速查。](part-02-nestjs/chapter-10-modules/chapter.md#附录本章必要技术点速查)
+
+时间参考（估算）：只阅读约 45～55 分钟；跟做另加约 35～45 分钟，合计约 80～100 分钟。附录按需查阅，支线单列。
 
 ### 第 11 章 建立可信的输入与错误边界
 
