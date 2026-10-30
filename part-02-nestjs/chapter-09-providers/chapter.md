@@ -510,7 +510,7 @@ curl -i http://127.0.0.1:3000/captures \
 
 ### 同时维护以前能运行的入口
 
-构造函数和返回类型改变后，前文的独立示例也是消费者，不能只修复 HTTP 服务。将 `examples/manual-composition.mjs` 更新为：
+构造函数和返回类型改变后，本章继续使用的手动组装与元数据示例也是消费者，需要与 HTTP 服务一起更新。将 `examples/manual-composition.mjs` 更新为：
 
 ```javascript
 import { CapturesService } from '../dist/src/captures.service.js';
@@ -538,26 +538,14 @@ console.log('isolated entry count:', (await isolatedEntry.list()).length);
 
 三个计数依次为 1、1、0，与 9.1 中的源文件调用对照一致。nest-metadata 示例也要显式传入 MemoryCaptureStore，并等待 create、find 和 list。Controller 的构造令牌仍是 CapturesService，因此原有元数据观察不变；只有业务组装与调用改为本章形式。
 
-支线 7C 的最小容器只支持类 Provider，不支持本章的 Symbol 与工厂注册。为保持它的演示范围，在其 app.ts 中添加一个无参数的演示适配类：
-
-```typescript
-class MiniCapturesService extends CapturesService {
-  constructor() { super(new MemoryCaptureStore()); }
-}
-```
-
-补充 MemoryCaptureStore 的导入，把 MiniCapturesController 的构造参数和 MiniAppModule.providers 中的类改为 MiniCapturesService。其 list 方法改为 async 并等待结果；asHttp 改为接收 `T | Promise<T>`，在 async 函数的 try 内 `return await action()`，才能继续转换异步业务错误。这个小类只承担旧实验的组装，不放进主线，也没有把最小容器扩建成另一套 Nest。
-
-完成构建后，可以继续运行这些入口：
+完成构建后，运行这两个入口，核对共享存储和构造参数元数据：
 
 ```bash
 node examples/manual-composition.mjs
 node examples/nest-metadata.mjs
-npm exec -- tsc -p examples/mini-nest/tsconfig.json
-node dist/examples/mini-nest/main.js
 ```
 
-最小框架仍用独立端口 3004，按支线 7C 的创建和查询请求核对后停止。前文的代码讲解对应前文章节分支；当前分支中的示例则适配本章 Service，避免新旧构造方式混用。
+前文的代码讲解对应前文章节分支；这两个仍参与本章的示例随 Service 更新，避免新旧构造方式混用。
 
 ### 后面换数据库，还需要兑现哪些条件
 
