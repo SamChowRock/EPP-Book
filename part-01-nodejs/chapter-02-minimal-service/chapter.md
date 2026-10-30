@@ -116,14 +116,17 @@ npm --version
     "node": "24.22.1"
   },
   "scripts": {
-    "dev": "node --watch --inspect=127.0.0.1:9229 src/server.js",
-    "start": "node src/server.js",
-    "debug": "node --inspect-brk=127.0.0.1:9229 src/server.js"
+    "dev": "NODE_ENV=development node --watch --inspect=127.0.0.1:9229 src/server.js",
+    "start": "NODE_ENV=production node src/server.js",
+    "debug": "NODE_ENV=development node --inspect-brk=127.0.0.1:9229 src/server.js",
+    "check": "node --check src/server.js"
   }
 }
 ```
 
 `dev` 是学习时默认的启动入口，监听源码并开启本机调试；`start` 是不带监听与调试的生产运行入口，`debug` 用于需要在启动前暂停的专项排查。`private` 防止这个练习项目被误发布到 npm；`engines.node` 与 `.nvmrc` 保持同一个精确版本。
+
+命令显式设置运行模式：dev/debug 使用 `NODE_ENV=development`，start 使用 `NODE_ENV=production`。模式给程序和依赖判断环境；是否监听文件、开放 Inspector，仍由命令参数控制，设置 production 不会自动移除调试参数。这里采用 macOS、Linux 或 WSL 的 shell 写法。
 
 `engines` 默认只表达版本要求。再在项目根目录新建 `.npmrc`，让 npm 在安装时检查并拒绝不匹配的 Node 版本：
 
@@ -393,11 +396,11 @@ async function handleRequest(request, response) {
 
 ```javascript
 const server = createServer((request, response) => {
-  console.log(`${request.method} ${request.url}`);
+  console.log(JSON.stringify({ event: 'http.request', method: request.method }));
   handleRequest(request, response).catch((error) => {
     if (response.destroyed || response.writableEnded) return;
     const statusCode = error instanceof HttpError ? error.statusCode : 500;
-    if (statusCode === 500) console.error(error);
+    if (statusCode === 500) console.error('Unhandled request failure:', error instanceof Error ? error.name : 'UnknownError');
     sendJson(response, statusCode, {
       error: statusCode === 500 ? 'Internal server error' : error.message,
     }, { Connection: 'close' });
@@ -417,6 +420,8 @@ server.listen(port, host, () => {
   console.log(`EPP listening on http://${host}:${port}`);
 });
 ```
+
+日志从第一条就控制信息范围。记录方法足以确认请求进入；原始 URL 可能带查询原文，异常消息或堆栈也可能带请求数据，不能直接整份输出。因此普通请求只记录事件名和方法，内部失败只记异常类型。需要核对输入时，在 Postman 查看自己发送的内容，在调试器查看局部变量；分享日志与截图前删除敏感信息。后面建立请求关联时再增加有明确用途的字段。
 
 `error instanceof HttpError` 对应我们主动定义的输入失败，保留它的状态码与说明。其他异常返回 `500`，详细原因留在终端中：客户端需要知道这次操作未正常完成，维护者需要足够信息定位代码错误，两者需要的内容不同。
 
@@ -495,7 +500,7 @@ Content-Type: application/json; charset=utf-8
 
 这里及后面的响应示例省略了 `Date`、连接管理和传输相关头部；Node 可能自动补上它们，大小写与顺序也不必完全相同。重点是状态码、我们设置的字段和响应体。
 
-服务终端还会出现 `GET /captures`。这条简短日志用于判断请求是否进入处理入口，不包含状态码、耗时或请求关联信息；第二篇会在实际需求下完善日志。
+服务终端还会出现 `{"event":"http.request","method":"GET"}`。这条简短日志用于判断请求是否进入处理入口，不包含状态码、耗时或请求关联信息；第二篇会在实际需求下完善日志。
 
 如果 curl 提示连接失败，此时尚未拿到一次 HTTP 响应，先检查服务是否成功监听、地址是否一致；修改 `JSON.parse` 不会让一个尚未建立的连接突然成立。反过来，收到 `400` 与 JSON 错误体，说明已经有服务处理请求并生成了响应。把“连接没有建立”和“应用拒绝输入”分开，才能沿着执行过程排错，而不是从头更换代码。
 

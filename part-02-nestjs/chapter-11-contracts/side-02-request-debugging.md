@@ -6,13 +6,13 @@ Swagger 能返回一份错误，不等于我们已经找到了错误原因。同
 
 时间参考（估算）：阅读约 22～28 分钟；请求整理与断点操作另加约 20～25 分钟。按约 3200 个汉字、18 行代码与命令，以及保存正常请求、识别条件响应、比较两类 400 和一次受控输出失败估算；已有接口客户端可以继续使用，不要求重复安装多种工具。
 
-本支线默认以 `npm run dev` 启动，VS Code 使用 `EPP: attach to npm run dev`。保存源码后等待编译、重启及重新连接，再发送已保存请求；浏览器中的 Swagger 文档改变后刷新页面。只有专项观察启动过程才切换到 build/launch 或 inspect-brk，切换前停止 dev。每次重启会清空 Map，先重建必要的演示记录；不要把失去记录误判成刚修的接口失败。
+本支线默认以 `npm run dev` 启动，VS Code 使用 `EPP: attach to npm run dev`。保存源码后等待编译、重启及重新连接，再发送已保存请求；浏览器中的 Swagger 文档改变后刷新页面。Swagger 在 development 默认开启，production/test 默认关闭；页面 404 时先核对目标端口、NODE_ENV 与 DOCS_ENABLED，不要立即怀疑路由实现。只有专项观察启动过程才切换到 build/launch 或 inspect-brk，切换前停止 dev。每次重启会清空 Map，先重建必要的演示记录；不要把失去记录误判成刚修的接口失败。
 
 ## 日常反复调试：复用 Postman 请求集合
 
 继续使用第二章已保存的 Postman 请求，修改字段后点击 Send 即可。若直接从本章代码开始，在 Import 中选择 `requests/epp.postman_collection.json`，即可得到同一组基础请求，无需先构建或导出文档；下面的 OpenAPI 导入用于根据当前文档补充集合，可以按需执行。Swagger 适合直接核对当前 OpenAPI 并试发请求。需要持续保存“正常创建、字段错误、查询错误、详情不存在”等多份输入时，独立接口客户端的请求集合更方便。这里以 Postman 桌面客户端为例；已有同类工具时，保留相同方法、URL、头部与正文即可，不必为了阅读本章更换工具。
 
-先停止 dev，再运行 `npm run build` 和 `node scripts/export-openapi.mjs`，在 Postman 工作区的 Import 入口选择 `dist/openapi.json`，导入为 Collection。使用本机文件避免把本机地址交给不在本机的远程抓取方。导出完成后重新运行 `npm run dev`。生成的集合是文档的一个消费者，导入成功不证明服务正在运行，也不证明生成的默认参数就是我们要发的请求。
+保持 dev，在另一个终端运行 `npm run build` 和 `node scripts/export-openapi.mjs`，在 Postman 工作区的 Import 入口选择 `dist/openapi.json`，导入为 Collection。使用本机文件避免把本机地址交给不在本机的远程抓取方。导出使用 dist，不会清理开发进程使用的 .dev。生成的集合是文档的一个消费者，导入成功不证明服务正在运行，也不证明生成的默认参数就是我们要发的请求。
 
 在集合的 Variables 中设置 `baseUrl` 为 `http://127.0.0.1:3000`，核对三个请求使用的地址：
 

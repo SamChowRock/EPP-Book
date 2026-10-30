@@ -92,6 +92,29 @@ const port = Number(process.env.PORT || 3000);
 
 这不是 Node 规定所有项目都必须这样配置，而是我们给服务建立的输入契约。3.4 会把这组规则写进 `loadConfig()`，并在真正监听之前执行。若以后需要支持随机端口，应明确改变契约，再从监听结果读取实际地址。
 
+### 让本机配置可重复，又不混进交付目录
+
+每天启动都手写同一组变量容易遗漏，也不方便确认项目默认值。在根目录添加 `.env.example`，内容为 `PORT=3000`，只保存无秘密的示例。复制一次：
+
+```bash
+cp .env.example .env
+```
+
+在 `.env` 修改本机端口。文件本身不会被 Node 自动读取：把 package.json 的 dev/debug 命令中 `node` 后加上 `--env-file-if-exists=.env`，仍保留第二章的 NODE_ENV、watch 与 Inspector 参数。第三章完整脚本如下：
+
+```json
+{
+  "dev": "NODE_ENV=development node --env-file-if-exists=.env --watch --inspect=127.0.0.1:9229 src/server.js",
+  "start": "NODE_ENV=production node src/server.js",
+  "debug": "NODE_ENV=development node --env-file-if-exists=.env --inspect-brk=127.0.0.1:9229 src/server.js",
+  "check": "node --check src/server.js && node --check src/config.js"
+}
+```
+
+不存在 `.env` 时继续使用公开默认配置；存在时由 Node 读取，已有进程环境变量优先。例如 `PORT=3001 npm run dev` 优先于文件中的 3000。NODE_ENV 则由 npm 脚本明确指定，不能靠修改 `.env` 把 dev 变为生产入口。当前配置只在启动读取，改 `.env` 后手动重启；自动监听源码不会替你重新加载启动环境。
+
+第二章的忽略规则已经排除 `.env` 并允许 `.env.example`。实际秘密不写进示例、请求集合或 Git，交付时也不复制开发文件。`npm start` 不带 env-file 参数，由目标环境提供 PORT；配置仍经过本章稍后建立的格式与范围校验。文件加载成功和配置值有效是两件事。
+
 ### 日志为什么出现在终端里
 
 环境变量传入的是启动信息，输入输出通道则承担运行过程中的数据交换。进程通常获得三个约定好的通道：标准输入 stdin、标准输出 stdout、标准错误 stderr，对应文件描述符 0、1、2。
@@ -464,7 +487,7 @@ npm start
 应在成功监听后看到 `http://127.0.0.1:3000` 与当前 PID。停止后再运行：
 
 ```bash
-PORT=3001 node src/server.js
+NODE_ENV=production PORT=3001 node src/server.js
 ```
 
 应改为监听 `3001`。在另一终端用 `http://127.0.0.1:3001/captures` 完成第二章的创建、列表与详情请求，确认输入输出约定没有变化。新启动的进程仍有自己的空 Map，换端口不迁移原进程里的数据。不要继续请求旧的 `3000`，否则可能在检查另一个进程。
@@ -472,13 +495,13 @@ PORT=3001 node src/server.js
 下面验证错误输入在监听前就被拒绝：
 
 ```bash
-PORT=3001oops node src/server.js
+NODE_ENV=production PORT=3001oops node src/server.js
 echo $?
 
 PORT= node src/server.js
 echo $?
 
-PORT=65536 node src/server.js
+NODE_ENV=production PORT=65536 node src/server.js
 echo $?
 ```
 
@@ -489,7 +512,7 @@ echo $?
 ```bash
 (
   cd src
-  PORT=3001 node server.js
+  NODE_ENV=production PORT=3001 node server.js
 )
 ```
 
@@ -546,7 +569,7 @@ node examples/path-report.js ./input.json
 
 本章完成代码分支：`part-01/chapter-03`，从第二章状态继续演进。`config/service.json`、`src/config.js` 和本章 `examples/` 文件随代码保存；依赖清单与锁文件没有新增第三方依赖。
 
-时间参考（估算）：只阅读约 40～45 分钟；跟做另加约 30～40 分钟，边读边做合计约 70～85 分钟。按正文约 9100 个汉字、约 170 行随文代码与命令估算，阅读包含理解代码；跟做分别考虑建立与修改文件约 8～10 分钟、环境与通道观察约 7～10 分钟、进程及退出观察约 5～7 分钟、路径变式与接口回查约 10～13 分钟。不重复计算阅读，不含首次安装环境、逐字手敲全部代码或额外排错。附录按需查阅，支线时间单列。
+时间参考（估算）：只阅读约 43～48 分钟；跟做另加约 33～43 分钟，边读边做合计约 76～91 分钟。按正文约 9600 个汉字、约 180 行随文代码与命令估算，阅读包含理解代码；跟做分别考虑建立与修改文件约 8～10 分钟、环境文件、优先级与通道观察约 10～13 分钟、进程及退出观察约 5～7 分钟、路径变式与接口回查约 10～13 分钟。不重复计算阅读，不含首次安装环境、逐字手敲全部代码或额外排错。附录按需查阅，支线时间单列。
 
 ## 本章支线
 

@@ -259,7 +259,7 @@ function httpFailure(error: unknown): {
   const statusCode = error instanceof HttpError ? error.statusCode
     : error instanceof InvalidCaptureError ? 400
     : error instanceof CaptureNotFoundError ? 404 : 500;
-  if (statusCode === 500) console.error(error);
+  if (statusCode === 500) console.error('Unhandled request failure:', error instanceof Error ? error.name : 'UnknownError');
   return {
     statusCode,
     body: { error: statusCode === 500 ? 'Internal server error' : errorMessage(error) },

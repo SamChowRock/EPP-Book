@@ -10,7 +10,7 @@
 
 记录仍只包含 `id`、`originalText`、`createdAt`，仍保存在一个进程的内存里。没有新表、迁移或回填；更换启动进程会丢失旧 Map 中的内容，这一点不会因为接入框架而改变。
 
-时间参考（估算）：只阅读约 67～77 分钟；跟做另加约 55～65 分钟，合计约 122～142 分钟。首次下载新增依赖另计，附录按需查阅。
+时间参考（估算）：只阅读约 70～80 分钟；跟做另加约 55～65 分钟，合计约 125～145 分钟。首次下载新增依赖另计，附录按需查阅。
 
 ## 7.1 从职责拆分到框架选择：为什么引入 Nest
 
@@ -198,7 +198,7 @@ export async function respond(
     const statusCode = error instanceof HttpError ? error.statusCode
       : error instanceof InvalidCaptureError ? 400
       : error instanceof CaptureNotFoundError ? 404 : 500;
-    if (statusCode === 500) console.error(error);
+    if (statusCode === 500) console.error('Unhandled request failure:', error instanceof Error ? error.name : 'UnknownError');
     sendJson(response, statusCode, {
       error: statusCode === 500 ? 'Internal server error' : errorMessage(error),
     }, { Connection: 'close' });
@@ -309,6 +309,10 @@ npm install --save-dev --save-exact @types/express@5.0.6
 下面 Controller 的构造函数要求 `CapturesService`。TypeScript 通常会擦除参数类型；启用元数据后，产物可以留下指向这个类的运行时引用，Nest 才能据此查找对应 Provider。接口、泛型等类型不能因此全部恢复，也不会自动获得 JSON 校验能力。
 
 第五章已经将主服务的默认开发入口设为 `npm run dev`，由 TypeScript watch 编译并自动重启。现在保持该命令与 `scripts/dev.mjs` 不变，新增的装饰器选项直接参与开发编译；生产仍使用 `npm run build` 与 `npm start`。因此迁入 Nest 后，保存、调试和重发请求的循环不会中断。
+
+这里也需要重新审视工具选择。Nest CLI 的 `nest start --watch --debug 127.0.0.1:9229` 可以编译、重启并开放调试，assets/watchAssets 能复制和监听资源；新建常规 Nest 工程可优先评估这条路径。当前已有 NodeNext 的 ESM 产物、src/config 相对布局、开发 .dev 与交付 dist 隔离，以及“编译失败停掉旧服务”的行为约定，迁移不能只替换命令名。
+
+本次保留已建立的 TypeScript runner，让框架迁移集中在请求与容器机制；这是一项继续维护脚本的选择。若采用 CLI，应将它作为锁定版本的开发依赖，通过 package scripts 调用本地工具，明确入口、tsconfig、资源路径和不同环境的输出目录，再依次验证正常保存、类型错误、修复、配置变化、快速连续保存和 Ctrl+C 后无遗留进程。尤其要观察失败时旧进程是否继续提供旧响应，不能把 CLI 的编译错误提示当成已停服的证据。迁移后的 source map、Inspector 重连与独立产物运行也要保持；满足这些条件才算替换完成。官方命令和资源选项见 [Nest CLI usages](https://docs.nestjs.com/cli/usages)。
 
 `tsx` 不发出这套构造函数类型元数据，不能将当前默认入口换成 `tsx watch src/server.ts`。第五章无装饰器的独立示例仍可用 tsx。TypeScript 能被执行与所需编译语义完整是两件事；选择监听工具时也必须保留这个约束。
 
@@ -477,7 +481,7 @@ export function httpBoundary(
   response: Response,
   next: NextFunction,
 ): void {
-  console.log(`${request.method} ${request.url}`);
+  console.log(JSON.stringify({ event: 'http.request', method: request.method }));
   void respond(response, () => {
     let url: URL;
     try {

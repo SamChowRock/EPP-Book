@@ -1,8 +1,8 @@
 # 支线 5B：从“接口不对”到找到出错的那一步
 
-第二章已经用 Chrome 暂停过一次写入。进入 TypeScript 后，问题多了一层：编辑的是 src，执行的是 dist。断点没停下，可能是请求没走到那里，也可能是连错进程、运行旧产物，甚至只是断点对应的代码还没加载。把这些情况都解释成“调试器不好用”，就又会退回到到处加 console.log。
+第二章已经用 Chrome 暂停过一次写入。进入 TypeScript 后，问题多了一层：编辑的是 src，执行的是 .dev 或 dist 中的 JavaScript。断点没停下，可能是请求没走到那里，也可能是连错进程、运行旧产物，甚至只是断点对应的代码还没加载。把这些情况都解释成“调试器不好用”，就又会退回到到处加 console.log。
 
-本支线沿第五章的记录服务建立一个可以反复使用的调试工作台：保存一份明确的请求，在对应进程里观察状态，用证据缩小失败范围，再改变输入复验。代码使用 `part-01/chapter-05`，入口仍是 `dist/src/server.js`。后面的 Nest 只是把同一条执行路径拆进不同文件，这套方法可以继续使用。
+本支线沿第五章的记录服务建立一个可以反复使用的调试工作台：保存一份明确的请求，在对应进程里观察状态，用证据缩小失败范围，再改变输入复验。代码使用 `part-01/chapter-05`，默认开发入口是 `.dev/src/server.js`，构建调试入口是 `dist/src/server.js`。后面的 Nest 只是把同一条执行路径拆进不同文件，这套方法可以继续使用。
 
 时间参考（估算）：阅读约 30～38 分钟；配置与操作另加约 30～40 分钟。按约 3800 个汉字、65 行配置与命令，以及三份调试配置、正常／失败请求、两个暂停位置的栈与作用域对照、条件断点与一次旧产物排查估算，不含首次安装编辑器。
 
@@ -65,7 +65,7 @@ curl -i http://127.0.0.1:3000/captures \
       "timeout": 30000,
       "sourceMaps": true,
       "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
+        "${workspaceFolder}/.dev/**/*.js"
       ],
       "skipFiles": [
         "<node_internals>/**",
@@ -80,7 +80,8 @@ curl -i http://127.0.0.1:3000/captures \
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "EPP: build",
       "runtimeArgs": [
-        "--enable-source-maps"
+        "--enable-source-maps",
+        "--env-file-if-exists=.env"
       ],
       "sourceMaps": true,
       "outFiles": [
@@ -90,7 +91,10 @@ curl -i http://127.0.0.1:3000/captures \
         "<node_internals>/**",
         "${workspaceFolder}/node_modules/**"
       ],
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "development"
+      }
     },
     {
       "name": "EPP: attach to npm run debug",
@@ -182,7 +186,7 @@ before insert: size={captures.size}
 | --- | --- |
 | 目标没有监听日志，刚运行 inspect-brk | 是否仍暂停在启动位置；先 Continue |
 | 请求已有响应，但创建断点不命中 | 是否发送了 POST；返回 415／400 是否表明在更早位置被拒绝 |
-| 修改源码后仍执行旧逻辑 | 当前进程是否重启，dist 是否由当前源码重新构建 |
+| 修改源码后仍执行旧逻辑 | 当前进程是否重启，开发 .dev 或产物 dist 是否由当前源码重新编译 |
 | 编译后的 JavaScript 能停，TypeScript 不能停 | .map 是否存在，sources 能否定位到当前源码，outFiles 是否匹配实际 .js |
 | 请求到达另一份服务 | 对照监听日志 PID、端口及调试目标；不要只看文件名一样 |
 

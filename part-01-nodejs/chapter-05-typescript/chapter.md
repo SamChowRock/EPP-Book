@@ -8,7 +8,7 @@
 
 **代码起点**：第四章完成状态，代码分支 `part-01/chapter-04`；本章完成状态使用 `part-01/chapter-05`。继续使用 Node.js `24.22.1`，命令在配套项目根目录执行；macOS、Linux 使用 Bash／Zsh，Windows 使用 WSL。先执行 `nvm use`。本章固定 TypeScript `5.9.3`、tsx `4.23.15` 和 `@types/node` `24.13.3`，以明确的组合讨论行为，不依赖全局安装。
 
-**时间参考（估算）**：正文约 8300 个汉字、250 行代码与命令，考虑类型迁移、模块路径推导和构建配置的阅读密度，只阅读约 50～60 分钟；跟做另加约 40～50 分钟，合计约 90～110 分钟。首次下载依赖另计，支线与第六章分别估算；这些是按内容与步骤估算的读者投入，不是实测时长。
+**时间参考（估算）**：正文约 7900 个汉字、250 行代码与命令，考虑类型迁移、模块路径推导、开发与产物隔离和构建配置的阅读密度，只阅读约 53～63 分钟；跟做另加约 43～53 分钟，合计约 96～116 分钟。首次下载依赖另计，支线与第六章分别估算；这些是按内容与步骤估算的读者投入，不是实测时长。
 
 ## 5.1 类型检查、转译与运行各自负责什么
 
@@ -189,7 +189,7 @@ if (!('port' in defaults) || typeof defaults.port !== 'number'
 
 现在可以把「TypeScript 能运行」拆开。类型检查在执行前分析代码约定；转译把 TypeScript 转成 JavaScript；运行时真正执行程序并处理当前输入。检查不会执行所有请求路径，转译不等于检查，启动成功也不等于每种输入都正确。
 
-本章用 `tsc --noEmit` 单独检查，用 `tsx` 快速执行开发源码，用 `tsc` 生成 JavaScript 后交给 Node 运行。tsx 的执行路径不承担完整类型检查，因此开发服务能启动时，仍然需要独立运行检查命令。
+本章用 `tsc --noEmit` 单独检查，主服务在开发模式下由 TypeScript watch 编译后交给 Node 运行，生产构建同样使用 tsc。tsx 用于独立源码实验，它不承担完整类型检查，不能把单文件运行成功当作项目检查通过。
 
 也不要把「Node 只能执行 `.js`」当成解释。这里固定的 Node 24 已支持擦除一部分 TypeScript 类型语法，简单的 `.ts` 文件可以直接运行，但这个过程不检查类型，也不按 `tsconfig.json` 做项目转换。当前服务采用 `.js` 导入与编译产物对齐，直接 `node src/server.ts` 并不会因此自动把所有 `.js` 导入改指向 `.ts` 源码。选择入口时，必须同时考虑语法和模块解析。
 
@@ -218,7 +218,7 @@ import { loadConfig } from './config.js';
 | 阶段 | 当前文件 | 需要找到的文件 |
 | --- | --- | --- |
 | 类型检查 | `src/server.ts` | `src/config.ts`，用于检查导出与类型 |
-| tsx 开发运行 | `src/server.ts` | 工具解析到 TypeScript 源文件 |
+| tsx 独立示例 | `src/server.ts` | 工具解析到 TypeScript 源文件 |
 | Node 产物运行 | `dist/src/server.js` | `dist/src/config.js`，按 ESM 加载 |
 
 如果改成 `./config`，某些开发工具仍然能猜到文件，但原生 Node ESM 不替相对导入自动补齐 `.js`，也不自动尝试目录里的 `index.js`。输出保留这个缺少扩展名的路径，就可能出现 `ERR_MODULE_NOT_FOUND` 或目录导入错误。NodeNext 检查的一个价值，是把这类与目标运行时不一致的写法尽量提前指出。
@@ -310,16 +310,17 @@ await copyFile(
 
 两个脚本都按模块位置定位项目资源，不借用启动者的 cwd。复制对象明确是无秘密的默认配置，而不是把 `.env`、日志、用户数据和整个工作目录一起塞进去。这里的配置是构建时的一份快照：修改根目录默认文件后，要重新构建才能改变产物中的副本；运行时 `PORT` 仍由启动环境提供。
 
-在 `.gitignore` 追加 `dist/`，让可重新生成的文件不进入源码历史。然后把 `package.json` 的 `scripts` 替换为：
+在 `.gitignore` 追加 `dist/` 和 `.dev/`，让可重新生成的文件不进入源码历史。然后把 `package.json` 的 `scripts` 替换为：
 
 ```json
 {
-  "dev": "node scripts/dev.mjs",
+  "dev": "NODE_ENV=development node --env-file-if-exists=.env scripts/dev.mjs",
   "typecheck": "tsc --noEmit",
   "clean": "node scripts/clean.mjs",
   "build": "npm run clean && tsc && node scripts/copy-assets.mjs",
-  "start": "node --enable-source-maps dist/src/server.js",
-  "debug": "node --enable-source-maps --inspect-brk=127.0.0.1:9229 dist/src/server.js"
+  "start": "NODE_ENV=production node --enable-source-maps dist/src/server.js",
+  "debug": "NODE_ENV=development node --env-file-if-exists=.env --enable-source-maps --inspect-brk=127.0.0.1:9229 dist/src/server.js",
+  "check": "npm run typecheck && npm run build"
 }
 ```
 
@@ -327,13 +328,28 @@ await copyFile(
 
 这里的 `start` 不偷偷重新构建。它只运行现有产物，因而可以在没有 TypeScript 工具的目录里执行。`debug` 同样调试构建结果；改了源码后先重建，避免断点面对旧代码。`sourceMap` 生成位置映射，`--enable-source-maps` 让错误栈尽可能映射回源码位置。映射不是 TypeScript 执行器，也不替代实际源码；本机调试时保留源码，分享映射文件前同样检查其中的信息。
 
+交付检查应使用另一份请求目标。在 Postman 复制现有集合，将副本命名为“EPP 产物核对”，把集合变量 baseUrl 设为 `http://127.0.0.1:3001`。本章后面准备好独立运行目录后，在该目录执行 `PORT=3001 npm start`，发送列表、创建、详情和错误请求；看清响应来自哪个端口。开发集合仍指向 3000。两个进程各有自己的 Map，创建后的 ID 应复制到各自集合的 captureId，不能互用。
+
 ### 保存以后，怎样让正在运行的代码一起更新
 
-学习时默认执行 `npm run dev`，同时获得自动编译、重启和本机断点调试。tsx 可用于快速运行单文件，前面的类型断言实验仍使用它；主服务采用同一份 tsconfig 的 TypeScript watch 编译，便于把开发和生产的编译语义保持一致。以后加入装饰器元数据也继续走这条路径。Nest CLI 等工具也能组织开发监听；这里沿用当前单包和资源布局，用一个小启动脚本接上编译结果，不增加另一套构建配置。
+学习时默认执行 `npm run dev`，同时获得自动编译、重启和本机断点调试。tsx 可用于快速运行单文件，前面的类型断言实验仍使用它；主服务采用同一份 tsconfig 的 TypeScript watch 编译，便于把开发和生产的编译语义保持一致。以后加入装饰器元数据也继续走这条路径。成熟工具应先于自写编排被评估。单包 TypeScript 项目可以用 tsc-watch 在编译成功或失败时执行动作；进入 Nest 后，其官方 CLI 也提供 watch、debug 和资源监听。本项目需要保持 NodeNext 输出、模块相对资源布局，并在类型错误时停掉旧服务；下面的脚本将这些要求显式接起来。选择自维护也意味着承担退出、重复保存和配置变化的维护成本，不能因为少装一个包就认定更简单。第七章再按框架工具的实际能力比较迁移条件。
 
 仅执行 `tsc --watch` 还不完整：它负责生成 JavaScript，却不会确保服务重启；只监听 dist 也可能在一轮编译尚未全部完成时提前启动。我们需要在完整编译成功后，停止旧进程、等待它退出、复制配置，再启动新进程。编译失败时也停止旧服务，避免拿旧响应判断刚写的代码。
 
-新增 `scripts/dev.mjs`：
+开发编译继承相同的类型与模块规则，仅改变输出目录。新增 `tsconfig.dev.json`：
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./.dev"
+  }
+}
+```
+
+开发进程运行 `.dev/src/server.js`，资源复制到 `.dev/config`；交付构建只清理并生成 `dist`。这样运行检查时不会删除正在调试的文件，开发重编译也不会改写交付候选产物。两套目录隔离文件，进程仍需使用不同业务端口。
+
+配套的 `scripts/dev.mjs` 如下。日常工作直接使用 npm 命令，不必把编译器 API 或进程编排当作业务开发的前置练习：
 
 ```javascript
 import ts from 'typescript';
@@ -369,9 +385,9 @@ function restart(ready) {
   pending = pending.then(async () => {
     await stopServer();
     if (stopping || requested !== revision || !ready) return;
-    mkdirSync('dist/config', { recursive: true });
-    copyFileSync('config/service.json', 'dist/config/service.json');
-    const current = spawn(process.execPath, ['--inspect=127.0.0.1:9229', '--enable-source-maps', 'dist/src/server.js'], {
+    mkdirSync('.dev/config', { recursive: true });
+    copyFileSync('config/service.json', '.dev/config/service.json');
+    const current = spawn(process.execPath, ['--inspect=127.0.0.1:9229', '--enable-source-maps', '.dev/src/server.js'], {
       stdio: 'inherit',
     });
     child = current;
@@ -385,7 +401,7 @@ function restart(ready) {
 }
 
 const host = ts.createWatchCompilerHost(
-  'tsconfig.json', { noEmitOnError: true }, ts.sys,
+  'tsconfig.dev.json', { noEmitOnError: true }, ts.sys,
   ts.createEmitAndSemanticDiagnosticsBuilderProgram,
   diagnostic => {
     console.error(ts.formatDiagnostic(diagnostic, format));
@@ -423,7 +439,7 @@ restart 把操作串到同一个 Promise 链上，先等旧进程退出再启动
 
 服务子进程使用 `--inspect=127.0.0.1:9229`，连接调试器前也会正常运行；需要观察启动第一行时才改用既有的 `npm run debug`。VS Code 的连接与重连在本章支线 5B 展开。sourceMap 仍将产物位置映射回 src。修改依赖、package.json、开发脚本或环境变量后，手动停止并重新运行 dev；这些不属于当前源码监听范围。
 
-运行 dev 后，把启动日志改一个词并保存；等待重启完成，重发请求核对。再故意制造一个类型错误，观察旧服务停止；修复并保存后应恢复。不要在 dev 运行中另行执行 clean/build，它们会争用同一个 dist；检查生产产物前先停止开发进程。
+运行 dev 后，把启动日志改一个词并保存；等待重启完成，重发请求核对。再故意制造一个类型错误，观察旧服务停止；修复并保存后应恢复。保持 dev 运行，在另一个终端执行 `npm run check`，它依次检查类型并构建 dist；随后再向开发端口发送请求，确认开发进程仍可用。这能验证目录隔离，而不只是看两条命令是否存在。check 不会发送业务请求，正常创建与错误拒绝仍由已保存的 Postman 请求核对。
 
 | 场景 | 命令与结果 |
 | --- | --- |
@@ -449,9 +465,9 @@ npm start
 
 检查成功应以退出码 `0` 为依据，不要求工具一定打印「成功」。构建后应有三个业务模块的 `.js` 和 `.js.map`，以及 `dist/config/service.json`。启动后继续用第二章的请求确认新增、列表和详情，错误输入仍然返回 `400`，不能因迁移类型而接受数字原文。
 
-停止服务以后，再执行 `npm run dev`。这是另一个进程，原来的 Map 不会被搬进来。watch 模式监测代码变化并重启程序，因此修改源码触发重启后，内存记录也会消失；这不是 TypeScript 把记录删除了。不要同时让开发服务与产物服务使用默认端口，否则会得到前文已经解释过的端口占用错误。
+如果刚才用了默认端口，停止产物服务以后，再执行 `npm run dev`。这是另一个进程，原来的 Map 不会被搬进来。watch 模式监测代码变化并重启程序，因此修改源码触发重启后，内存记录也会消失；这不是 TypeScript 把记录删除了。不要同时让开发服务与产物服务使用默认端口，否则会得到前文已经解释过的端口占用错误。
 
-先停止 dev，再运行开头的错误示例：
+开头的类型断言示例可以在另一个终端独立运行：
 
 ```bash
 node --import=tsx examples/type-boundary.ts
@@ -552,7 +568,7 @@ cp -R dist "$release_dir/dist" &&
 ```bash
 (
   cd /
-  PORT=3001 node --enable-source-maps "$release_dir/dist/src/server.js"
+  NODE_ENV=production PORT=3001 node --enable-source-maps "$release_dir/dist/src/server.js"
 )
 ```
 

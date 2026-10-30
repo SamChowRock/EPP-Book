@@ -8,9 +8,9 @@
 
 代码从第十章的 `part-02/chapter-10` 继续，完成状态为 `part-02/chapter-11`。仍使用内存存储，不新增数据库、登录、业务冲突规则或新业务接口。本章增加运行时 Schema、显式响应映射、Problem Details 错误响应，以及 `/docs` 和 `/openapi.json` 两个文档入口。成功响应、状态码、Location／Allow、GET 的 ETag 条件响应、查询顺序与原文保存规则延续；**错误响应正文改为新结构**，旧客户端读取 `error` 的代码需要同步修改。
 
-时间参考（估算）：只阅读约 60～70 分钟；跟做另加约 45～55 分钟，合计约 105～125 分钟。首次下载新增依赖另计，附录按需查阅，支线单列。
+时间参考（估算）：只阅读约 63～73 分钟；跟做另加约 50～60 分钟，合计约 113～133 分钟。首次下载新增依赖另计，附录按需查阅，支线单列。
 
-按正文约 8000 个汉字、约 310 行代码与命令，以及输入迁移、响应与错误改造、文档生成和成功／失败请求对照估算，尚未经过读者实测。
+按正文约 7800 个汉字、约 310 行代码与命令，以及输入迁移、响应与错误改造、文档生成和成功／失败请求对照估算，尚未经过读者实测。
 
 ## 11.1 从记录接口收到不合法输入出发，解释 TypeScript 类型与 Zod 运行时校验的区别
 
@@ -310,7 +310,7 @@ export function httpFailure(error: unknown): {
   const statusCode = error instanceof HttpError ? error.statusCode
     : error instanceof InvalidCaptureError ? 400
     : error instanceof CaptureNotFoundError ? 404 : 500;
-  if (statusCode === 500) console.error(error);
+  if (statusCode === 500) console.error('Unhandled request failure:', error instanceof Error ? error.name : 'UnknownError');
   const code = statusCode === 500 ? 'INTERNAL_ERROR'
     : error instanceof InvalidCaptureError ? 'INVALID_CAPTURE'
     : error instanceof CaptureNotFoundError ? 'CAPTURE_NOT_FOUND'
@@ -556,6 +556,24 @@ node scripts/export-openapi.mjs
 
 ### 把文档接入应用，再用它发出真实请求
 
+文档页面也是应用入口。开发需要 Try it out，生产不应仅因安装了 Swagger 就自动开放它。先新增 `src/http-options.ts`，把模式与显式开关在创建应用前验证：
+
+```ts
+export function readHttpOptions(env: NodeJS.ProcessEnv = process.env) {
+  const mode = env.NODE_ENV ?? 'development';
+  if (!['development', 'test', 'production'].includes(mode)) {
+    throw new Error('NODE_ENV must be development, test or production');
+  }
+  const rawDocs = env.DOCS_ENABLED;
+  if (rawDocs !== undefined && rawDocs !== 'true' && rawDocs !== 'false') {
+    throw new Error('DOCS_ENABLED must be true or false');
+  }
+  return { docsEnabled: rawDocs === undefined ? mode === 'development' : rawDocs === 'true' };
+}
+```
+
+development 默认开放，test/production 默认关闭。显式 `DOCS_ENABLED=true` 或 `false` 覆盖默认值，其他字符串立即失败；不能把字符串 "false" 当作 truthy 值转换。npm 脚本已经指定 NODE_ENV，直接调用 Node 时也要明确模式。开发的 `.env` 可以设置开关，修改后重新启动；生产由目标环境注入，不读取本机开发文件。
+
 修改 `src/app.ts`：
 
 ```ts
@@ -567,22 +585,28 @@ import { captureBody } from './capture-body.js';
 import { httpBoundary } from './http-boundary.js';
 import { SwaggerModule } from '@nestjs/swagger';
 import { createOpenApiDocument } from './openapi.js';
+import { readHttpOptions } from './http-options.js';
 
 export async function createApp(): Promise<NestExpressApplication> {
+  const { docsEnabled } = readHttpOptions();
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
     abortOnError: false,
   });
   app.set('query parser', 'simple');
-  SwaggerModule.setup('docs', app, createOpenApiDocument(), {
-    jsonDocumentUrl: 'openapi.json', raw: ['json'],
-    swaggerOptions: { validatorUrl: null },
-  });
+  if (docsEnabled) {
+    SwaggerModule.setup('docs', app, createOpenApiDocument(), {
+      jsonDocumentUrl: 'openapi.json', raw: ['json'],
+      swaggerOptions: { validatorUrl: null },
+    });
+  }
   app.use(httpBoundary);
   app.use(captureBody);
   return app;
 }
 ```
+
+日常保持 `npm run dev`，访问 `/docs` 与 `/openapi.json`。要核对生产行为，在另一终端执行 `npm run check`，再用 `PORT=3001 npm start` 运行产物。Postman 的产物集合指向 3001：两个文档路径应为 404，正常业务接口仍能响应。显式设置 `DOCS_ENABLED=true PORT=3001 npm start` 后才开放文档；开启文档本身不提供身份校验，是否允许外部访问需要单独决定。验证时先结束同端口的旧进程，避免误判配置没有生效。静态 OpenAPI 导出不依赖 HTTP 文档开关，关闭页面仍可导出契约供内部使用。
 
 文档路由在现有 httpBoundary 之前注册。第八章的边界只接受记录路径，若先让它拦截所有请求，/docs 和文档静态资源会被判为未知路由。这里为文档保留明确的注册位置，没有让所有陌生路径绕过业务边界；访问 /docs-unrelated 仍应失败。
 
@@ -650,4 +674,4 @@ curl -s http://127.0.0.1:3000/openapi.json
 
 官方查阅：[Zod Schema API](https://zod.dev/api)、[Zod JSON Schema 转换](https://zod.dev/json-schema)、[Nest 11 OpenAPI](https://docs.nestjs.com/v11/openapi/introduction)、[OpenAPI 3.0.3](https://spec.openapis.org/oas/v3.0.3.html)、[RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html)、[RFC 9110 HTTP 状态语义](https://www.rfc-editor.org/rfc/rfc9110.html)。本章代码固定 Zod 4.6.6、@nestjs/swagger 11.4.7；通用文档的新版本功能不自动成为当前项目行为。
 
-[上一章：Module 建立清楚的业务边界](../chapter-10-modules/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：Module 建立清楚的业务边界](../chapter-10-modules/chapter.md) · [下一章：请求经过 Nest 时发生了什么](../chapter-12-request-pipeline/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
