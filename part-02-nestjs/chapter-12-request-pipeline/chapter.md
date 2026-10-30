@@ -555,4 +555,4 @@ npm test
 
 官方查阅：[Nest 请求生命周期](https://docs.nestjs.com/faq/request-lifecycle)、[Middleware](https://docs.nestjs.com/middleware)、[Guard](https://docs.nestjs.com/guards)、[Pipe](https://docs.nestjs.com/pipes)、[Interceptor](https://docs.nestjs.com/interceptors)、[Filter](https://docs.nestjs.com/exception-filters)、[RxJS Observable](https://rxjs.dev/guide/observable)、[Node HTTP 响应事件](https://nodejs.org/docs/latest-v24.x/api/http.html#class-httpserverresponse)、[Node 测试入口](https://nodejs.org/docs/latest-v24.x/api/test.html)。代码以项目锁定的 Nest 11.2.5、RxJS 7.8.2 为准；框架内部文件用于核对行为，不作为应用依赖的私有 API。
 
-[上一章：建立可信的输入与错误边界](../chapter-11-contracts/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：建立可信的输入与错误边界](../chapter-11-contracts/chapter.md) · [下一章：配置与生命周期](../chapter-13-configuration-lifecycle/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
