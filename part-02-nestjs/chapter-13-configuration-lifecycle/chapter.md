@@ -780,4 +780,4 @@ node examples/filter-logs.mjs 00000000-0000-0000-0000-000000000000 < logs/dev.lo
 
 官方查阅：[Nest 配置](https://docs.nestjs.com/v11/techniques/configuration)、[动态模块](https://docs.nestjs.com/fundamentals/dynamic-modules)、[生命周期](https://docs.nestjs.com/fundamentals/lifecycle-events)、[日志](https://docs.nestjs.com/techniques/logger)、[Node 24 HTTP](https://nodejs.org/docs/latest-v24.x/api/http.html)、[异步上下文](https://nodejs.org/api/async_context.html)、[进程信号](https://nodejs.org/docs/latest-v24.x/api/process.html#signal-events)。实现以项目锁定的依赖为准；读取框架内部顺序用于判断行为，不把内部方法变成应用 API。
 
-[上一章：请求经过 Nest 时发生了什么](../chapter-12-request-pipeline/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：请求经过 Nest 时发生了什么](../chapter-12-request-pipeline/chapter.md) · [下一章：第二篇回顾](../chapter-14-review/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
