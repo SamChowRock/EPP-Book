@@ -1,6 +1,6 @@
 # 支线 2B：从字节到 JSON——Buffer、编码与流
 
-正文用 `Buffer.concat(chunks).toString('utf8')` 得到请求体文本。这一行包含合并字节与解释编码两个动作。我们用一个可以确定重现的小例子看清它们为什么有顺序要求，再判断这种处理方式适合什么输入。
+正文先用 `Buffer.concat(chunks)` 合并请求体，再用开启 `fatal` 的 `TextDecoder` 得到文本。这包含合并字节与解释编码两个动作。我们先用 `toString()` 做一个可以确定重现的分块实验，再比较宽容替换与拒绝损坏输入的选择，判断这种处理方式适合什么输入。
 
 ## 同一个字，为什么有两种长度
 
@@ -60,6 +60,42 @@ UTF-8 字节数: 3
 
 最后的 `end()` 通知解码器输入结束。本例没有剩余的不完整字符，因此返回空字符串。如果结尾仍是不完整序列，解码器会处理这些残留；它不是一套拒绝所有损坏输入的严格 UTF-8 校验规则。这一区别在处理不可信文件时也需要考虑。
 
+## 字节已经收齐，为什么还可能损坏原文
+
+前面的“我”拥有完整、合法的三个字节，只是被拆开交付。另一种情况是客户端本来就发来了无效 UTF-8，例如字符串里夹着单个 `FF`。即使合并全部数据，`toString('utf8')` 仍会用 U+FFFD，也就是 `�`，替换它。只要 JSON 的引号和结构完整，后续解析就能成功，损坏的位置却已无法还原。
+
+这需要单独选择错误策略。展示一份已经损坏的文本时，容错替换可能比完全无法显示更有用；EPP 保存的是后续整理要依据的原文，静默替换却会把编码故障混进正式内容。正文因此在合并之后使用：
+
+```javascript
+const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
+  .decode(Buffer.concat(chunks));
+```
+
+`fatal: true` 使非法字节导致异常；它与 `JSON.parse` 位于同一个 `try/catch`，所以两种失败都在写入前返回 `400`。仍要先合并：把这个不保留跨次调用状态的解码步骤用于每一块，会把合法字符的半段误判成损坏。大小限制继续统计解码前的字节，不用字符串长度代替。
+
+下面用实际请求对照。先按正文启动服务，在另一终端进入项目根目录，创建本次实验专用的 `invalid-utf8.json`：
+
+```bash
+printf '{"originalText":"a\377b"}' > invalid-utf8.json
+curl -i http://127.0.0.1:3000/captures \
+  -H 'Content-Type: application/json' \
+  --data-binary @invalid-utf8.json
+```
+
+这里 Bash／Zsh 的 `printf` 把八进制转义 `\377` 输出为一个 `FF` 字节；`>` 把结果写入指定文件并覆盖其旧内容。它不是 JSON 的字符转义，也不是可直接复制到普通 JSON 编辑器里的文本。响应应为 `400`，错误为 `Request body must be valid UTF-8 JSON`；核对列表，记录数应保持不变。
+
+再发送一个**合法编码的替代字符**。这次用 JSON 转义表示它，避免依赖终端怎样输入这个符号：
+
+```bash
+curl -i http://127.0.0.1:3000/captures \
+  -H 'Content-Type: application/json' \
+  --data '{"originalText":"a\ufffdb"}'
+```
+
+这份请求的字节全是 ASCII，也是合法 UTF-8；JSON 解析后才得到 `a�b`，应返回 `201` 并原样保留。这个对照说明，应该校验编码过程，不能在解码后搜索 `�` 并一律拒绝。完成后删除本次创建的 `invalid-utf8.json`，不需要把它提交到代码仓库。
+
+还有一个容易藏起来的转换：解码器默认会去掉开头的 UTF-8 BOM（字节 `EF BB BF`）。正文设置 `ignoreBOM: true`，意思是保留该标记，让后续 `JSON.parse` 拒绝带 BOM 的请求；它不是“删掉 BOM”的开关。网络 JSON 不应添加 BOM，但接收端可以选择兼容；本章保留严格的接收边界，没有在修复编码检查时顺带引入隐式去除。若以后导入文件需要兼容 BOM，应明确说明允许移除什么，再验证正常内容与错误输入。
+
 ## 正确解码之后，为什么仍不能逐块解析 JSON
 
 `StringDecoder` 解决的是字符可以跨块的问题。一份 JSON 仍可能在任意属性或字符串中间分开。第一段文字即使每个字符都正确，也未必是一份完整 JSON。
@@ -80,7 +116,7 @@ UTF-8 字节数: 3
 
 本章的请求体需要整体交给 `JSON.parse`，所以先采用明确上限的缓冲方案。第 50 章接收文件时，会把这里的速度差异落实到流式传输、错误传播与中断清理中。依据输入格式、总大小和处理速度来选择方案，才能将这段认识用于其他后端服务。
 
-阅读参考：约 7～9 分钟；运行示例并对照输出另加约 3～5 分钟。按约 1400 字解释、随文代码与输出对照估算。
+阅读参考（估算）：约 11～14 分钟；运行分块示例、发送两种编码请求并核对列表另加约 6～9 分钟。按约 2300 字解释、随文代码与输出对照估算；操作时间不重复计算阅读。
 
 ## 附录：必要技术点速查
 
@@ -90,8 +126,10 @@ UTF-8 字节数: 3
 | `Buffer.subarray(start, end)` | 选取字节范围；它与原 Buffer 共享对应内存 |
 | `Buffer.concat()` / `toString()` | 合并字节 / 按编码解码 |
 | `StringDecoder.write()` / `end()` | 保留跨块解码状态 / 结束解码并处理残留 |
+| `TextDecoder` 的 `fatal` / `ignoreBOM` | 拒绝无效编码 / 保留开头 BOM 交给后续解析；不通过查找 `�` 判断损坏 |
+| `printf` 的 `\377`、重定向 `>` | 构造一个非法 UTF-8 字节并写入专用文件；文件旧内容会被覆盖 |
 | `write()` 返回值 / `drain` | 协调写入速度，避免持续积压 |
 
-官方查阅：[Buffer](https://nodejs.org/docs/v24.22.1/api/buffer.html)、[StringDecoder](https://nodejs.org/docs/v24.22.1/api/string_decoder.html)、[流与背压](https://nodejs.org/docs/v24.22.1/api/stream.html)。
+官方查阅：[Buffer](https://nodejs.org/docs/v24.22.1/api/buffer.html)、[StringDecoder](https://nodejs.org/docs/v24.22.1/api/string_decoder.html)、[TextDecoder](https://nodejs.org/docs/v24.22.1/api/util.html#class-utiltextdecoder)、[流与背压](https://nodejs.org/docs/v24.22.1/api/stream.html)、[JSON 的字符编码与 BOM](https://www.rfc-editor.org/rfc/rfc8259.html#section-8.1)、[Bash printf](https://www.gnu.org/software/bash/manual/html_node/Bash-Builtins.html#index-printf)。
 
 [回到正文：读取请求体](chapter.md#为什么拿到第一块数据时还不能解析-json) · [第一篇目录](../README.md) · [全书目录](../../README.md)

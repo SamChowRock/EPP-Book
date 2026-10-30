@@ -487,8 +487,7 @@ scope 要回答的是这份对象应该由谁共享、活多久；账号数据�
 
 ```bash
 npm run typecheck
-npm run build
-npm start
+npm run dev
 ```
 
 在另一个终端按顺序创建、列表与筛选：

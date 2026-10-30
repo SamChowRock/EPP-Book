@@ -8,7 +8,7 @@
 
 **代码起点**：第四章完成状态，代码分支 `part-01/chapter-04`；本章完成状态使用 `part-01/chapter-05`。继续使用 Node.js `24.22.1`，命令在配套项目根目录执行；macOS、Linux 使用 Bash／Zsh，Windows 使用 WSL。先执行 `nvm use`。本章固定 TypeScript `5.9.3`、tsx `4.23.15` 和 `@types/node` `24.13.3`，以明确的组合讨论行为，不依赖全局安装。
 
-**时间参考（估算）**：正文约 7000 个汉字、170 行代码与命令，考虑类型迁移、模块路径推导和构建配置的阅读密度，只阅读约 40～50 分钟；跟做另加约 35～45 分钟，合计约 75～95 分钟。首次下载依赖另计，支线与第六章分别估算；这些是按内容与步骤估算的读者投入，不是实测时长。
+**时间参考（估算）**：正文约 8300 个汉字、250 行代码与命令，考虑类型迁移、模块路径推导和构建配置的阅读密度，只阅读约 50～60 分钟；跟做另加约 40～50 分钟，合计约 90～110 分钟。首次下载依赖另计，支线与第六章分别估算；这些是按内容与步骤估算的读者投入，不是实测时长。
 
 ## 5.1 类型检查、转译与运行各自负责什么
 
@@ -314,7 +314,7 @@ await copyFile(
 
 ```json
 {
-  "dev": "tsx watch src/server.ts",
+  "dev": "node scripts/dev.mjs",
   "typecheck": "tsc --noEmit",
   "clean": "node scripts/clean.mjs",
   "build": "npm run clean && tsc && node scripts/copy-assets.mjs",
@@ -326,6 +326,116 @@ await copyFile(
 这是 `scripts` 对象的内容，保留外层原有的包名、`type`、版本约束和刚安装的开发依赖。`&&` 保证前一步失败后不继续：类型错误不会继续复制配置，复制失败会使构建整体失败。清理之后的一次失败可能留下不完整产物，因此运行与交付都必须以整条构建命令成功为前提。
 
 这里的 `start` 不偷偷重新构建。它只运行现有产物，因而可以在没有 TypeScript 工具的目录里执行。`debug` 同样调试构建结果；改了源码后先重建，避免断点面对旧代码。`sourceMap` 生成位置映射，`--enable-source-maps` 让错误栈尽可能映射回源码位置。映射不是 TypeScript 执行器，也不替代实际源码；本机调试时保留源码，分享映射文件前同样检查其中的信息。
+
+### 保存以后，怎样让正在运行的代码一起更新
+
+学习时默认执行 `npm run dev`，同时获得自动编译、重启和本机断点调试。tsx 可用于快速运行单文件，前面的类型断言实验仍使用它；主服务采用同一份 tsconfig 的 TypeScript watch 编译，便于把开发和生产的编译语义保持一致。以后加入装饰器元数据也继续走这条路径。Nest CLI 等工具也能组织开发监听；这里沿用当前单包和资源布局，用一个小启动脚本接上编译结果，不增加另一套构建配置。
+
+仅执行 `tsc --watch` 还不完整：它负责生成 JavaScript，却不会确保服务重启；只监听 dist 也可能在一轮编译尚未全部完成时提前启动。我们需要在完整编译成功后，停止旧进程、等待它退出、复制配置，再启动新进程。编译失败时也停止旧服务，避免拿旧响应判断刚写的代码。
+
+新增 `scripts/dev.mjs`：
+
+```javascript
+import ts from 'typescript';
+import { spawn } from 'node:child_process';
+import { copyFileSync, mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+// Keep development and production on the same TypeScript compiler settings.
+process.chdir(fileURLToPath(new URL('../', import.meta.url)));
+const format = {
+  getCanonicalFileName: name => name,
+  getCurrentDirectory: ts.sys.getCurrentDirectory,
+  getNewLine: () => ts.sys.newLine,
+};
+let child;
+let revision = 0;
+let compiled = false;
+let stopping = false;
+let pending = Promise.resolve();
+
+async function stopServer() {
+  const current = child;
+  if (!current || current.exitCode !== null || current.signalCode !== null) return;
+  await new Promise(resolve => {
+    const deadline = setTimeout(() => current.kill('SIGKILL'), 2000);
+    current.once('exit', () => { clearTimeout(deadline); resolve(); });
+    current.kill('SIGTERM');
+  });
+}
+
+function restart(ready) {
+  const requested = ++revision;
+  pending = pending.then(async () => {
+    await stopServer();
+    if (stopping || requested !== revision || !ready) return;
+    mkdirSync('dist/config', { recursive: true });
+    copyFileSync('config/service.json', 'dist/config/service.json');
+    const current = spawn(process.execPath, ['--inspect=127.0.0.1:9229', '--enable-source-maps', 'dist/src/server.js'], {
+      stdio: 'inherit',
+    });
+    child = current;
+    current.on('error', error => console.error('[dev]', error.message));
+    current.on('exit', (code, signal) => {
+      if (child === current) child = undefined;
+      console.log(`[dev] Server exited (${signal ?? code}); waiting for changes.`);
+    });
+    console.log(`[dev] Starting compiled server (pid=${current.pid}).`);
+  }).catch(error => console.error('[dev]', error.message));
+}
+
+const host = ts.createWatchCompilerHost(
+  'tsconfig.json', { noEmitOnError: true }, ts.sys,
+  ts.createEmitAndSemanticDiagnosticsBuilderProgram,
+  diagnostic => {
+    console.error(ts.formatDiagnostic(diagnostic, format));
+    compiled = false;
+    restart(false);
+  },
+  diagnostic => console.log(ts.formatDiagnostic(diagnostic, format)),
+);
+host.afterProgramCreate = program => {
+  const diagnostics = [...ts.getPreEmitDiagnostics(program.getProgram()), ...program.emit().diagnostics];
+  for (const diagnostic of diagnostics) console.error(ts.formatDiagnostic(diagnostic, format));
+  compiled = !diagnostics.some(item => item.category === ts.DiagnosticCategory.Error);
+  console.log(compiled ? '[dev] Build succeeded.' : '[dev] Build failed; server stopped until fixed.');
+  restart(compiled);
+};
+const watcher = ts.createWatchProgram(host);
+const assets = ts.sys.watchFile('config/service.json', () => restart(compiled), 250);
+
+async function shutdown() {
+  if (stopping) return;
+  stopping = true;
+  revision++;
+  watcher.close();
+  assets.close();
+  await pending;
+  await stopServer();
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+```
+
+TypeScript 的 watch host 负责发现源码和 tsconfig 的变化，afterProgramCreate 是本轮程序已建立的时机；我们在这里收集诊断并发出产物。只有没有错误诊断才申请启动。编译诊断与服务的监听日志是两项证据，不能把 Build succeeded 当作端口已经可用。
+
+restart 把操作串到同一个 Promise 链上，先等旧进程退出再启动；revision 使快速连续保存时已经过期的启动申请失效。两秒后强制停止只是开发进程的兜底，不是生产优雅关闭方案。配置文件不由 TypeScript 编译，因此单独监听并在启动前复制。父进程收到停止信号时关闭监听并结束服务子进程，不能留下一个继续占端口的旧服务。
+
+服务子进程使用 `--inspect=127.0.0.1:9229`，连接调试器前也会正常运行；需要观察启动第一行时才改用既有的 `npm run debug`。VS Code 的连接与重连在本章支线 5B 展开。sourceMap 仍将产物位置映射回 src。修改依赖、package.json、开发脚本或环境变量后，手动停止并重新运行 dev；这些不属于当前源码监听范围。
+
+运行 dev 后，把启动日志改一个词并保存；等待重启完成，重发请求核对。再故意制造一个类型错误，观察旧服务停止；修复并保存后应恢复。不要在 dev 运行中另行执行 clean/build，它们会争用同一个 dist；检查生产产物前先停止开发进程。
+
+| 场景 | 命令与结果 |
+| --- | --- |
+| 默认学习与接口联调 | `npm run dev`：自动编译/重启，Inspector 仅监听本机 |
+| 单独检查类型 | `npm run typecheck`：不启动服务 |
+| 生产构建 | `npm ci` 后 `npm run build`：清理、编译、复制配置 |
+| 生产运行目录 | 按 5.4 复制产物与清单，`npm ci --omit=dev` 后 `npm start`，不监听源码、不开调试端口 |
+| 启动阶段断点 | 先停止 dev，`npm run build` 后 `npm run debug`；连接后继续 |
+
+生产环境的变量由部署目标提供。`NODE_ENV=production` 只是程序可读取的环境值，不会自动替你构建、复制配置或删除命令里的 inspect 参数。这个阶段提供完整的生产构建和运行入口；服务托管、HTTPS、更新和回退在部署篇接上。
+
+TypeScript watch 的接口可查阅[官方 Compiler API 示例](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#writing-an-incremental-program-watcher)，本项目按锁定的 TypeScript 5.9.3 使用。
 
 ### 分别运行，观察责任没有混在一起
 
@@ -341,7 +451,7 @@ npm start
 
 停止服务以后，再执行 `npm run dev`。这是另一个进程，原来的 Map 不会被搬进来。watch 模式监测代码变化并重启程序，因此修改源码触发重启后，内存记录也会消失；这不是 TypeScript 把记录删除了。不要同时让开发服务与产物服务使用默认端口，否则会得到前文已经解释过的端口占用错误。
 
-现在运行开头的错误示例：
+先停止 dev，再运行开头的错误示例：
 
 ```bash
 node --import=tsx examples/type-boundary.ts
@@ -462,7 +572,9 @@ cp -R dist "$release_dir/dist" &&
 
 - [支线 5A：模块找到之后，拿到的到底是什么](side-01-module-boundaries.md)：用独立的 CommonJS／ESM 与包自引用示例，区分模块分类、文件解析、公开入口和导出值；改变导入方式后解释错误与修复。
 
-支线从另一组小文件完整展开模块边界，不向记录服务增加功能。阅读与操作时间单独计算。
+- [支线 5B：从“接口不对”到找到出错的那一步](side-02-debugging-workbench.md)：建立 VS Code／Chrome 调试入口，使用调用栈、条件断点、日志点和异常暂停，区分请求未到达与源码映射失效。
+
+两条支线分别补足模块边界与调试方法，阅读与操作时间单独计算。
 
 ## 附录：本章必要技术点速查
 
@@ -480,7 +592,8 @@ cp -R dist "$release_dir/dist" &&
 | `rootDir`、`outDir`、`include` | 保持输出结构并选择项目入口 | `rootDir` 不是文件筛选器；资源复制另行处理 |
 | `noEmit`、`noEmitOnError` | 单独检查；有错时阻止本次输出 | 后者不清除上次产物 |
 | `sourceMap`、`--enable-source-maps` | 关联运行错误与源码位置 | 映射不替代源码；分享前检查内容与路径 |
-| `tsx watch`、`node --import=tsx` | 开发时执行 TypeScript | 不提供完整类型检查；重启会重建内存状态 |
+| TypeScript watch、`scripts/dev.mjs` | 默认开发编译、重启和本机调试 | 编译失败停旧服务；不用于生产运行 |
+| `node --import=tsx` | 运行独立 TypeScript 示例 | 转译不提供完整类型检查 |
 | `npm run build`、`npm start` | 分开构建与运行 | 运行命令不应依赖开发工具或暗中重建 |
 | `npm ci`、`--omit=dev` | 按锁文件安装，区分构建与运行需要 | 清单冲突会失败；省略依赖前核对安装与启动脚本 |
 

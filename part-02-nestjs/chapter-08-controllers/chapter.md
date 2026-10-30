@@ -8,11 +8,11 @@
 
 支线 7C 的最小 Nest 实验到第七章结束。从本章起删除 `examples/mini-nest/`，后续功能使用 Nest 本身实现。若要重做该实验，使用 `part-02/chapter-07` 的代码。
 
-**本章结果**：能组织方法与路径，把外部输入转成明确的业务参数，解释请求体解析与 `@Body()` 的分工，并选择自动响应、手动响应或 passthrough。已有创建、无参数列表和详情继续保持状态码与 JSON 约定；列表新增两个可选查询参数。
+**本章结果**：能组织方法与路径，把外部输入转成明确的业务参数，解释请求体解析与 `@Body()` 的分工，并选择自动响应、手动响应或 passthrough。普通创建、列表和详情保持已有业务结果；列表新增两个可选查询参数，查询总项数增加明确上限，自动响应开始支持 ETag 条件查询的 `304`。
 
 记录字段仍是 `id`、`originalText`、`createdAt`，存储仍在 Service 的 Map 中。没有新增数据库、迁移或回填，也没有提前引入存储接口；第九章再处理可替换依赖。本章使用第七章锁定的 Nest 11.2.5、Express 5.2.1 和 TypeScript 5.9.3，不新增第三方依赖。
 
-时间参考（估算）：只阅读约 45～55 分钟；跟做另加约 35～45 分钟，合计约 80～100 分钟。附录按需查阅，支线单列。
+时间参考（估算）：只阅读约 50～60 分钟；跟做另加约 40～50 分钟，合计约 90～110 分钟。附录按需查阅，支线单列。
 
 ## 8.1 路由、路径参数、查询参数、请求体与响应映射
 
@@ -65,6 +65,21 @@ detail(@Param('id') id: string) {
 
 在 Express 的 simple 查询解析器下，`?limit=2` 提供的是字符串 `'2'`，不是数字；`?limit=1&limit=2` 则可能提供数组。`?limit=` 是空字符串，不等于没有这个字段。先检查结构，再解释语义，才能区分这些情况。
 
+不过，检查解析结果还有一个前提：解析器没有先丢掉输入。Express 的 simple 解析器使用 Node 的 `querystring.parse()`，默认最多处理 1000 个查询项，超过后会停止解析。如果前面已有 1000 个未知字段，最后一个 `q=coffee` 就可能消失；Controller 看到的会是“没有 q”，从筛选变成全量列表。第二个同名参数落在截断位置后，也会绕过重复值检查。未知字段可以不参与业务，但不能让它们挤掉真正的条件。
+
+我们选择在解析前拒绝超过 1000 项的查询，保留有界输入内的 simple 语义。修改 `src/http-boundary.ts`，在原有 URL 构造的 try/catch 之后、`const detail = ...` 之前插入：
+
+```typescript
+    const queryParts = url.search === '' ? 0 : url.search.slice(1).split('&').length;
+    if (queryParts > 1000) {
+      throw new HttpError(400, 'Query string must contain at most 1000 parameters');
+    }
+```
+
+其余路径与方法判断保持原样。这一边界针对整个请求，发生在路由匹配和 Controller 参数提取之前；因此即使路径不存在，超限查询也先得到 `400`。计数单位是原始查询中按 `&` 分隔的片段，未知字段、重复字段和空片段都算一项；编码在值中的 `%26` 不会误算成分隔符。没有查询时算零项，至多 1000 项才继续解析。这个数既不是不同字段名的数量，也不是 UTF-8 字节数，更不替代请求体的 16 KiB 上限。
+
+也可以配置自定义解析器，但仍需决定输入预算和超限行为；直接取消解析上限，不能代替资源边界。这里先用明确拒绝避免条件被静默删除，再分别检查已知字段的单值和内容规则。
+
 新增 `src/capture-query.ts`：
 
 ```typescript
@@ -86,7 +101,7 @@ export function parseListQuery(q: unknown, limit: unknown): CaptureListOptions {
 }
 ```
 
-这里把 HTTP 字段 `q` 翻译成业务含义更明确的 `text`。重复的已知参数不是偷偷选第一个或最后一个，而是因为不是单个字符串而返回 `400`。本章只读取这两个已知字段，其余查询参数继续忽略，保留前文行为；它不是严格拒绝未知字段的完整 Schema。`q[]` 也是另一个未识别的字段名，不会被当成 q 数组展开，不能用它替代 `q`。
+这里把 HTTP 字段 `q` 翻译成业务含义更明确的 `text`。重复的已知参数不是偷偷选第一个或最后一个，而是因为不是单个字符串而返回 `400`。在总项数上限内，本章只读取这两个已知字段，其余查询参数不参与业务；它不是严格拒绝未知字段的完整 Schema。`q[]` 也是另一个未识别的字段名，不会被当成 q 数组展开，不能用它替代 `q`。
 
 先用正则检查数字文本，再用 `Number()` 转换，是为了明确接受范围。直接 `parseInt('2oops')` 会得到 2，`Number('')` 会得到 0，`Number('1e2')` 会得到 100；这些结果都可能悄悄放宽公开输入规则。当前正则拒绝空值、符号、指数、小数、前导零和超过三位的文本。转换后是否位于 1～100，还由 Service 的业务参数约束确认，避免另一个入口绕过限制。
 
@@ -152,7 +167,7 @@ export async function createApp(): Promise<NestExpressApplication> {
 }
 ```
 
-顺序有因果关系：先筛方法和路径，才为被接受的创建请求消耗读取工作；读完后才交给路由。`query parser` 显式选 simple，让本章的查询结构不依赖隐含配置。`bodyParser: false` 继续保留，否则两套读取逻辑可能争用同一条请求流。请求对象可以被多层访问，请求体字节却不是能任意回放的普通数组。
+顺序有因果关系：先限制查询项数、筛方法和路径，才为被接受的创建请求消耗读取工作；读完后才交给路由。`query parser` 显式选 simple，让本章的查询结构不依赖隐含配置；前置计数又保证后面的解析不会静默截掉有效条件。`bodyParser: false` 继续保留，否则两套读取逻辑可能争用同一条请求流。请求对象可以被多层访问，请求体字节却不是能任意回放的普通数组。
 
 还有一个容易误会的地方：`next()` 不返回下游执行完成的 Promise。这里的 `respond()` 保护的是当前解析动作，不能代替 Controller 的错误边界。解析成功后，路由中的失败由后面的 `httpResult()` 和 Nest 处理。这正是支线 7B 中“调用 next”和“等下游完成”的区别。
 
@@ -161,6 +176,10 @@ export async function createApp(): Promise<NestExpressApplication> {
 第七章使用普通 `@Res()` 注入 Express 响应对象，代码自己调用 `writeHead()` 与 `end()`。这样可以直接控制状态与字节，但每个成功分支也要记得完成响应。现在普通 JSON 结果可以改为 return，由 Nest 等待方法结果，再通过适配器发送；如果返回 Promise，Nest 会等待其成功或失败，而不是把 Promise 对象序列化。
 
 普通 GET 成功默认是 `200`，POST 默认是 `201`。如果接口语义确实需要其他状态，可以用 `@HttpCode()`；但不能为了使用 API 就把本来已经创建完成的记录改成 `202`。202 表达接受了处理请求，适合另有后续处理结果的契约，不会凭空建立后台任务。支线 8B 用独立接口观察状态覆盖，本章创建仍为 201。
+
+自动发送也引入了一项实际的 HTTP 语义变化。Express 默认为 JSON 响应生成 ETag，用它标识这份响应表示。客户端已经保存正文及其 ETag 后，可以在下一次 GET 中用 `If-None-Match` 提交这个标记；当前结果仍匹配时，发送层将响应改成 `304 Not Modified`，不再发送正文，客户端复用已有缓存。没有条件头或标记不匹配时，仍发送 `200` 和完整 JSON。这不是“多了一个头部”而已：Controller 返回同一个对象，客户端也可能收到没有正文的304。
+
+本章接受这个默认行为。304没有 JSON 响应体，当前适配器也会移除 Content-Type；客户端不能把它当成一份空 JSON 再解析。Express 对 GET／HEAD 提供条件响应，但 EPP 主线的 HEAD 仍在 `httpBoundary` 被拒绝为405，不能越过上游约定。支线8B会用独立应用把返回值、缓存条件和最终响应的关系实际走一遍。
 
 动态 `Location` 只有创建出 ID 后才知道，无法用固定头部值表示。这里使用 `@Res({ passthrough: true })`：让 Controller 只设置头部，仍把响应体返回给 Nest。不能再调用 `json()` 或 `end()` 抢先发送；如果采用普通 `@Res()`，又只 return 一个对象，则这条路由的自动发送被关闭，请求可能一直等待。
 
@@ -265,7 +284,7 @@ export async function httpResult<T>(action: () => T | Promise<T>): Promise<T> {
 
 只有已认识的输入错误和不存在错误会映射为 400／404；其他失败继续为 500，详细错误只记在服务端。不要写成 catch 后统一返回 400，否则程序 bug、依赖失败也会被说成调用者提交错误。第十二章会讨论如何用框架请求机制统一入口处理；现在先把已存在的错误约定接完整。
 
-成功响应交给适配器后，Content-Length、ETag 等自动头部可能与手写 `sendJson()` 时不同，错误响应也不统一强制关闭连接。本章保持的是业务约定：状态码、JSON 内容、Content-Type、创建位置和不支持方法时的 Allow；不声称传输字节、头部顺序与连接策略完全相同。业务兼容与底层实现逐字不变不是一回事。
+成功响应交给适配器后，普通请求仍获得原有成功状态、JSON 内容和媒体类型，创建位置与不支持方法时的 Allow 也保持不变；但带匹配条件的 GET 现在可以得到304，而非200与正文。查询超过1000项也新增明确的400。这两项是本章主动接受的接口变化，需要和普通业务结果分别核对。Content-Length 等自动头部、连接策略也可能变化，错误响应不再统一强制关闭连接；不能把这些变化笼统说成所有状态、JSON和Content-Type都与第七章相同。
 
 ### 把三条入口连起来
 
@@ -320,12 +339,11 @@ export class CapturesController {
 
 ### 先建立一批能区分规则的数据
 
-完成以上修改后，在代码项目根目录运行；修改后必须重新构建再启动，当前 dev 命令也不提供热更新：
+完成以上修改后，在代码项目根目录使用默认调试开发模式；保存后自动编译并重启，等待监听成功再请求：
 
 ```bash
 npm run typecheck
-npm run build
-npm start
+npm run dev
 ```
 
 在另一个终端依次创建三条记录。为便于观察插入顺序，从刚启动的空内存进程开始；若保留了旧记录，先根据原文辨认本轮结果，不把旧数据误认为筛选失败。
@@ -354,6 +372,17 @@ curl -i 'http://127.0.0.1:3000/captures?q=unmatched'
 
 第一条看到全部三条；第二条只看到 tea；第三条应得到第二条原文，而不是空数组，这检验的是“筛选在截取之前”；第四条只匹配大写 Coffee；第五条是 200 与空 items。URL 用引号包住，避免 shell 把 `&` 当作后台执行符号。带空格或加号的关键词可用 `curl --get --data-urlencode 'q=C++ & Node' URL`，不要自己用字符串拼接猜编码。
 
+再用第一条 `curl -i` 输出中的实际 ETag 做一次条件查询。复制完整值，包括可能出现的 `W/` 和双引号，替换下面的占位文字；这期间先不要创建新记录：
+
+```bash
+curl -i http://127.0.0.1:3000/captures \
+  -H 'If-None-Match: <复制的完整 ETag 值>'
+curl -i http://127.0.0.1:3000/captures \
+  -H 'If-None-Match: "not-the-current-tag"'
+```
+
+第一条应为304且没有正文，第二条应为200与完整列表。这里 curl 只是展示原始响应，不会替你保存或拼回前一次 JSON；只有调用方已经拥有对应正文，304才让它有内容可复用。需要重新获取正文时，不携带条件头即可。若插入新记录后再用旧列表标记查询，响应表示已经改变，也应重新得到200。
+
 ### 让失败发生在不同位置
 
 接着发起这些请求，并在最后再读一次无参数列表：
@@ -374,6 +403,15 @@ curl -i http://127.0.0.1:3000/captures
 ```
 
 前七条应为 400，但失败层次不同：非法数字文本与重复参数停在查询解析；101 和空白筛选条件由 Service 拒绝；损坏 JSON 停在读取解析；null 停在 Controller 的对象检查；空白原文停在创建规则。DELETE 仍是 405，并含 `Allow: GET, POST`。最后列表仍为原来三条，失败没有留下记录。
+
+查询的总量失败更早发生。在同一终端生成1001项再请求：
+
+```bash
+query=$(node --input-type=module -e 'console.log(Array.from({length:1000},(_,i)=>`x${i}=0`).concat("q=coffee").join("&"))')
+curl -i "http://127.0.0.1:3000/captures?$query"
+```
+
+应得到400与 `Query string must contain at most 1000 parameters`，不会把最后的q丢掉后返回全量列表。支线8A继续对照恰好1000项、后置重复q和空片段，区分入口总量限制与字段规则。
 
 还要沿用第七章的错误请求核对：错误媒体类型为 415，超过 16 KiB 为 413，未知路径为 404，错误大小写和尾斜杠不放行。它们都发生在路由的前面；Controller 写法改变不应该使旧边界失效。已有创建数据的字段没有变化，客户端不需要迁移记录或重发原文。
 
@@ -412,8 +450,8 @@ JS
 
 ## 本章知识支线
 
-- [支线 8A：URL 中的字符怎样变成参数](side-01-url-inputs.md)：沿空格、加号、百分号、重复参数和片段标识解释编码与解析，并迁移到包含特殊字符的搜索条件。
-- [支线 8B：return 之后，谁负责结束 HTTP 响应](side-02-response-ownership.md)：用独立 Nest 应用对照自动、手动、passthrough 与遗漏发送，观察状态、头部和方法完成之间的关系。
+- [支线 8A：URL 中的字符怎样变成参数](side-01-url-inputs.md)：沿空格、加号、百分号、重复参数和片段标识解释编码与解析，再对照查询总项数边界，避免条件被静默截断。
+- [支线 8B：return 之后，谁负责结束 HTTP 响应](side-02-response-ownership.md)：用独立 Nest 应用对照自动、手动、passthrough、遗漏发送与条件响应，解释方法返回后何时发送 JSON、何时用304复用缓存。
 
 如果目前只能凭记忆选择装饰器，先完成这两条支线，再尝试改变输入形式和响应方式。支线时间单列。
 
@@ -424,17 +462,18 @@ JS
 | `@Controller`／`@Get`／`@Post` | 组合方法与公开路径 | 方法名字不决定路径；上游边界也必须接受请求 |
 | `@Param('id')` | 从匹配结果取得路径字段 | 不校验 UUID，也不因 number 注解自动转数字 |
 | `@Query('q')`／`@Query('limit')` | 取得原始查询值 | 缺失、空串、重复值不同；先收窄 unknown |
-| simple query parser | 固定查询解析方式 | 重复已知键拒绝；未知键忽略；不展开嵌套对象 |
+| simple query parser／查询项数边界 | 固定解析方式，先拒绝超过1000项的请求 | 未知、重复、空片段均计数；允许范围内再处理单值规则，不静默截断 |
 | `parseListQuery()` | 解释数字文本并映射 q→text | 文本格式与业务数值范围各有责任 |
 | `@Body()`／`captureBody` | 分别取得结果、消费流并解析 | 保持一个读取方；赋值完成后才 next |
 | `httpResult()`／`HttpException` | 将业务失败映射到已有错误 JSON | 对象响应保持 `{ error }`；未知失败为 500 |
 | 普通返回值／Promise | 交给 Nest 发送 JSON | POST 默认 201，普通 GET 默认 200 |
+| ETag／If-None-Match／304 | 用条件GET判断客户端已有表示是否仍可复用 | 匹配时无正文；Content-Type可缺失，客户端必须已有对应缓存 |
 | `@HttpCode()` | 明确覆盖默认成功状态 | 状态应由接口语义决定，不会创建后台任务 |
 | `@Res()` | 手动持有响应完成责任 | 只 return 值不会恢复自动发送 |
 | `@Res({ passthrough: true })` | 只操作头部，仍由框架发送 body | 不再调用 json／end，避免两个发送方 |
 | Map 遍历／includes | 实现字面筛选、顺序与数量限制 | 先筛选再截取；无匹配仍可能全量扫描 |
 | `curl -i`／`--data-urlencode` | 同时观察状态头部正文、编码查询 | 含 & 的 URL 要加引号；实际 ID 从响应复制 |
 
-官方查阅：[Nest 11 Controller](https://docs.nestjs.com/v11/controllers)、[Nest 11 内置异常处理](https://docs.nestjs.com/v11/exception-filters)、[Express 5 查询行为变更](https://expressjs.com/en/guide/migrating-5/#req.query)、[Node.js 24 URL 与 URLSearchParams](https://nodejs.org/docs/latest-v24.x/api/url.html)。框架机制对应本章固定版本；业务查询规则与兼容策略由本章代码明确实现。
+官方查阅：[Nest 11 Controller](https://docs.nestjs.com/v11/controllers)、[Nest 11 内置异常处理](https://docs.nestjs.com/v11/exception-filters)、[Express 5 查询行为变更](https://expressjs.com/en/guide/migrating-5/#req.query)、[Express 响应与缓存验证](https://expressjs.com/en/5x/api/response/)、[Node.js 24 URL 与 URLSearchParams](https://nodejs.org/docs/latest-v24.x/api/url.html)、[querystring.parse 的输入上限](https://nodejs.org/docs/latest-v24.x/api/querystring.html#querystringparsestr-sep-eq-options)。框架机制对应本章固定版本；业务查询规则与兼容策略由本章代码明确实现。
 
 [上一章：从手写服务走向 Nest](../chapter-07-enter-nest/chapter.md) · [下一章：Provider 与依赖注入](../chapter-09-providers/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)

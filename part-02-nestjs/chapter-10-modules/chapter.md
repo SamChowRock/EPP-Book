@@ -72,8 +72,7 @@ export class AppModule {}
 
 ```bash
 npm run typecheck
-npm run build
-npm start
+npm run dev
 ```
 
 另开终端，创建一条容易识别的记录：
@@ -495,4 +494,4 @@ node dist/examples/module-workflow/main.js
 
 官方查阅：[Nest 11 模块](https://docs.nestjs.com/v11/modules)、[自定义 Provider](https://docs.nestjs.com/v11/fundamentals/custom-providers)、[循环依赖](https://docs.nestjs.com/v11/fundamentals/circular-dependency)、[常见依赖错误](https://docs.nestjs.com/v11/faq/common-errors)、[独立应用的模块选择](https://docs.nestjs.com/v11/standalone-applications)。正文中的实例与失败对照使用本书固定的 Nest 11.2.5。
 
-[上一章：Provider 与依赖注入](../chapter-09-providers/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：Provider 与依赖注入](../chapter-09-providers/chapter.md) · [下一章：建立可信的输入与错误边界](../chapter-11-contracts/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)

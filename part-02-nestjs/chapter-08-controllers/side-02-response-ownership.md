@@ -4,7 +4,7 @@
 
 这条支线用独立 Nest 应用比较四种写法。实验使用端口 3005，不增加 EPP 业务入口；停止后不会留下记录。先完成第八章正文，理解 `@Res()` 对路由的影响，再运行对照。
 
-时间参考（估算）：阅读约 18～23 分钟；编译、请求与两种修复及解析器对照另加约 15～20 分钟。
+时间参考（估算）：阅读约 24～30 分钟；编译、条件响应、两种修复及解析器对照另加约 20～27 分钟。
 
 ## 一个结果，至少涉及两次“完成”
 
@@ -122,6 +122,63 @@ passthrough 应为 200，带 `X-Example: passthrough`，正文为 `{"mode":"pass
 
 最后一条应在客户端两秒时限到达后退出，通常可见 curl 的超时提示；服务端打印的方法返回日志并不代表响应完成。`--max-time` 是客户端的等待上限，不是 Nest 自动替这个接口设置的服务端超时，也不会生成一条服务端 500 响应。
 
+## 方法返回同一个对象，为什么客户端可能收到304
+
+前面的automatic返回固定对象，每次都发送相同JSON并不是唯一选择。假设客户端已经保存了这份JSON，再次查询只是想知道它有没有变化；如果服务器能够确认仍是同一份表示，就可以省去正文传输。Express默认生成的ETag为这项判断提供标记，客户端用 `If-None-Match` 把自己保存的标记传回来。
+
+Nest先等待Controller结果，再通过Express适配器发送。Express在处理JSON时生成ETag，并结合请求中的条件判断是否仍可复用客户端的表示；满足条件时，把原本的200改为304，移除正文。这里仍然有完整响应，只是它表达“继续使用你已有的内容”。304不是forgotten那样没有完成发送，也不是JSON解析出了空对象。
+
+保持独立应用运行，先获取一次完整响应：
+
+```bash
+curl -i http://127.0.0.1:3005/responses/automatic
+```
+
+应看到200、JSON正文和ETag。把正文 `{"mode":"automatic"}` 与完整ETag值一起记录下来；值可能以 `W/` 开头，双引号也是值的一部分，不要只抄其中一段。弱标记中的 `W/` 表示比较的是表示的语义等价性，不能据此推导任意场景下字节逐一相同；本次GET的 `If-None-Match` 可以使用它。
+
+下面用实际复制的值替换占位文字，保持地址相同，不修改应用：
+
+```bash
+curl -i http://127.0.0.1:3005/responses/automatic \
+  -H 'If-None-Match: <复制的完整 ETag 值>'
+```
+
+这次应为304，头部后没有JSON正文，当前Express实现也移除了Content-Type和Content-Length。没有JSON正文，就不需要一条描述JSON正文的Content-Type。客户端把这次结果和自己保存的表示关联，继续使用前一次正文；不能把空正文交给JSON.parse，再把解析失败说成服务端丢了数据。
+
+这里的curl展示服务器实际发出的响应，不会自动替你合并前一次JSON。浏览器缓存或应用缓存可以代办这项关联，但必须确实保存过这个地址对应的表示。ETag本身不是记录内容，不能仅凭这个短标记重建正文。
+
+再使用一个不匹配的普通标记：
+
+```bash
+curl -i http://127.0.0.1:3005/responses/automatic \
+  -H 'If-None-Match: "not-the-current-tag"'
+```
+
+应重新得到200、完整JSON与当前ETag。若请求带有 `Cache-Control: no-cache`，当前 Express 的新鲜度判断也会让它返回完整响应；在开发工具里排查缓存时，同时查看实际请求头，不能只看 If-None-Match 一个字段。服务器无法确认调用者已有当前表示，就发送它。回到主线列表，如果创建新记录使列表JSON改变，再携带旧ETag查询，也应得到200；没有条件头的普通GET同样返回完整正文。
+
+还有一个容易误用的条件值：
+
+```bash
+curl -i http://127.0.0.1:3005/responses/automatic \
+  -H 'If-None-Match: *'
+```
+
+星号并不表示“请发送全部内容”，它匹配当前存在的表示，因此这条GET也会得到304。没有已保存正文的调用方不应该为了“启用缓存”随手加上星号；得到304后仍没有可用内容。要取得完整表示，应发起不带该条件头的请求。缓存的价值来自保存正文再验证，不是客户端与服务器互相只传标记。
+
+Express也会对匹配到GET处理器的HEAD请求使用这套条件判断，可以在这个独立应用对照：
+
+```bash
+curl -I http://127.0.0.1:3005/responses/automatic
+curl -I http://127.0.0.1:3005/responses/automatic \
+  -H 'If-None-Match: <复制的完整 ETag 值>'
+```
+
+第一条通常为200，第二条为304，两条都没有正文：前者是HEAD的方法语义，后者还满足缓存验证条件。EPP主线仍在 `httpBoundary` 将HEAD拒绝为405，因此不能把这个独立实验的HEAD行为直接写进主线接口约定。实际结果由上游方法规则和最终发送层共同决定。
+
+若要观察执行位置，可以停止示例，在automatic方法返回前添加 `console.log('automatic called')`，重新编译并启动，再发带匹配ETag的GET。响应仍为304，但终端会打印日志，说明方法仍然执行。当前ETag来自已生成的响应表示；304减少了正文传输，却没有让Controller或列表查询自动跳过。不要把省流量等同于省去数据库查询，也不要把ETag当作服务端已经建立了业务缓存。观察后移除临时日志，后面的修改同样先停止、重新编译再启动。
+
+这套行为来自Express的发送机制，不仅仅来自Nest的return语法。本支线manual主动调用的也是Express `json()`，因此它同样可能处理条件请求；第七章的 `sendJson()` 则直接使用Node `writeHead()`／`end()`，没有这段自动判断。迁移时必须追踪实际发送出口，才能看清为什么第八章接受了304这个新分支，而不是只增加几个自动头部。
+
 ## 用最小改动验证责任归属
 
 先停止示例进程。把 forgotten 的参数装饰器临时改为：
@@ -176,9 +233,11 @@ return NestFactory.create(ResponsesModule, {
 | return／Promise | 向 Nest 交付方法结果 | 方法完成与响应完成分开判断 |
 | Res／passthrough | 选择响应完成责任 | 手动发送和自动发送不要混用 |
 | HttpCode | 覆盖成功状态 | 202 不会自行建立后台执行 |
+| ETag／If-None-Match | 标识已有表示，并判断是否需要重发正文 | GET／HEAD匹配可为304；星号匹配存在的表示，不适合无缓存者随手添加 |
+| 304／客户端缓存 | 明确响应已完成，但正文应从已有缓存复用 | 当前Express移除JSON Content-Type；省去传输不等于跳过业务执行 |
 | bodyParser | 控制默认请求体解析 | 关闭后 Body 不会自己读取流 |
 | curl --max-time | 有限观察遗漏响应 | 客户端超时不等于服务端错误响应 |
 
-官方查阅：[Nest 11 标准与平台专用响应](https://docs.nestjs.com/v11/controllers)、[Nest 11 异常处理](https://docs.nestjs.com/v11/exception-filters)、[Node.js 24 ServerResponse](https://nodejs.org/docs/latest-v24.x/api/http.html#class-httpserverresponse)。
+官方查阅：[Nest 11 标准与平台专用响应](https://docs.nestjs.com/v11/controllers)、[Nest 11 异常处理](https://docs.nestjs.com/v11/exception-filters)、[Express 5响应与缓存验证](https://expressjs.com/en/5x/api/response/)、[HTTP If-None-Match](https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.2)、[HTTP 304](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.4.5)、[Node.js 24 ServerResponse](https://nodejs.org/docs/latest-v24.x/api/http.html#class-httpserverresponse)。
 
 [返回第八章](chapter.md#本章知识支线) · [返回第二篇](../README.md)

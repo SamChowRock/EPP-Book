@@ -116,13 +116,14 @@ npm --version
     "node": "24.22.1"
   },
   "scripts": {
+    "dev": "node --watch --inspect=127.0.0.1:9229 src/server.js",
     "start": "node src/server.js",
     "debug": "node --inspect-brk=127.0.0.1:9229 src/server.js"
   }
 }
 ```
 
-`start` 是我们约定的启动入口，`debug` 稍后用于断点调试。`private` 防止这个练习项目被误发布到 npm；`engines.node` 与 `.nvmrc` 保持同一个精确版本。
+`dev` 是学习时默认的启动入口，监听源码并开启本机调试；`start` 是不带监听与调试的生产运行入口，`debug` 用于需要在启动前暂停的专项排查。`private` 防止这个练习项目被误发布到 npm；`engines.node` 与 `.nvmrc` 保持同一个精确版本。
 
 `engines` 默认只表达版本要求。再在项目根目录新建 `.npmrc`，让 npm 在安装时检查并拒绝不匹配的 Node 版本：
 
@@ -234,6 +235,8 @@ function sendJson(response, statusCode, data, headers = {}) {
 
 我们采用“先保存 Buffer，全部到齐后合并，再统一解码”。另一条可行路径是让流的文本解码器保留跨块状态，但本章还要按传入字节计量，直接保留 Buffer 更容易把编码与大小限制一起说明。这里的选择来自需要观察的行为，并不是要求所有 Node 服务都用同一种读取写法。
 
+合并只能修正分块边界，不能保证字节本身是合法 UTF-8。例如客户端按错误编码发送文件时，完整请求中仍可能包含非法字节。`Buffer.toString('utf8')` 会把它们替换成 `�`，之后 JSON 仍可能解析成功，服务便把损坏后的文字当作原文保存。为兑现保留原文的约定，我们使用 Node 提供的全局 `TextDecoder`，设置 `fatal: true`：解码失败就抛错，与 JSON 语法错误一起在写入前拒绝。合法 UTF-8 编码的 `�` 本身仍是允许保存的字符，不能靠搜索这个字符判断输入损坏。
+
 ### 为什么已经限制原文长度，还要限制请求体
 
 如果只在解析后检查 `originalText.length`，为执行这行检查，我们已经把请求体完整放进内存了。调用方甚至可以提交一条很短的原文，同时附带一个很大的无关字段；原文检查通过，接收成本却已经付出。
@@ -266,10 +269,11 @@ function readJson(request) {
     request.on('end', () => {
       if (tooLarge) return;
       try {
-        const text = Buffer.concat(chunks).toString('utf8');
+        const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
+          .decode(Buffer.concat(chunks));
         resolve(JSON.parse(text));
       } catch {
-        reject(new HttpError(400, 'Request body must be valid JSON'));
+        reject(new HttpError(400, 'Request body must be valid UTF-8 JSON'));
       }
     });
 
@@ -281,6 +285,8 @@ function readJson(request) {
 ```
 
 沿着一份正常请求走一次：每个 `data` 累加字节数，把 Buffer 放进 `chunks`；`end` 将所有块按原顺序合并、解码，再调用 `JSON.parse`；成功值交给等待它的路由。这个值此时仍可能是 `null` 或数组，读取函数只承诺 JSON 解析完成。
+
+`ignoreBOM: true` 也表达了输入选择。BOM 是可能出现在文本开头的字节顺序标记；这个选项让解码器保留它，不自动移除。若请求体以 UTF-8 BOM 开头，后面的 `JSON.parse` 会拒绝它，延续本章直接解析 JSON 文本的边界。这里选择不接受带 BOM 的请求，而不是引入另一次隐式文字修正；将来若要兼容此类文件，应明确改变接收约定。
 
 再沿着超限请求走一次：超过限制的那一块不再保存，已有块引用从数组中清除，Promise 被拒绝。**拒绝 Promise 并不会自动撤销已经注册的事件监听，也不会让网络输入停止。** 所以还需要 `tooLarge`：后续 `data` 不再收集，后来到达的 `end` 也不再尝试解析截断内容。这个标记控制读取状态，`reject` 通知等待结果的调用方，两者承担不同职责。
 
@@ -420,10 +426,10 @@ server.listen(port, host, () => {
 
 还剩下启动失败。`listen` 要向操作系统申请监听一个地址和端口，申请失败时还没有当前业务请求，也就没有可返回 `400` 或 `500` 的响应对象。它走 `server` 的 `error` 事件，由单独的监听函数报告，并用非零退出码表达启动未成功。这解释了为什么一个请求层的 `.catch()` 不能包办所有错误。
 
-服务监听本机回环地址 `127.0.0.1:3000`。`createServer` 先建立处理规则，`listen` 才开始申请接入请求；成功回调执行时才能宣布已经可接受连接。回到项目根目录运行：
+服务监听本机回环地址 `127.0.0.1:3000`。`createServer` 先建立处理规则，`listen` 才开始申请接入请求；成功回调执行时才能宣布已经可接受连接。回到项目根目录运行默认开发命令：
 
 ```bash
-npm start
+npm run dev
 ```
 
 监听成功后，应看到：
@@ -432,11 +438,45 @@ npm start
 EPP listening on http://127.0.0.1:3000
 ```
 
-此时留着这个终端，在另一终端发送请求。修改文件不会改变已经加载的这次程序运行，当前也没有自动重启工具，所以改完代码需要停止后重新启动。接下来我们用请求、断点和重启分别观察输入处理、写入时刻与状态寿命。
+此时留着这个终端，在另一终端发送请求。`--watch` 监听入口和导入的源码，保存后重启服务；`--inspect` 开启本机 9229 调试入口但不暂停启动。修改后等新的监听日志出现，再次发请求；浏览器页面不会自动刷新，旧 Map 也不会被保留。配置、依赖和环境变量改变时，先停止再重新执行开发命令。接下来我们用请求、断点和重启分别观察输入处理、写入时刻与状态寿命。
+
+### 开发和生产为什么使用两条命令
+
+开发默认用 `npm run dev`，目的是让“修改保存”尽快成为下一次请求实际执行的代码，并允许停在断点检查变量。自动重启仍是销毁旧进程、启动新进程，不能保住当前内存数据，也不会替你重发 POST。
+
+生产运行使用 `npm start`，当前是直接运行 JavaScript，所以没有构建步骤，也不需要开发执行器；它不监听文件、不开放 Inspector。更新生产代码需要有意地替换版本并重启，不能因为文件恰好保存就改变对外服务。后续引入 TypeScript 后，会增加明确的构建与配置复制步骤；长期托管、HTTPS 和恢复仍在部署篇建立。
+
+现在可以保存一处启动日志文字，观察终端出现新进程的监听提示，再请求列表；此前的内存记录已消失。恢复日志再保存，重复请求确认自己连到新进程。这才完成一次修改生效的对照。不要一边运行 dev，一边用 start 再占同一个端口。
 
 ## 2.3 让请求结果变得可以观察
 
-### 从空列表开始
+### 默认用 Postman 发请求，保存后反复调试
+
+保持 `npm run dev` 运行，打开 [Postman 桌面客户端](https://www.postman.com/downloads/)。这里选择桌面客户端，让请求直接从本机发往本机服务；使用其他接口工具时，方法、地址、头部和正文仍是同一组输入。客户端负责发送请求、展示响应，进入源码观察变量则由 Chrome 或后续的 VS Code 调试器完成。
+
+配套代码的 `requests/epp.postman_collection.json` 已保存本章用到的请求。在客户端选择 **Import** 并导入该文件，即可打开“EPP 本机接口调试”集合。第一次先按下面的操作查看各个输入位置；已有集合时直接使用其中对应的请求，不必重复新建。集合变量 baseUrl 是服务地址，captureId 用来填实际创建结果的 id。导入只建立请求配置，不会启动服务或自动执行请求。
+
+先新建一个 HTTP 请求，方法选 GET，地址填 `http://127.0.0.1:3000/captures`，不填写 Body，点击 **Send**。在响应区查看状态应为 200，Body 为 `{"items":[]}`；切到响应 Headers 查看 Content-Type。请求头与响应头是两个方向，不要把服务返回的头误认为自己提交的配置。
+
+再新建一个请求，方法选 POST，地址仍是 `http://127.0.0.1:3000/captures`。在 **Body → raw → JSON** 中填写：
+
+```json
+{"originalText":"I'm not much of cook."}
+```
+
+选择 JSON 后客户端会设置对应 Content-Type；在请求 Headers 核对它为 application/json，避免另有手工头把它覆盖成 text/plain。点击 Send，观察响应状态201、Body中的三个字段，以及响应 Headers 中的 Location。复制实际返回的 id，新建 GET `http://127.0.0.1:3000/captures/实际id`，发送后应读到刚才的记录。地址中的“实际id”要换成返回值。
+
+若从空白请求开始，建立名为 EPP 的 Collection，把这三条请求分别保存为“创建原文”“查看列表”“查看详情”。复制创建请求，命名为“原文类型错误”，只将 originalText 的值改为数字42；Send后应为400。再点列表请求的Send，确认失败没有新增记录。使用导入集合时，可直接打开“04 原文类型错误”；详情请求中的 `{{captureId}}` 需要先在集合 Variables 中填入实际返回的 id。保存请求保留了输入，保存过的响应则只是那一次的结果；改代码后仍要再次点击Send，不能把旧结果当作当前结果。
+
+后续改变查询条件时，在 Params 中填键和值，由客户端处理URL编码；禁用的参数行不会发出。更换端口时先修改请求地址，再发送。需要长期共用地址时，可把集合变量 baseUrl 设为 `http://127.0.0.1:3000`，请求统一写成 `{{baseUrl}}/captures`；发送前核对变量解析后的实际地址。
+
+这样日常操作就是：选择已保存请求、改字段、Send、看响应；若需要定位内部原因，保持请求不变并设置断点。保存源码触发重启后，再点Send验证。每次POST都可能新增一条记录；当前Map在重启后清空，详情请求中的旧id也可能因此失效。
+
+如果客户端显示连接错误，打开 Postman Console 查看实际请求URL及连接信息，先核对服务监听；收到400则已经有HTTP响应，再检查字段和服务端拒绝位置。客户端发请求成功并不能替浏览器证明跨源配置正确，浏览器相关问题仍要回到Network观察。
+
+下面保留同一组请求的curl表示，便于复制到终端、分享最小复现或观察原始字节；可以直接在Postman中执行对应的方法、地址、头部与正文。它们表达的是同一轮业务操作，重复执行创建会重复写入。
+
+### 对照请求与响应：从空列表开始
 
 先请求列表：
 
@@ -461,7 +501,7 @@ Content-Type: application/json; charset=utf-8
 
 ### 创建一条原文，再把它读回来
 
-为避免 shell 单引号与英文缩写中的撇号冲突，先将请求体放进项目根目录的临时文件 `capture.json`：
+Postman 中直接编辑 Body 即可。若选择终端复现，为避免 shell 单引号与英文缩写中的撇号冲突，将请求体放进项目根目录的临时文件 `capture.json`：
 
 ```json
 {
@@ -525,7 +565,7 @@ curl -i http://127.0.0.1:3000/captures \
   --data '{'
 ```
 
-仍然是 `400`，但错误变成 `Request body must be valid JSON`。前一个请求已经解析成对象，只是字段不符合要求；后一个在解析阶段就失败了。状态码表达同一类失败，错误说明帮助我们继续缩小位置。
+仍然是 `400`，但错误变成 `Request body must be valid UTF-8 JSON`。前一个请求已经解析成对象，只是字段不符合要求；后一个在解析阶段就失败了。非法 UTF-8 也使用后一条错误说明：它表示读取结果未能成为合法的 UTF-8 JSON，定位时还需区分字节解码和 JSON 语法。状态码表达同一类失败，错误说明帮助我们继续缩小位置。
 
 再试两个不同阶段的错误：
 
@@ -574,7 +614,7 @@ const result = await fetch('/captures', {
 console.log(result.status, await result.json());
 ```
 
-此时 Network 面板会出现 POST 请求，可以继续看 **Payload** 与响应头里的 `Location`。这段代码应在确认来源的本机页面上执行；不要关闭浏览器的粘贴保护，也不用在不相关网页上试着执行它。若浏览器限制粘贴，继续用 curl 就能完成本章实践。
+此时 Network 面板会出现 POST 请求，可以继续看 **Payload** 与响应头里的 `Location`。这段代码应在确认来源的本机页面上执行；不要关闭浏览器的粘贴保护，也不用在不相关网页上试着执行它。若浏览器限制粘贴，继续在 Postman 中发送已保存的创建请求即可。
 
 为什么强调是这个页面？因为 `/captures` 是相对当前页面来源解析的。我们也没有配置 CORS；从其他网站的控制台调用本机服务，还可能遇到跨来源或本地网络访问限制。先在同一来源观察接口，后续客户端接入时再明确处理相应规则。
 
@@ -584,25 +624,19 @@ console.log(result.status, await result.json());
 
 ### 在写入之前停下来
 
-现在我们已经知道一次请求的结果，接下来观察它执行到哪一步。先在运行服务的终端按 `Ctrl+C`，回到命令提示符，再运行：
-
-```bash
-npm run debug
-```
-
-命令中的 `--inspect-brk=127.0.0.1:9229` 会开启 Node 调试入口，并在用户代码开始执行前暂停。因此，此时暂时看不到 `EPP listening ...` 是正常的，服务还没有执行到监听端口那一步。
+现在我们已经知道一次请求的结果，接下来观察它执行到哪一步。保持 `npm run dev` 运行，确认终端已有服务监听日志；这个命令已经通过 `--inspect=127.0.0.1:9229` 开启调试入口，不需要为了断点另起一份服务。
 
 使用 Chrome 打开 `chrome://inspect`，进入 **Devices**，找到指向本机 `9229` 的 Node 目标并点击 **inspect**。若未发现目标，检查 **Discover network targets** 是否启用，以及 **Configure** 中是否包含 `127.0.0.1:9229`，也可以保留已有的 `localhost:9229`。如果终端先报调试端口占用，要先检查之前的调试进程，不能把另一个不相关的目标当成本次服务。
 
-在新开的调试窗口里先继续执行，让程序完成启动。进入 **Sources**，打开 `src/server.js`，找到：
+在新开的调试窗口里进入 **Sources**，打开 `src/server.js`，找到：
 
 ```javascript
 captures.set(capture.id, capture);
 ```
 
-点击这一行左侧的行号设置断点。然后在另一终端再次执行使用 `capture.json` 的创建请求。
+点击这一行左侧的行号设置断点。然后在 Postman 中打开已保存的创建请求，检查 Body 后点击 Send。
 
-先判断断点处应该看到什么，再发送请求：此时字段检查应已通过，新对象应已生成，Map 中却不应包含这次写入。发送后 curl 会等待，调试器停在写入行之前。在 **Scope** 或调试 Console 中观察：
+先判断断点处应该看到什么，再发送请求：此时字段检查应已通过，新对象应已生成，Map 中却不应包含这次写入。发送后 Postman 会等待，调试器停在写入行之前。在 **Scope** 或调试 Console 中观察：
 
 ```javascript
 request.method
@@ -613,11 +647,13 @@ captures.size
 
 预期分别能看到 `POST`、提交的原文、新生成的 ID，以及当前 Map 的记录数。此时 `capture` 对象已经构造好，但当前这次写入尚未执行。
 
-单步执行这一行后再看 `captures.size`，它应增加一。此时先不继续执行，curl 仍在等待：服务的状态已经改变，客户端却还没拿到结果。继续执行后，curl 才能收到 `201`。这样，我们直接看到了前面推导的先后关系，也能理解为什么“客户端没收到成功”无法反过来证明“服务一定没写入”。当前没有幂等处理，遇到这种情况直接重发，可能再创建一条。
+单步执行这一行后再看 `captures.size`，它应增加一。此时先不继续执行，Postman 仍在等待：服务的状态已经改变，客户端却还没拿到结果。继续执行后，Postman 才能收到 `201`。这样，我们直接看到了前面推导的先后关系，也能理解为什么“客户端没收到成功”无法反过来证明“服务一定没写入”。当前没有幂等处理，遇到这种情况直接重发，可能再创建一条。
+
+若需要观察模块初始化等启动前的代码，才停止 dev，改用 `npm run debug`。它使用 `--inspect-brk`，在用户代码执行前暂停；连接后需要 Continue 才能看到服务监听日志。结束这项观察后切回 dev，继续使用保存即重启的流程。两种命令不要同时运行。
 
 这里暂停的是服务端 JavaScript 执行，并不只是让当前客户端等待；暂停期间，其他需要执行 JavaScript 才能处理的请求也会受影响。后面研究事件循环时，再观察“请求正在等待”和“执行被阻塞”之间的区别。
 
-调试完移除断点，关闭调试窗口，在原终端按 `Ctrl+C`。如果终端显示正在等待调试器断开，先确认调试窗口已经退出连接。再用 `npm start` 恢复普通运行方式，不把调试入口作为日常部署入口。
+调试完移除断点，关闭调试窗口，在原终端按 `Ctrl+C`。如果终端显示正在等待调试器断开，先确认调试窗口已经退出连接。继续学习时重新运行 `npm run dev`，从 chrome://inspect 连接新的调试目标；只有检查生产运行方式时才使用 `npm start`。不要把 Inspector 随服务公开。
 
 ### 区分端口占用和代码没有执行
 
@@ -627,7 +663,7 @@ captures.size
 Cannot listen on 127.0.0.1:3000: address already in use
 ```
 
-第一个进程仍然可以处理请求。也就是说，第二次启动失败，并不意味着 `3000` 上没有服务；curl 此时访问到的还可能是之前的旧进程。修改代码后却一直看到旧结果时，尤其要检查这一点。
+第一个进程仍然可以处理请求。也就是说，第二次启动失败，并不意味着 `3000` 上没有服务；Postman 此时访问到的还可能是之前的旧进程。修改代码后却一直看到旧结果时，尤其要检查这一点。
 
 最直接的处理方式，是回到自己先前启动服务的终端，用 `Ctrl+C` 停止它，再启动新进程。如果不知道占用者是谁，macOS、Linux 可以先查询：
 
@@ -647,14 +683,14 @@ Get-NetTCPConnection -LocalPort 3000 -State Listen
 
 ### 重启后，再找一次原来的 ID
 
-让服务处于普通运行状态，创建一条记录，记下这次响应的 ID，并确认列表和详情都能读到它。
+让服务以 `npm run dev` 运行，创建一条记录，记下这次响应的 ID，并确认列表和详情都能读到它。
 
 在终端按 `Ctrl+C` 停止服务。此时再次请求列表，应当连接失败；如果仍返回数据，说明还有别的进程在提供响应，需要先弄清楚访问目标。
 
 然后重新运行：
 
 ```bash
-npm start
+npm run dev
 ```
 
 用同一个列表地址与刚才记下的详情地址再请求一次：列表回到 `{ "items": [] }`，旧 ID 返回 `404`。创建时间和 ID 都没有帮助数据恢复，因为我们只是把它们放进了同一份进程内存。
@@ -671,7 +707,7 @@ npm start
 
 本章对应代码分支：`part-01/chapter-02`。后续章节在此基础上继续演进，本章分支保留这一阶段的实现。
 
-时间参考（估算）：只阅读约 35～40 分钟；按正文复制代码并完成请求、断点和重启观察，额外约 20～30 分钟，边读边做合计约 55～70 分钟。依据主文约 9100 字（不含附录）、约 150 行服务代码及操作步骤估算：阅读包括理解随文代码，跟做只计算建文件与启动约 5 分钟、请求观察约 5～10 分钟、断点与重启约 10～15 分钟，不重复计算阅读。附录按需查阅。不含首次安装 nvm 与 Node.js、逐字手敲全部代码或额外排错。
+时间参考（估算）：只阅读约 45～50 分钟；按正文复制代码并完成请求、断点和重启观察，额外约 30～40 分钟，边读边做合计约 75～90 分钟。依据主文约 11100 字（不含附录）、约 150 行服务代码及操作步骤估算：阅读包括理解随文代码和解码策略，跟做只计算建文件与启动约 5 分钟、图形请求保存与响应观察约 10～15 分钟、断点、保存重启与开发/生产对照约 15～20 分钟，不重复计算阅读。附录按需查阅。不含首次安装 nvm 与 Node.js、逐字手敲全部代码或额外排错。
 
 延伸查阅：[nvm 版本管理](https://github.com/nvm-sh/nvm#nvmrc)、[Node.js 24.22.1 发布说明](https://nodejs.org/en/blog/release/v24.22.1)、[Node.js HTTP 文档](https://nodejs.org/docs/v24.22.1/api/http.html)、[Node.js 流文档](https://nodejs.org/docs/v24.22.1/api/stream.html)、[Node.js 调试说明](https://nodejs.org/en/learn/getting-started/debugging)。这些文档用于核对 API 与按需查错，正文已经给出本章实现所需的关键代码。
 
@@ -699,7 +735,8 @@ npm start
 | `server.on('error', listener)` | 处理启动等服务错误 | `EADDRINUSE` 表示地址已被占用，不属于业务请求中的输入错误。 |
 | `request.method`、`request.url`、`request.headers` | 判断方法、解析路径、检查媒体类型 | `url` 可包含查询字符串；Node 将请求头字段名转为小写。 |
 | `request.on(event, listener)` | 分别监听 `data`、`end`、`error`，读取与解析请求体 | 一个数据块不等于一份完整 JSON。 |
-| `chunk.length`、`Buffer.concat(chunks)`、`buffer.toString('utf8')` | 统计字节、合并数据块、统一解码 | Buffer 长度按字节计；先合并再解码，避免跨块的 UTF-8 字符被拆开。 |
+| `chunk.length`、`Buffer.concat(chunks)` | 统计字节、合并数据块 | Buffer 长度按字节计；先合并再解码，避免跨块的 UTF-8 字符被拆开。 |
+| `TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode()` | 严格解码整份请求体 | 非法 UTF-8 抛错；合法的替代字符仍可保存；保留开头 BOM，由 JSON 解析拒绝。 |
 | `response.writeHead(statusCode, headers)` | 设置状态码与响应头 | 在响应体发送前设置；本章 JSON 响应统一声明媒体类型。 |
 | `response.end(body)` | 写出 JSON 文本并结束响应 | 结束本次响应后，当前分支及时返回。 |
 | `response.destroyed`、`response.writableEnded` | 出错时检查是否还能发送响应 | 已销毁或已结束时，本章代码跳过再次写入。 |
@@ -707,7 +744,7 @@ npm start
 | `new URL(input, base).pathname` | 从请求地址取路径 | 相对地址需要基准地址；构造 URL 本身不会发送网络请求。 |
 | `process.exitCode = 1` | 标记启动失败的退出结果 | 设置非零退出码，不会立即强制结束进程。 |
 
-官方查阅：[HTTP](https://nodejs.org/docs/v24.22.1/api/http.html)、[Buffer](https://nodejs.org/docs/v24.22.1/api/buffer.html)、[Crypto](https://nodejs.org/docs/v24.22.1/api/crypto.html)、[URL](https://nodejs.org/docs/v24.22.1/api/url.html)、[Process](https://nodejs.org/docs/v24.22.1/api/process.html)。
+官方查阅：[HTTP](https://nodejs.org/docs/v24.22.1/api/http.html)、[Buffer](https://nodejs.org/docs/v24.22.1/api/buffer.html)、[TextDecoder](https://nodejs.org/docs/v24.22.1/api/util.html#class-utiltextdecoder)、[Crypto](https://nodejs.org/docs/v24.22.1/api/crypto.html)、[URL](https://nodejs.org/docs/v24.22.1/api/url.html)、[Process](https://nodejs.org/docs/v24.22.1/api/process.html)。
 
 ### 数据处理与浏览器调用
 

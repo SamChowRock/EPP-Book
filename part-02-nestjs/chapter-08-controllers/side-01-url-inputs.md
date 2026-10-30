@@ -2,9 +2,9 @@
 
 正文用 `@Param()` 和 `@Query()` 取得输入，但它们拿到的不是地址栏里那串字符的原样复制。字符先被 URL 规则组织，再经过路由器或查询解析器处理。若分不清这些阶段，空格、加号、重复键就很容易被解释成业务数据错误。
 
-这条支线先用 Node 的 URL API 观察表示过程，再回到本章的 Express 查询解析。示例只使用虚构文本，不读取业务记录；不需要启动服务。
+这条支线先用 Node 的 URL API 观察表示过程，再回到本章的 Express 查询解析。前半部分的 URL 示例只使用虚构文本，不需要启动服务；后半部分的查询边界对照需要启动本章服务。
 
-时间参考（估算）：阅读约 12～16 分钟；URL 实验与查询对照另加约 8～12 分钟。
+时间参考（估算）：阅读约 16～21 分钟；URL 实验与查询对照另加约 12～17 分钟。
 
 ## 先分开结构字符和数据字符
 
@@ -75,13 +75,53 @@ Node 的 URLSearchParams 用于这里的独立观察；它不是 Express simple 
 
 对于 `q=one&q=two`，URLSearchParams 的 `get('q')` 返回第一个值，而 `getAll('q')` 能得到两项。若直接 `Object.fromEntries(url.searchParams)`，同名对象属性则会被后项覆盖。相同输入经过不同提取方式，就会得到不同的单值。
 
-这说明“框架帮我解析好了”并没有回答接口接受几个值。你还要决定重复项是否合法：多标签筛选可能需要数组；单一数量上限通常不应该出现两个互相竞争的值。本章把 q 和 limit 都定义为单值，在 Express simple 解析出的值不是字符串时拒绝，因此不会悄悄替调用方选一项。
+这说明“框架帮我解析好了”并没有回答接口接受几个值。你还要决定重复项是否合法：多标签筛选可能需要数组；单一数量上限通常不应该出现两个互相竞争的值。本章把 q 和 limit 都定义为单值，先保证总项数未超过解析边界，再在 Express simple 解析出的值不是字符串时拒绝，因此不会悄悄替调用方选一项。
 
 如果需求变为“同时搜索多个片段”，要先确定是任一片段匹配还是全部匹配，再明确数组表示、数量限制、空项和重复项规则。只把 TypeScript 参数改成 `string[]`，既不会让各种客户端统一序列化方式，也不会替你决定匹配语义。
 
 缺失和空值也不能合并。示例中的 `limit=01` 没有 q：get 返回 null，getAll 返回空数组；`q=` 则存在一个空字符串。在正文的 Express 字段提取中，没有 q 得到 undefined，有 q 但没内容得到空串。我们让前者表示不筛选，后者返回 400，避免把一个填错的筛选条件默默解释成全量查询。
 
 如果产品以后决定空搜索框等于不筛选，也完全可以改变这条约定；但要明确这是接口语义变化，并同步输入处理和客户端调用，不应由 `q || undefined` 偶然决定。
+
+## 解析器停止读取，不等于输入通过验证
+
+还有一种信息丢失发生得更早。Express 的 simple 解析器使用 Node 的 `querystring.parse()`，默认只处理前1000个查询项。这个上限限制了解析工作，但它不会自动向调用者报告“你的条件没有完整处理”。如果请求先放1000个未知参数，最后才放q，解析结果里可能根本没有q；Service只能执行无筛选列表。若后置的是第二个q，重复值检查也看不到它。
+
+因此正文在 `httpBoundary` 构造URL后，先根据 `url.search` 计数：非空时去掉问号，按 `&` 分隔，超过1000项直接返回400，符合上限才继续进入路由。这里不先读 `request.query` 再计数，因为那时解析器可能已经丢过数据。也不统计不同键的数量，因为1001个同名键同样占用1001个输入项。
+
+我们把未知字段和空片段一起计入预算。例如 `?x=1&&q=coffee&` 按本章规则是四项；即使空片段没有业务内容，也不能借此绕过上限。`q=C%2B%2B%20%26%20Node` 则只有一项，值中的 `%26` 尚未解码，不会被当成结构分隔符。完全没有查询时为零项；这个计数不是查询的UTF-8字节长度，也不是请求体大小。一个很长的值仍只占一项，实际HTTP接入层的字节限制需要另外核对。
+
+这种选择保留 simple 在有界输入中的结构规则，同时让超限成为明确失败。取消解析上限也可以避免截断，但还要另外建立资源预算；无条件接受全部输入并没有解决成本问题。当前服务只使用两个已知字段，1000项上限不鼓励客户端发送大量未知参数，而是保证已接受的请求不会被悄悄改写条件。
+
+保持第八章服务运行，在终端中先生成恰好1000项，最后一项才是有效筛选：
+
+```bash
+query=$(node --input-type=module -e 'console.log(Array.from({length:999},(_,i)=>`x${i}=0`).concat("q=unmatched").join("&"))')
+curl -i "http://127.0.0.1:3000/captures?$query"
+```
+
+若没有包含 `unmatched` 的原文，应得到200与空items；若已有这样的记录，应只包含匹配记录。999个未知字段不参与筛选，但最后一个q仍必须生效。把生成式中的999改成1000再请求，总数为1001，应得到400与 `Query string must contain at most 1000 parameters`。它不能退化成无筛选列表。
+
+再把重复q放在边界的两侧，观察是哪一层拒绝：
+
+```bash
+query=$(node --input-type=module -e 'console.log(["q=coffee",...Array.from({length:998},(_,i)=>`x${i}=0`),"q=tea"].join("&"))')
+curl -i "http://127.0.0.1:3000/captures?$query"
+query=$(node --input-type=module -e 'console.log(["q=coffee",...Array.from({length:999},(_,i)=>`x${i}=0`),"q=tea"].join("&"))')
+curl -i "http://127.0.0.1:3000/captures?$query"
+```
+
+第一条正好1000项，进入字段解析后因重复q返回400，消息为 `q must occur once and be a string`。第二条1001项，在更早的总项数边界得到400，消息为总项数超限。两者状态相同，失败原因和发生位置不同；不能只见400就认定同一个验证器在工作。
+
+最后确认空片段也占预算：
+
+```bash
+query=$(node --input-type=module -e 'console.log("&".repeat(1000))')
+curl -i "http://127.0.0.1:3000/captures?$query"
+unset query
+```
+
+1000个分隔符形成1001个空片段，同样应在路由前得到总项数超限的400。这几组请求都不写入记录。它们建立的是一个可迁移的排错顺序：先核对原始输入是否完整进入解析，再检查提取了几个值，最后才判断值的业务含义。
 
 ## 路径、查询与片段的边界
 
@@ -118,9 +158,11 @@ curl -i 'http://127.0.0.1:3000/captures?q=C%2B%2B&q=Node'
 | --- | --- | --- |
 | URL／searchParams.set | 分开地址结构和参数值 | 传原始值，不先做一次编码 |
 | get／getAll | 读取单个值或全部同名值 | 提取方式不能代替接口的重复值规则 |
+| querystring.parse／maxKeys | 理解simple解析器默认1000项边界 | 超限会停止解析；应用在此前明确拒绝，避免有效条件消失 |
+| url.search／split('&') | 在解码和路由前计算本章查询项数 | 未知、重复和空片段都计数；百分号编码的&仍属于值 |
 | `%2B`／`+` | 查询中表达加号／空格 | 不把查询约定套到所有路径字符 |
 | hash | 表达 URL 片段 | 通常不进入 HTTP 请求目标 |
 
-官方查阅：[Node.js 24 URLSearchParams](https://nodejs.org/docs/latest-v24.x/api/url.html#class-urlsearchparams)、[WHATWG URL 标准的表单式解析](https://url.spec.whatwg.org/#application/x-www-form-urlencoded)、[Express 5 查询解析变化](https://expressjs.com/en/guide/migrating-5/#req.query)。
+官方查阅：[Node.js 24 URLSearchParams](https://nodejs.org/docs/latest-v24.x/api/url.html#class-urlsearchparams)、[querystring.parse与maxKeys](https://nodejs.org/docs/latest-v24.x/api/querystring.html#querystringparsestr-sep-eq-options)、[WHATWG URL 标准的表单式解析](https://url.spec.whatwg.org/#application/x-www-form-urlencoded)、[Express 5 查询解析变化](https://expressjs.com/en/guide/migrating-5/#req.query)。
 
 [返回第八章](chapter.md#本章知识支线) · [返回第二篇](../README.md)
