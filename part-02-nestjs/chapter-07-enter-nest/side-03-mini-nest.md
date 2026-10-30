@@ -6,7 +6,7 @@
 
 **阅读前提**：完成第七章正文，能解释 7A 的元数据与 7B 的中间件调用。代码位于 `examples/mini-nest/`，沿用本章分支 `part-02/chapter-07`，使用独立端口 `3004`。
 
-时间参考（估算）：阅读约 25～32 分钟；编写、编译、请求核对与失败对照另加约 20～30 分钟。
+时间参考（估算）：阅读约 29～36 分钟；编写、自动编译重启、断点、请求核对与失败对照另加约 23～33 分钟。
 
 ## 先确定这个小框架替我们做什么
 
@@ -276,14 +276,43 @@ try {
 }
 ```
 
-它继承本章的 ESM 与装饰器编译配置。因为示例导入了现有 `src/captures.service.ts`，rootDir 保留项目根目录，产物继续放在 `dist/`；示例入口为 `dist/examples/mini-nest/main.js`。服务的常规 build 会清理 dist，清理后需要重新编译这个独立示例。
+它继承本章的ESM与装饰器配置。因为示例导入了src/captures.service.ts，rootDir保留项目根目录。这个基础配置可用于单次编译；日常调试再用下面的dev配置覆盖输出位置。
 
-```bash
-npm exec -- tsc -p examples/mini-nest/tsconfig.json
-node dist/examples/mini-nest/main.js
+开发不能再依靠手动编译一次后反复运行旧文件。新增 `examples/mini-nest/tsconfig.dev.json`，继承上面的实验配置，只隔离输出目录：
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "outDir": "../../.dev" }
+}
 ```
 
-另开终端：
+复用第五章的scripts/dev.mjs，让它可以选择入口和编译配置。在format定义后加入：
+
+```js
+const entry = process.argv[2] ?? '.dev/src/server.js';
+const configFile = process.argv[3] ?? 'tsconfig.dev.json';
+```
+
+把spawn参数数组里的固定 `.dev/src/server.js` 换成变量entry，把createWatchCompilerHost的第一个参数换成configFile，其他编译诊断、停止旧进程、复制资源和串行重启逻辑保持。默认不传参数时仍运行主线；传入实验配置后，watch才会追踪examples里的文件，不能只改启动路径却继续编译src。
+
+package.json的scripts增加：
+
+```json
+{
+  "dev:mini-nest": "NODE_ENV=development node --env-file-if-exists=.env scripts/dev.mjs .dev/examples/mini-nest/main.js examples/mini-nest/tsconfig.dev.json"
+}
+```
+
+先停止主线或其他实验，再从项目根目录启动：
+
+```bash
+npm run dev:mini-nest
+```
+
+在VS Code选择 `EPP: attach to npm run dev`，在framework.ts的路由包装函数和app.ts的create设断点。导入 `requests/mini-nest.postman_collection.json`，baseUrl默认3004。依次Send创建、列表，再把创建返回的实际id填入captureId查询详情；空白原文和不存在详情也已保存。保存源码后自动编译重启，Map清空，需要重新创建并更新ID。编译失败会停止旧进程，修复保存后恢复；启动组装失败则看子进程错误，watcher仍等待下一次修改。
+
+下面是相同请求的终端表示：
 
 ```bash
 curl -i http://127.0.0.1:3004/captures \
@@ -298,20 +327,17 @@ curl -i http://127.0.0.1:3004/captures
 
 ## 删掉一个条件，看清是哪一层失效
 
-先停止实验，在 MiniAppModule 中把 providers 改成空数组，重新编译并启动。应在监听前得到 `Provider is not registered: CapturesService`。Controller 的类型与方法都存在，但容器没有权利自行把未注册的类纳入应用。恢复清单后再继续。
+保持dev，在 MiniAppModule 中把 providers 改成空数组，保存并等待自动编译重启。应在监听前得到 `Provider is not registered: CapturesService`。Controller 的类型与方法都存在，但容器没有权利自行把未注册的类纳入应用。恢复清单后再继续。
 
-然后只改变编译条件：
+然后只改变编译条件，在实验的tsconfig.dev.json中临时将compilerOptions改为：
 
-```bash
-npm exec -- tsc -p examples/mini-nest/tsconfig.json --emitDecoratorMetadata false
-node dist/examples/mini-nest/main.js
+```json
+{ "outDir": "../../.dev", "emitDecoratorMetadata": false }
 ```
 
-这次应在监听前得到 `Constructor metadata is missing: MiniCapturesController`。模块清单存在，路由装饰器也仍执行，但框架已经不知道构造参数要传入谁。记录描述、登记组件和创建实例是相互关联的不同步骤。实验后恢复正常产物：
+保存配置后，watch重新编译并启动。
 
-```bash
-npm exec -- tsc -p examples/mini-nest/tsconfig.json
-```
+这次应在监听前得到 `Constructor metadata is missing: MiniCapturesController`。模块清单存在，路由装饰器也仍执行，但框架已经不知道构造参数要传入谁。记录描述、登记组件和创建实例是相互关联的不同步骤。实验后删除刚才新增的emitDecoratorMetadata覆盖并保存，让配置重新继承主线的true；看到监听日志后再发送创建请求，确认恢复。
 
 再看一种不必破坏代码就能判断的变化：如果把实例缓存移到每次请求的包装函数中，并每次重新创建 Service，原文就会保存在不同的 Map 中。路由本身仍能匹配，创建也可能成功，但下一次列表为空。借助错误发生的阶段，应该能区分注册问题、依赖问题与实例寿命问题。
 
@@ -326,7 +352,7 @@ npm exec -- tsc -p examples/mini-nest/tsconfig.json
 | 自己保存的路由和参数描述 | 更完整的方法扫描、参数处理与请求执行管线 |
 | 直接绑定 Express 并返回 JSON | HTTP 平台适配、更多响应类型与异常机制 |
 
-我们没有通过“写完这些代码”就获得完整 Nest 的能力，但已经能解释它的基本实现路径：描述要由代码读取，依赖要按关系创建，实例要有寿命，路由要绑定到实际调用，返回值要有明确的发送出口。这个实验到此结束，代码保留在 `part-02/chapter-07`；第八章起移除实验目录，后续直接使用 Nest 的能力。
+我们没有通过“写完这些代码”就获得完整 Nest 的能力，但已经能解释它的基本实现路径：描述要由代码读取，依赖要按关系创建，实例要有寿命，路由要绑定到实际调用，返回值要有明确的发送出口。主线build只编译src，实验产物在.dev；生产交付不复制examples和.dev，也不会挂上实验路由。这个实验到此结束，代码保留在 `part-02/chapter-07`；第八章起移除实验目录，后续直接使用 Nest 的能力。
 
 ## 附录：本支线必要技术点速查
 

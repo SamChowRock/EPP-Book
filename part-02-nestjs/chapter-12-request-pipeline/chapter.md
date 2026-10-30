@@ -356,13 +356,7 @@ npm run dev:pipeline
 
 实验使用 3006 端口，调试端口仍为 9229。VS Code 继续使用同一个 attach 配置。在 Postman 导入 `requests/pipeline.postman_collection.json`，逐条点击 Send。已有普通集合的 baseUrl 保持 3000；实验集合使用自己的 labUrl，避免来回改动业务请求。
 
-为了沿用保存即编译、重启与重新连接，开发脚本只增加可选入口参数：
-
-```javascript
-const entry = process.argv[2] ?? '.dev/src/server.js';
-```
-
-spawn 的参数列表中，把原先固定的 `.dev/src/server.js` 换成 entry。package.json 新增：
+沿用第八章支线已经支持的开发入口参数；scripts/dev.mjs中的entry读取第一个参数，configFile读取第二个参数，缺省分别为主线输出入口和tsconfig.dev.json。这次实验位于src/labs，默认开发配置已经包含它，所以只传新的入口，不重复声明entry，也不改掉其他实验的配置选择。package.json新增：
 
 ```json
 {

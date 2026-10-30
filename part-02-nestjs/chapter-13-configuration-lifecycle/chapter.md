@@ -379,52 +379,104 @@ try {
 
 ### 用真实资源观察关闭中的请求
 
-主线的 Map 写入很快，不适合靠手速碰关闭时机。独立实验放在 `src/labs/lifecycle.ts`，使用临时目录和真实文件句柄。它不挂到 AppModule，生产构建仍排除整个 src/labs。其 Resource 的关键实现如下：
+主线的 Map 写入很快，不适合靠手速碰关闭时机。独立实验放在 `src/labs/lifecycle.ts`，使用临时目录和真实文件句柄。除了资源本身，还要交代谁接收请求、谁追踪工作、哪些对象属于同一个应用，否则“等待资源再释放”只是一句承诺。下面是这个文件的完整实现：
 
 ```ts
-@Injectable()
-class Resource {
-  private directory?: string;
-  private handle?: FileHandle;
-  constructor(
-    @Inject(APP_CONFIG) private readonly config: AppConfig,
-    @Inject(AppLogger) private readonly log: AppLogger,
-  ) {}
-  async onModuleInit(): Promise<void> {
-    this.directory = await mkdtemp(join(tmpdir(), 'epp-lifecycle-'));
-    try {
-      this.handle = await open(join(this.directory, 'events.log'), 'wx', 0o600);
-      if (mode === 'init-fail') throw new Error('Demonstration initialization failure');
-      this.log.write('info', 'resource.opened', { port: this.config.port });
-    } catch (error) {
+import 'reflect-metadata';
+import { Body, Controller, Inject, Injectable, Module, Post } from '@nestjs/common';
+import { APP_FILTER, NestFactory } from '@nestjs/core';
+import { mkdtemp, open, rm } from 'node:fs/promises';
+import type { FileHandle } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
+import { z } from 'zod';
+import { APP_CONFIG } from '../config.js';
+import type { AppConfig } from '../config.js';
+import { RuntimeModule } from '../runtime.module.js';
+import { ApplicationState } from '../application-state.js';
+import { AppLogger } from '../app-logger.js';
+import { ProblemFilter } from '../problem.filter.js';
+import { requestObservation } from '../request-observation.js';
+import { parseInput } from '../input-validation.js';
+
+const Input = z.object({
+  delayMs: z.number().int().min(0).max(15000).default(1500),
+  fail: z.boolean().default(false),
+});
+export type LabMode = 'normal' | 'init-fail' | 'close-hang';
+
+export async function createLifecycleApp(config: AppConfig, logger: AppLogger, mode: LabMode) {
+  @Injectable()
+  class Resource {
+    private directory?: string;
+    private handle?: FileHandle;
+    constructor(
+      @Inject(APP_CONFIG) private readonly config: AppConfig,
+      @Inject(AppLogger) private readonly log: AppLogger,
+    ) {}
+    async onModuleInit(): Promise<void> {
+      this.directory = await mkdtemp(join(tmpdir(), 'epp-lifecycle-'));
+      try {
+        this.handle = await open(join(this.directory, 'events.log'), 'wx', 0o600);
+        if (mode === 'init-fail') throw new Error('Demonstration initialization failure');
+        this.log.write('info', 'resource.opened', { port: this.config.port });
+      } catch (error) {
+        await this.release();
+        throw error;
+      }
+    }
+    async use(ms: number, fail: boolean): Promise<void> {
+      await delay(ms);
+      if (fail) throw new Error('Demonstration resource failure');
+      if (!this.handle) throw new Error('Resource already closed');
+      await this.handle.writeFile('completed\n');
+      this.log.write('info', 'resource.used');
+    }
+    private async release(): Promise<void> {
+      await this.handle?.close();
+      this.handle = undefined;
+      if (this.directory) await rm(this.directory, { recursive: true, force: true });
+      this.directory = undefined;
+    }
+    async onModuleDestroy(): Promise<void> {
+      if (mode === 'close-hang') await new Promise<void>(() => {});
       await this.release();
-      throw error;
+      this.log.write('info', 'resource.closed');
     }
   }
-  async use(ms: number, fail: boolean): Promise<void> {
-    await delay(ms);
-    if (fail) throw new Error('Demonstration resource failure');
-    if (!this.handle) throw new Error('Resource already closed');
-    await this.handle.writeFile('completed\n');
-    this.log.write('info', 'resource.used');
+  @Controller('lifecycle')
+  class LifecycleController {
+    constructor(
+      @Inject(Resource) private readonly resource: Resource,
+      @Inject(ApplicationState) private readonly state: ApplicationState,
+    ) {}
+    @Post('work')
+    async work(@Body() body: unknown) {
+      const value = parseInput(Input, body);
+      await this.state.track(() => this.resource.use(value.delayMs, value.fail));
+      return { completed: true };
+    }
   }
-  private async release(): Promise<void> {
-    await this.handle?.close();
-    this.handle = undefined;
-    if (this.directory) await rm(this.directory, { recursive: true, force: true });
-    this.directory = undefined;
-  }
-  async onModuleDestroy(): Promise<void> {
-    if (mode === 'close-hang') await new Promise<void>(() => {});
-    await this.release();
-    this.log.write('info', 'resource.closed');
-  }
+  @Module({
+    imports: [RuntimeModule.register(config, logger)],
+    controllers: [LifecycleController],
+    providers: [Resource, { provide: APP_FILTER, useClass: ProblemFilter }],
+  })
+  class LifecycleModule {}
+  const app = await NestFactory.create(LifecycleModule, { logger: false, abortOnError: false });
+  app.use(requestObservation(logger, app.get(ApplicationState), ['/lifecycle/work']));
+  return app;
 }
 ```
 
-初始化失败时，资源还没有交付给请求，catch 立即释放已经打开的句柄和临时目录。正常关闭由拥有者的 onModuleDestroy 调用 release。release 可以在部分初始化之后调用，也可以在失败清理后再次调用；关闭路径不能假定初始化每一步都成功了。
+createLifecycleApp 的 config、logger 和 mode 由本次启动传入。Resource定义在这个工厂内部，因此它读取的是该应用选定的mode；每次创建独立应用都有自己的资源类型和容器。RuntimeModule登记配置、Logger和ApplicationState，Controller与观察中间件取得的是同一个状态对象，不是在各自文件里新建计数器。
 
-实验故意等待一段时间后向临时文件写入固定字符串，随后记录 resource.used；这不是持久化原文的实现。延迟、故障和关闭挂起都只用于实验。Controller 在接受并校验 `{ delayMs, fail }` 后，把整个 resource.use 放入 state.track，成功返回 `{ completed: true }`。输入范围为 0～15000 毫秒，默认 1500，fail 默认为 false；它使用 Nest 自带 JSON 解析，而主线仍保持原有严格字节边界。
+请求先经过requestObservation，建立编号并在排空时拒绝新工作。Controller解析输入后，关键调用是 `await this.state.track(() => this.resource.use(value.delayMs, value.fail))`。track覆盖整个延迟与写入Promise，而不是只包住创建定时器的瞬间；即使客户端取消等待，这个Promise没有因此结束，工作计数就不会提前归零。serve可以先等待传输关闭，再等whenIdle，最后app.close触发资源释放。这里把观察、接收、工作完成和资源拥有者连成了一条可检查的关系。
+
+初始化失败时，资源还没有交付给请求，catch立即释放已经打开的句柄和临时目录；正常关闭由拥有者的onModuleDestroy调用release。release允许部分初始化后的清理，也允许失败清理后再次调用，不能假定初始化每一步都成功。init-fail与close-hang分别改变初始化、释放条件，不把它们混成同一种超时。
+
+这个模块只登记Resource、实验Controller和ProblemFilter；没有导入业务AppModule，也没有把实验路由加入主服务。实验采用Nest自带JSON解析，主线依旧保留严格字节边界。临时文件只写固定字符串，不保存业务原文；生产构建排除整个src/labs。
 
 实验的入口文件为 `src/labs/lifecycle-server.ts`，它解析实验模式并复用同一个 serve：
 
@@ -756,7 +808,7 @@ node examples/filter-logs.mjs 00000000-0000-0000-0000-000000000000 < logs/dev.lo
 
 本章完成状态保存在 `part-02/chapter-13`。检查继续使用 `npm run check`，最小 HTTP 断言继续用 `npm test`；需要验证真实网络时必须看到客户端收到响应，进程日志不能替代它。生产产物不含 labs，开发资源实验不能混进交付接口。下一章将沿一次完整请求回顾第二篇，并改变配置与执行条件检验这些职责能否接起来。
 
-时间参考（估算）：只阅读约 80～95 分钟；配置、日志与关闭实验另加约 55～70 分钟，合计约 135～165 分钟。按约7100个汉字、480行代码与命令，以及正常/失败启动、请求关联、处理中关闭和期限对照估算，尚未经过读者实测；支线单列，首次安装环境不计入。
+时间参考（估算）：只阅读约 85～100 分钟；配置、日志与关闭实验另加约 55～70 分钟，合计约 140～170 分钟。按约7400个汉字、530行代码与命令，以及正常/失败启动、请求关联、处理中关闭和期限对照估算，尚未经过读者实测；支线单列，首次安装环境不计入。
 
 ## 本章知识支线
 

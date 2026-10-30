@@ -4,7 +4,7 @@
 
 这条支线用独立 Nest 应用比较四种写法。实验使用端口 3005，不增加 EPP 业务入口；停止后不会留下记录。先完成第八章正文，理解 `@Res()` 对路由的影响，再运行对照。
 
-时间参考（估算）：阅读约 24～30 分钟；编译、条件响应、两种修复及解析器对照另加约 20～27 分钟。
+时间参考（估算）：阅读约 28～34 分钟；自动重启、断点、条件响应、两种修复及解析器对照另加约 23～30 分钟。
 
 ## 一个结果，至少涉及两次“完成”
 
@@ -90,18 +90,36 @@ try {
 }
 ```
 
-继承第五、七章的编译布局和装饰器元数据设置，把本支线的文件加入编译范围。路径中的 examples 层级保留在 dist 中。按顺序运行：
+这个配置仍用于需要单次编译的场景。日常实验新增 `examples/controller-responses/tsconfig.dev.json`，把产物隔离到.dev：
 
-```bash
-npm exec -- tsc -p examples/controller-responses/tsconfig.json
-node dist/examples/controller-responses/main.js
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "outDir": "../../.dev" }
+}
 ```
 
-若先执行了常规 `npm run build`，dist 会被清理，需要重新执行示例编译。不要拿前一次残留的实验产物判断源码变化是否生效。
+scripts/dev.mjs支持两个可选参数：编译后的入口、tsconfig路径；不传时仍是主线入口和tsconfig.dev.json。若按正文从第五章runner继续搭建，在format定义后新增 `const entry = process.argv[2] ?? '.dev/src/server.js'` 和 `const configFile = process.argv[3] ?? 'tsconfig.dev.json'`，用entry替换spawn参数中的固定入口，用configFile替换createWatchCompilerHost中的固定配置路径。编译范围与运行目标必须一起改变，否则只会重编译主线，实验文件保存不生效。这个通用入口不依赖第七章的最小框架。
+
+在package.json的scripts中加入：
+
+```json
+{
+  "dev:responses": "NODE_ENV=development node --env-file-if-exists=.env scripts/dev.mjs .dev/examples/controller-responses/main.js examples/controller-responses/tsconfig.dev.json"
+}
+```
+
+先停止其他dev，共享的调试端口仍是9229；随后运行：
+
+```bash
+npm run dev:responses
+```
+
+VS Code选择 `EPP: attach to npm run dev`，在app.ts中设断点。保存源码或实验配置后自动编译、重启并尝试重连；先等监听3005成功，再发请求。类型错误时停止旧服务，修复后恢复。正常build只清理dist，不影响.dev；交付目录不复制实验源码和.dev，也不把实验路由挂入业务AppModule。
 
 ## 观察状态、头部与正文由谁决定
 
-在另一个终端依次请求：
+在Postman导入 `requests/controller-responses.postman_collection.json`，baseUrl默认 `http://127.0.0.1:3005`。先逐条Send前五项，查看状态、Body、Headers与终端日志；forgotten持续等待时约两秒后Cancel。需要期限对照可在General设置的Request Timeout临时设2000毫秒，记下并在实验后恢复原值；断点暂停期间不要用短期限。下面是同一请求的终端表示：
 
 ```bash
 curl -i http://127.0.0.1:3005/responses/automatic
@@ -128,7 +146,7 @@ passthrough 应为 200，带 `X-Example: passthrough`，正文为 `{"mode":"pass
 
 Nest先等待Controller结果，再通过Express适配器发送。Express在处理JSON时生成ETag，并结合请求中的条件判断是否仍可复用客户端的表示；满足条件时，把原本的200改为304，移除正文。这里仍然有完整响应，只是它表达“继续使用你已有的内容”。304不是forgotten那样没有完成发送，也不是JSON解析出了空对象。
 
-保持独立应用运行，先获取一次完整响应：
+保持独立应用运行，在Postman发送“01 自动响应”，复制响应Headers中的完整ETag（含双引号和可能的W/）到集合Variables的etag，再保存。发送“06 匹配缓存标签”前，检查实际Headers；客户端若添加了Cache-Control: no-cache，应禁用后再观察匹配。集合同时保存不匹配标签、星号、HEAD及HEAD匹配五组对照，不需要手敲条件头。相同请求的终端形式如下：
 
 ```bash
 curl -i http://127.0.0.1:3005/responses/automatic
@@ -175,19 +193,19 @@ curl -I http://127.0.0.1:3005/responses/automatic \
 
 第一条通常为200，第二条为304，两条都没有正文：前者是HEAD的方法语义，后者还满足缓存验证条件。EPP主线仍在 `httpBoundary` 将HEAD拒绝为405，因此不能把这个独立实验的HEAD行为直接写进主线接口约定。实际结果由上游方法规则和最终发送层共同决定。
 
-若要观察执行位置，可以停止示例，在automatic方法返回前添加 `console.log('automatic called')`，重新编译并启动，再发带匹配ETag的GET。响应仍为304，但终端会打印日志，说明方法仍然执行。当前ETag来自已生成的响应表示；304减少了正文传输，却没有让Controller或列表查询自动跳过。不要把省流量等同于省去数据库查询，也不要把ETag当作服务端已经建立了业务缓存。观察后移除临时日志，后面的修改同样先停止、重新编译再启动。
+若要观察执行位置，在automatic方法返回前设断点，再发带匹配ETag的GET；也可以添加 `console.log('automatic called')`，保存后等自动重启，再Send。响应仍为304，断点依然命中；若采用日志点或新增日志，也能看到方法仍然执行。当前ETag来自已生成的响应表示；304减少了正文传输，却没有让Controller或列表查询自动跳过。不要把省流量等同于省去数据库查询，也不要把ETag当作服务端已经建立了业务缓存。观察后移除临时日志，后面的修改同样保存后等待自动重启，再发送已保存的请求。
 
 这套行为来自Express的发送机制，不仅仅来自Nest的return语法。本支线manual主动调用的也是Express `json()`，因此它同样可能处理条件请求；第七章的 `sendJson()` 则直接使用Node `writeHead()`／`end()`，没有这段自动判断。迁移时必须追踪实际发送出口，才能看清为什么第八章接受了304这个新分支，而不是只增加几个自动头部。
 
 ## 用最小改动验证责任归属
 
-先停止示例进程。把 forgotten 的参数装饰器临时改为：
+保持dev运行，把 forgotten 的参数装饰器临时改为：
 
 ```typescript
 @Res({ passthrough: true }) _response: Response
 ```
 
-其他代码保持不变，重新编译并启动。再次请求 forgotten，应得到 200 与 `{"mode":"forgotten"}`。只改变了“是否由框架发送返回值”的描述，业务函数并没有新增 send；这次对照正好说明原来的等待发生在哪里。
+其他代码保持不变，保存并等待自动重启。再次请求 forgotten，应得到 200 与 `{"mode":"forgotten"}`。只改变了“是否由框架发送返回值”的描述，业务函数并没有新增 send；这次对照正好说明原来的等待发生在哪里。
 
 然后恢复普通 `@Res()`，把方法体临时改成：
 
@@ -195,7 +213,7 @@ curl -I http://127.0.0.1:3005/responses/automatic \
 return _response.status(200).json({ mode: 'fixed-manual' });
 ```
 
-重新编译并启动，再次请求也应结束。它和前一个修复的完成责任不同：这次由方法自己发送；return 只是防止后续代码继续执行，发送来自 json 调用。实验完成后恢复配套代码中的 forgotten，使四种原始对照继续可用，并停止进程。
+保存后等待自动重启，再次请求也应结束。它和前一个修复的完成责任不同：这次由方法自己发送；return 只是防止后续代码继续执行，发送来自 json 调用。实验完成后恢复配套代码中的 forgotten，使四种原始对照继续可用，并停止进程。
 
 不要同时给方法加 passthrough 又主动 json，再期待 Nest “自动判断哪个结果更合适”。第一次发送之后，响应可能已经提交；后续尝试改头或再次发送，在不同路径下可能被跳过或触发错误，不能成为可依赖的业务协议。让完成责任唯一，比依靠框架对重复发送的防护更清楚。
 
@@ -210,9 +228,9 @@ return NestFactory.create(ResponsesModule, {
 });
 ```
 
-重新编译和启动，再请求 accepted。状态仍由 HttpCode 决定，但 body 没有预先填入，received 的值是 undefined；对象序列化为 JSON 时这个属性会被省略，结果只剩 `{"accepted":true}`。这不是客户端没有发送 JSON，也不是装饰器类型写错，而是缺少读取和解析步骤。
+保存并等待自动重启，再请求 accepted。状态仍由 HttpCode 决定，但 body 没有预先填入，received 的值是 undefined；对象序列化为 JSON 时这个属性会被省略，结果只剩 `{"accepted":true}`。这不是客户端没有发送 JSON，也不是装饰器类型写错，而是缺少读取和解析步骤。
 
-如果去掉 `@Body()` 的类型注解，或把 unknown 改成一个带 message 字段的类型，也不能修复这个缺口；TypeScript 不会替你消费请求流。恢复默认解析器后重新编译，received 才会恢复。正文主线没有启用默认解析器，是因为已经接入自己唯一的 `captureBody`，二者最终都要履行同一项责任。
+如果去掉 `@Body()` 的类型注解，或把 unknown 改成一个带 message 字段的类型，也不能修复这个缺口；TypeScript 不会替你消费请求流。恢复默认解析器并保存，等自动重启后再Send，received才会恢复。正文主线没有启用默认解析器，是因为已经接入自己唯一的 `captureBody`，二者最终都要履行同一项责任。
 
 这组实验只发送短小 JSON 并在本机运行，不是建议在实际服务里接收未读取的大请求。正文的大小和媒体类型约束仍要保留。
 
@@ -236,6 +254,7 @@ return NestFactory.create(ResponsesModule, {
 | ETag／If-None-Match | 标识已有表示，并判断是否需要重发正文 | GET／HEAD匹配可为304；星号匹配存在的表示，不适合无缓存者随手添加 |
 | 304／客户端缓存 | 明确响应已完成，但正文应从已有缓存复用 | 当前Express移除JSON Content-Type；省去传输不等于跳过业务执行 |
 | bodyParser | 控制默认请求体解析 | 关闭后 Body 不会自己读取流 |
+| dev:responses／Postman集合 | 编译重启、断点和条件请求 | .dev与dist隔离；保存完整ETag，核对实际请求头 |
 | curl --max-time | 有限观察遗漏响应 | 客户端超时不等于服务端错误响应 |
 
 官方查阅：[Nest 11 标准与平台专用响应](https://docs.nestjs.com/v11/controllers)、[Nest 11 异常处理](https://docs.nestjs.com/v11/exception-filters)、[Express 5响应与缓存验证](https://expressjs.com/en/5x/api/response/)、[HTTP If-None-Match](https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.2)、[HTTP 304](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.4.5)、[Node.js 24 ServerResponse](https://nodejs.org/docs/latest-v24.x/api/http.html#class-httpserverresponse)。

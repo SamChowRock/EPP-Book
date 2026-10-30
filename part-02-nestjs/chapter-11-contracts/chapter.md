@@ -8,7 +8,7 @@
 
 代码从第十章的 `part-02/chapter-10` 继续，完成状态为 `part-02/chapter-11`。仍使用内存存储，不新增数据库、登录、业务冲突规则或新业务接口。本章增加运行时 Schema、显式响应映射、Problem Details 错误响应，以及 `/docs` 和 `/openapi.json` 两个文档入口。成功响应、状态码、Location／Allow、GET 的 ETag 条件响应、查询顺序与原文保存规则延续；**错误响应正文改为新结构**，旧客户端读取 `error` 的代码需要同步修改。
 
-时间参考（估算）：只阅读约 63～73 分钟；跟做另加约 50～60 分钟，合计约 113～133 分钟。首次下载新增依赖另计，附录按需查阅，支线单列。
+时间参考（估算）：只阅读约 68～78 分钟；跟做另加约 50～60 分钟，合计约 118～138 分钟。首次下载新增依赖另计，附录按需查阅，支线单列。
 
 按正文约 7800 个汉字、约 310 行代码与命令，以及输入迁移、响应与错误改造、文档生成和成功／失败请求对照估算，尚未经过读者实测。
 
@@ -481,42 +481,7 @@ function problem(description: string): ResponseObject {
 
 转换函数返回的 JSON 描述在这个固定目标下按 SchemaObject 使用，类型断言并没有执行校验。转换之后仍要核对内容，特别是原文的 UTF-16 长度条件：refine 中的 JavaScript 函数不会变成等价的标准 maxLength。本文用 description 明确这个限制，服务端继续执行原有检查。不能为了让文档生成漂亮，就删掉运行时约束或把无法表达的规则悄悄改成允许任意值。
 
-`createOpenApiDocument()` 返回 OpenAPI 3.0.3 文档；字段组件集中在 components.schemas：
-
-```ts
-components: { schemas: {
-  CreateCapture: schema(CreateCaptureSchema, 'input'),
-  Capture: schema(CaptureResponseSchema, 'output'),
-  CaptureList: schema(CaptureListResponseSchema, 'output'),
-  Problem: schema(ProblemSchema, 'output'),
-} },
-```
-
-各操作通过 `$ref` 引用这些组件，避免每个响应再复制一遍字段。下面是 POST /captures 的实际描述，位于 paths 的 `/captures` 下：
-
-```ts
-post: {
-  operationId: 'createCapture', summary: 'Create a capture',
-  description: 'Only originalText is used. Extra properties, including id and createdAt, are ignored. Body limit: 16 KiB of bytes. Requires valid UTF-8 JSON without a BOM. URL query limit: 1000 ampersand-separated parts.',
-  requestBody: { required: true, content: { 'application/json': {
-    schema: { $ref: '#/components/schemas/CreateCapture' },
-    example: { originalText: 'I want to explain this clearly.' },
-  } } },
-  responses: {
-    '201': { ...jsonResponse('Capture', 'Saved record'), headers: {
-      Location: { description: 'Relative URL of the new record', schema: { type: 'string' } },
-    } },
-    '400': problem('Malformed UTF-8/JSON or invalid input/query; code INVALID_JSON, VALIDATION_ERROR or QUERY_TOO_LARGE'),
-    '413': problem('Body exceeds 16 KiB; code BODY_TOO_LARGE'),
-    '415': problem('Expected application/json; code UNSUPPORTED_MEDIA_TYPE'),
-    '500': problem('Unexpected failure; code INTERNAL_ERROR'),
-  },
-},
-```
-
-GET /captures 的 q 与 limit 参数从 ListQuerySchema 对应字段取得描述，200 引用 CaptureList，400 和 500 引用 Problem；GET /captures/{id} 把 id 声明为必需路径参数，200 引用 Capture，400、404 和 500 引用 Problem。两个 GET 和 POST 都可能在 httpBoundary 遇到 QUERY_TOO_LARGE，不能因为详情没有业务查询参数，就把这条 400 从文档中漏掉。id 描述为字符串，不额外加入 UUID 请求校验，因此查询一个陌生字符串仍保持 404，而不会偷偷变为 400。
-
-两个 GET 还要描述已有的条件响应：可选请求头 If-None-Match，200 响应头 ETag，以及不含 content 的 304 响应和它的 ETag。在 `src/openapi.ts` 的三个辅助函数后定义可复用的描述：
+文档的三层关系需要接起来：顶层 openapi 和 info 说明格式与接口身份，paths 描述每个 HTTP 操作，components.schemas 保存被重复引用的字段结构。`$ref` 是文档内部的引用地址，不是导入 TypeScript 类型，也不会替服务端执行校验。把下面的完整代码接在三个辅助函数之后，构成可导出的 `src/openapi.ts`：
 
 ```ts
 const etagHeaders = {
@@ -530,13 +495,82 @@ const notModified: ResponseObject = {
   description: 'Not modified. No response body; reuse the cached representation.',
   headers: etagHeaders,
 };
+
+export function createOpenApiDocument(): OpenAPIObject {
+  return {
+    openapi: '3.0.3',
+    info: {
+      title: 'EPP Capture API', version: '0.2.0',
+      description: 'In-memory records. Errors use Problem Details. Repeated POSTs create separate records.',
+    },
+    paths: {
+      '/captures': {
+        get: {
+          operationId: 'listCaptures', summary: 'List captures',
+          description: 'Insertion order; filter before limit. No limit means all matching records. At most 1000 ampersand-separated query parts, including unknown keys and empty parts. Unknown query keys within that bound are ignored; repeated q or limit is rejected.',
+          parameters: [ifNoneMatch, ...['q', 'limit'].map(name => ({
+            name, in: 'query', required: false,
+            schema: schema(name === 'q' ? ListQuerySchema.shape.q.unwrap() : ListQuerySchema.shape.limit.unwrap(), 'input'),
+          } as ParameterObject))],
+          responses: {
+            '200': { ...jsonResponse('CaptureList', 'Matching records'), headers: etagHeaders },
+            '304': notModified,
+            '400': problem('Invalid query; code VALIDATION_ERROR or QUERY_TOO_LARGE'),
+            '500': problem('Unexpected failure; code INTERNAL_ERROR'),
+          },
+        },
+        post: {
+          operationId: 'createCapture', summary: 'Create a capture',
+          description: 'Only originalText is used. Extra properties, including id and createdAt, are ignored. Body limit: 16 KiB of bytes. Requires valid UTF-8 JSON without a BOM. URL query limit: 1000 ampersand-separated parts.',
+          requestBody: { required: true, content: { 'application/json': {
+            schema: { $ref: '#/components/schemas/CreateCapture' },
+            example: { originalText: 'I want to explain this clearly.' },
+          } } },
+          responses: {
+            '201': { ...jsonResponse('Capture', 'Saved record'), headers: {
+              Location: { description: 'Relative URL of the new record', schema: { type: 'string' } },
+            } },
+            '400': problem('Malformed UTF-8/JSON or invalid input/query; code INVALID_JSON, VALIDATION_ERROR or QUERY_TOO_LARGE'),
+            '413': problem('Body exceeds 16 KiB; code BODY_TOO_LARGE'),
+            '415': problem('Expected application/json; code UNSUPPORTED_MEDIA_TYPE'),
+            '500': problem('Unexpected failure; code INTERNAL_ERROR'),
+          },
+        },
+      },
+      '/captures/{id}': {
+        get: {
+          operationId: 'findCapture', summary: 'Find a capture',
+          parameters: [ifNoneMatch, { name: 'id', in: 'path', required: true, schema: { type: 'string' },
+            description: 'Use the literal ID returned by creation. Unknown IDs return 404.' }],
+          responses: {
+            '200': { ...jsonResponse('Capture', 'Saved record'), headers: etagHeaders },
+            '304': notModified,
+            '400': problem('Query exceeds 1000 parts; code QUERY_TOO_LARGE'),
+            '404': problem('No such record; code CAPTURE_NOT_FOUND'),
+            '500': problem('Unexpected failure; code INTERNAL_ERROR'),
+          },
+        },
+      },
+    },
+    components: { schemas: {
+      CreateCapture: schema(CreateCaptureSchema, 'input'),
+      Capture: schema(CaptureResponseSchema, 'output'),
+      CaptureList: schema(CaptureListResponseSchema, 'output'),
+      Problem: schema(ProblemSchema, 'output'),
+    } },
+  };
+}
 ```
 
-两个 GET 的 parameters 中加入 ifNoneMatch，200 响应增加 `headers: etagHeaders`，responses 增加 `'304': notModified`。第八章[支线 8B](../chapter-08-controllers/side-02-response-ownership.md)已说明，匹配当前表示的条件请求可以返回 304，实际响应没有正文，也没有 JSON Content-Type。这里不能给 304 复用 jsonResponse 或 Problem，否则文档会承诺一个并不存在的 JSON 正文。调用方只有保存了对应表示，才能用它解释“未修改”；没有本地内容却只保存了标签时，应去掉条件头重新获取，而不是对 304 调用 JSON 解析。
+先沿 GET /captures 看一次参数是怎样生成的。`ListQuerySchema.shape.q` 取得 q 对应的 Schema；这个 Schema 外层有 optional，表示整个查询字段可以缺失。OpenAPI 用参数的 `required: false` 表达这一点，参数内部的 schema 则描述“出现时值是什么”，所以先 unwrap，再以 input 模式转换。limit 同样保留为数字文本，而不是把文档改成任意 JSON number；真正的数值转换仍由输入解释负责。
 
-列表描述还要保留插入顺序、先筛选再截取、缺少 limit 返回全部、重复查询键拒绝、未知键忽略和整个查询串最多 1000 项。字段类型无法自动推出这些语义。查询数量检查通过后，业务路径的未支持方法返回 405 和 Allow，未知路径返回 404；文档不需要为每个错误方法发明一个可调用操作，但调用说明必须保留这条约定。
+响应中的 `$ref` 指向下方组件，例如 CaptureList。每个响应还需要说明媒体类型、状态和头部，单靠字段 Schema 无法知道列表返回200、创建返回201或成功时需要Location。id 是必需路径参数，但仍描述为普通字符串；不能为了让文档看上去更严格就添加服务端没有采用的UUID输入拒绝规则。未知id继续返回404。
 
-完整路径声明在配套 `src/openapi.ts` 中。用以下脚本导出一份可以单独查看的文档，新增 `scripts/export-openapi.mjs`：
+两个 GET 都加入 If-None-Match、200的ETag及不含content的304。条件响应在实际发送层产生，不能复用带JSON正文的jsonResponse来描述304。先取完整正文和标签，再发条件请求；只保存标签却没有正文时，去掉条件头重新获取。列表还要说明插入顺序、先筛选后截取、缺少limit返回全部、重复已知键拒绝和未知键忽略，这些语义不会从字段类型自动生成。
+
+QUERY_TOO_LARGE可能出现在三个操作之前，所以每个操作都保留400；未支持方法仍返回405和Allow，未知路径仍为404，不需要为这些错误额外发明可调用操作。现在从函数入口到三个路径及四个字段组件都已接齐，导出时可以实际检查这些关系。
+
+用以下脚本导出一份可以单独查看的文档，新增 `scripts/export-openapi.mjs`：
 
 ```js
 import { writeFile } from 'node:fs/promises';

@@ -4,7 +4,7 @@
 
 这条支线暂时拿掉 Nest，在一个独立的 Express 5 程序里观察这些关系。它补足当前应用已经依赖的运行机制；第十二章再在此基础上解释 Nest 的 Guard、Pipe、Interceptor 与异常过滤器，不能把它们直接等同于这里的普通 Express 中间件。
 
-时间参考（估算）：阅读约 23～28 分钟；搭建独立程序并观察九组请求另加约 15～20 分钟。
+时间参考（估算）：阅读约 26～31 分钟；搭建独立程序并观察九组请求、断点与自动重启另加约 18～23 分钟。
 
 ## 先认识被注册的函数，而不是背 next 的用法
 
@@ -169,11 +169,29 @@ server.on('error', (error) => {
 });
 ```
 
-```bash
-node examples/express-pipeline.js
+在package.json的scripts加入开发入口；这是直接运行的JavaScript，不需要额外转译：
+
+```json
+{
+  "dev:express": "NODE_ENV=development node --env-file-if-exists=.env --watch --watch-preserve-output --inspect=127.0.0.1:9229 examples/express-pipeline.js"
+}
 ```
 
-在另一个终端逐条运行，单次返回后再观察下一条，避免不同请求日志交错：
+先停止主线或其他实验的dev，避免占用同一个9229调试端口，再运行：
+
+```bash
+npm run dev:express
+```
+
+VS Code选择已有的 `EPP: attach to npm run dev`，在examples/express-pipeline.js直接设断点；JavaScript源文件就是执行文件，不需要寻找dist副本。Node watch在保存源码后重启，保留终端输出方便对照；出现语法或启动错误时，先修复保存，等新的监听日志出现再发请求。修改.env或启动参数后仍需手动重启。
+
+在Postman选择Import，导入 `requests/express-pipeline.postman_collection.json`，集合baseUrl为 `http://127.0.0.1:3003`。九条请求已经保存方法、Headers与Body，包括非法JSON和超过1 KiB的正文。逐条Send，观察响应状态、Body和服务日志，再发送下一条；不要使用自动运行去反复重放。
+
+“06 遗漏响应”应持续等待，可等约两秒后Cancel。若要观察客户端超时，在应用设置的General中找到Request Timeout，记下原值、临时改为2000毫秒，再发一次；结束后恢复，尤其不要在断点暂停时使用短期限。取消或超时都是客户端停止等待，不代表服务端已经返回错误。
+
+现在在/wait的await前后设断点，Send后分别查看调用栈与变量；继续执行得到响应。把等待改为50毫秒，保存后等自动重启，再用同一请求核对日志顺序，最后恢复20。重启不会自动重放请求，断点时间也不能算成正常延迟。
+
+以下仅是同一组请求的终端复现形式：
 
 ```bash
 curl -i http://127.0.0.1:3003/wait
@@ -190,7 +208,7 @@ node --input-type=module -e 'process.stdout.write(JSON.stringify({message:"a".re
 
 `/wait` 返回 200，日志显示外层函数先返回、等待之后才响应；`/stop` 返回 403，同时确实打印“响应之后的代码仍执行”；两个 fail 都返回 500，并进入错误处理。`/missing` 返回 404，正常经过兜底。`/hang` 会在客户端两秒期限后超时，服务端没有主动完成响应；它不是返回一个缓慢的成功结果。
 
-后三项分别返回 200、400、413。成功时才能看到解析后的 body；非法 JSON 和过大输入都在解析阶段进入错误路径。curl 超时退出只结束这次客户端等待，不会帮我们修复缺失响应的路由。观察完停止实验进程。
+后三项分别返回 200、400、413。成功时才能看到解析后的 body；非法 JSON 和过大输入都在解析阶段进入错误路径。curl 超时退出只结束这次客户端等待，不会帮我们修复缺失响应的路由。观察完在运行dev:express的终端按Ctrl+C，停止watcher及子进程。这个实验没有生产接口；主线构建与交付不复制examples，也不使用此开发入口。
 
 返回第七章，已经可以独立解释几项安排：httpBoundary 为什么必须注册在业务路由之前，为什么响应后不再 next，为什么 respond 必须等待自己的 action，为什么它包住 next 也不能捕获整个下游异步生命周期，以及为什么不能同时让两个解析器消费同一份请求流。
 
@@ -207,8 +225,11 @@ node --input-type=module -e 'process.stdout.write(JSON.stringify({message:"a".re
 | Express 5 返回 Promise | 将路由的异步拒绝交给错误处理 | 脱离返回链的定时回调、Promise 不在这个保证内 |
 | 四参数错误处理函数 | 处理路由或解析器交来的失败 | 保留签名和顺序；未知路径的兜底与抛错不同 |
 | `express.json()`／`request.body` | 单一读取方解析后交付结果 | 放在使用 body 的路由之前，不能事后重读同一流 |
+| Node watch／Inspector／Postman集合 | 保存后重启、断点与重复请求 | 共享9229；等待断点时不要设置短客户端超时 |
 | `curl --max-time` | 结束刻意挂起的实验请求 | 客户端停止等待不代表服务端已正常完成 |
 
 官方查阅：[Express 5 中间件](https://expressjs.com/en/guide/using-middleware/)、[错误传播](https://expressjs.com/en/guide/error-handling/)、[Node 24 响应 finish 事件](https://nodejs.org/docs/v24.22.1/api/http.html#event-finish_2)。本例固定 Express 5.2.1，不混用 Express 4 的 Promise 处理结论。
+
+调试入口查阅：[Node 24 命令行选项](https://nodejs.org/docs/latest-v24.x/api/cli.html)、[Postman 通用设置](https://learning.postman.com/docs/getting-started/installation/settings/general-settings)。
 
 [返回第七章正文](chapter.md) · [返回第二篇](../README.md)
