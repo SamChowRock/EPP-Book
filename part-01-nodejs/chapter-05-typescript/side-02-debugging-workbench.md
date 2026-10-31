@@ -119,9 +119,9 @@ curl -i http://127.0.0.1:3000/captures \
 
 先以一条请求确认断点命中，再修改一处启动提示并保存。等新进程监听后重发同一请求，确认断点仍停在当前源码；不要用暂停期间的超时判断接口性能。停止开发时在原终端按 Ctrl+C；断开 attach 不等于停止开发监听。Chrome 可能需要从 chrome://inspect 重新选择新进程。
 
-以下两种方式用于比较产物调试和排查启动过程，它们不自动监听源码。先停止 dev，避免争用业务及调试端口。
+以下两种方式用于比较产物调试和排查启动过程，它们不自动监听源码。先停止 dev，避免争用业务及调试端口；若此前还运行着独立产物服务，也先停止，避免把请求发到另一份进程。
 
-先停止正在普通运行的服务，避免争用业务端口。在 Run and Debug 中选择 `EPP: build and launch`，执行 Start Debugging。编辑器先构建再启动 Node，集成终端应出现监听信息。如果提示找不到 node，检查编辑器进程可用的 PATH；终端完成 nvm 切换，并不保证已经打开的编辑器也改变了解释器环境。可先使用下面的终端启动方式，连接那个已经确认版本的进程。
+在 Run and Debug 中选择 `EPP: build and launch`，执行 Start Debugging。编辑器先构建再启动 Node，集成终端应出现监听信息。如果提示找不到 node，检查编辑器进程可用的 PATH；终端完成 nvm 切换，并不保证已经打开的编辑器也改变了解释器环境。可先使用下面的终端启动方式，连接那个已经确认版本的进程。
 
 attach 路线是在终端依次运行 `npm run build`、`npm run debug`，再选择 `EPP: attach to npm run debug`。debug 使用 inspect-brk，连接后需要 Continue 才会执行到监听；这个等待不是启动卡死。使用 Chrome 时，沿第二章的 chrome://inspect 连接同一个本机目标即可，不必换另一套业务代码。
 

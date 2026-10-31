@@ -90,7 +90,7 @@ try {
 }
 ```
 
-这个配置仍用于需要单次编译的场景。日常实验新增 `examples/controller-responses/tsconfig.dev.json`，把产物隔离到.dev：
+这个配置继承主线的 `rootDir` 和 `outDir`，单次编译会输出到 `dist/examples/controller-responses/`。若用它做过单次编译，交付前要重新执行主线 `npm run build`，先清空整个 dist，再只生成主服务与配置资源。日常实验新增 `examples/controller-responses/tsconfig.dev.json`，把产物隔离到 `.dev`：
 
 ```json
 {
@@ -172,7 +172,9 @@ curl -i http://127.0.0.1:3005/responses/automatic \
   -H 'If-None-Match: "not-the-current-tag"'
 ```
 
-应重新得到200、完整JSON与当前ETag。若请求带有 `Cache-Control: no-cache`，当前 Express 的新鲜度判断也会让它返回完整响应；在开发工具里排查缓存时，同时查看实际请求头，不能只看 If-None-Match 一个字段。服务器无法确认调用者已有当前表示，就发送它。回到主线列表，如果创建新记录使列表JSON改变，再携带旧ETag查询，也应得到200；没有条件头的普通GET同样返回完整正文。
+应重新得到 200、完整 JSON 与当前 ETag。回到主线列表，如果创建新记录使列表 JSON 改变，再携带旧 ETag 查询，也应得到 200；没有条件头的普通 GET 同样返回完整正文。
+
+另一个影响本实验结果的条件是 `Cache-Control: no-cache`。按照 HTTP 缓存语义，它表示希望缓存先向源站成功验证，再复用已保存的响应，并不表示“禁止缓存”或“一定要重新传正文”；条件验证仍可以用 304 表达成功。当前 Express 的 `request.fresh` 对这个请求头直接返回 false，所以在这套发送实现里，即使 ETag 匹配，也会发送完整的 200。这是框架的具体处理方式，不能拿来推断其他服务器或代理一定相同。排查时同时看实际请求头、条件比较和发送实现，不只看 If-None-Match，也不要把本实验的 200 误判成 ETag 生成错误。
 
 还有一个容易误用的条件值：
 
@@ -257,6 +259,6 @@ return NestFactory.create(ResponsesModule, {
 | dev:responses／Postman集合 | 编译重启、断点和条件请求 | .dev与dist隔离；保存完整ETag，核对实际请求头 |
 | curl --max-time | 有限观察遗漏响应 | 客户端超时不等于服务端错误响应 |
 
-官方查阅：[Nest 11 标准与平台专用响应](https://docs.nestjs.com/v11/controllers)、[Nest 11 异常处理](https://docs.nestjs.com/v11/exception-filters)、[Express 5响应与缓存验证](https://expressjs.com/en/5x/api/response/)、[HTTP If-None-Match](https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.2)、[HTTP 304](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.4.5)、[Node.js 24 ServerResponse](https://nodejs.org/docs/latest-v24.x/api/http.html#class-httpserverresponse)。
+官方查阅：[Nest 11 标准与平台专用响应](https://docs.nestjs.com/v11/controllers)、[Nest 11 异常处理](https://docs.nestjs.com/v11/exception-filters)、[Express 5响应与缓存验证](https://expressjs.com/en/5x/api/response/)、[Express request.fresh](https://expressjs.com/en/api/request/#req.fresh)、[HTTP If-None-Match](https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.2)、[HTTP 304](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.4.5)、[no-cache 请求指令](https://www.rfc-editor.org/rfc/rfc9111.html#section-5.2.1.4)、[Node.js 24 ServerResponse](https://nodejs.org/docs/latest-v24.x/api/http.html#class-httpserverresponse)。
 
 [返回第八章](chapter.md#本章知识支线) · [返回第二篇](../README.md)

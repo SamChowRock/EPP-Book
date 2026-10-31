@@ -8,6 +8,8 @@
 
 日常继续 `npm run dev`，Postman 使用已有集合，VS Code 选择 `EPP: attach to npm run dev`。保存会重新编译到 .dev 并重启，不保留 Map；交付使用 dist 与 `npm start`。第十三章代码分支为 `part-02/chapter-13`。
 
+这一章的配置、关闭状态和日志要接到同一个应用里，13.1 中的模块会先引用后文才实现的类。阅读可以按小节推进；从第十二章跟做时，先停止 dev，读完这些对象的关系，再一起接齐文件。具体可先建立 config、13.3 的 ApplicationState 和 13.4 的 AppLogger，再组装 RuntimeModule、AppModule、请求观察与存储包装，最后接入 serve 和入口。接齐后再运行检查与各节的请求实验，避免把中间态的缺文件错误误当成容器故障。已有完整第十三章代码时，则可以随文直接运行对照。
+
 ## 13.1 把启动输入变成一份可注入的配置
 
 ### 配置读取结束以后，谁可以继续作决定
@@ -519,9 +521,9 @@ npm run dev:lifecycle
 
 命令固定开发端口 3007，沿用 .dev、Inspector 和自动重启。导入 `requests/lifecycle.postman_collection.json`，VS Code 继续 attach 到 dev。主线、管线实验和生命周期实验共享 9229 与 .dev，一次只开一个。
 
-先发送“01 正常收尾”。看到 http.started 后，在另一个终端向 app.ready 日志里的 **服务子进程 pid** 发送 `kill -TERM <pid>`；将占位符换成实际数字，不要选 npm 或 watcher 的 pid。1500 毫秒的工作应先出现 resource.used，HTTP 完成，再出现 resource.closed 和 app.stopped。Postman 应收到 201。开发父进程会等待下一次源码变化，所以杀掉子进程后终端没有返回提示符，并不代表资源仍未关闭；观察 app.stopped 和子进程状态。
+先从 app.ready 日志取得 **服务子进程 pid**，在另一个终端准备好 `kill -TERM <pid>`，暂不执行；将占位符换成实际数字，不要选 npm 或 watcher 的 pid。再发送“01 正常收尾”，看到 http.started 后执行准备好的停止命令。1500 毫秒的工作应先出现 resource.used，HTTP 完成，再出现 resource.closed 和 app.stopped。Postman 应收到 201。若发信号前已出现 http.completed，这次只观察到了空闲关闭，需要重新运行再对照。开发父进程会等待下一次源码变化，所以杀掉子进程后终端没有返回提示符，并不代表资源仍未关闭；观察 app.stopped 和子进程状态。
 
-再启动实验，发送“01”，随后在 Postman 取消请求。应先看到 http.aborted，之后仍可能看到 resource.used。这一次客户端已不等响应，但工作已经接受；再发送停止信号时，state.whenIdle 会保护仍在进行的操作。断开连接不能被误用成取消事务或撤销写入的方案。
+先用 Ctrl+C 结束仍在等待源码变化的开发父进程，再运行 `npm run dev:lifecycle`，从新的 app.ready 取得新的子进程 pid。发送“01”，随后在 Postman 取消请求。应先看到 http.aborted，之后仍可能看到 resource.used。这一次客户端已不等响应，但工作已经接受；再发送停止信号时，state.whenIdle 会保护仍在进行的操作。断开连接不能被误用成取消事务或撤销写入的方案。之后每次重新启动也按这个方式取得新 pid，不复用上次的数字。
 
 发送“02 资源失败”，响应应为 500／INTERNAL_ERROR，日志保留同一请求编号和 http.failed，实验错误消息不进入响应或日志。它与初始化失败不同：应用已可用，失败只属于这次请求，不应因此直接关闭整个进程。
 
@@ -779,7 +781,36 @@ export class ProblemFilter implements ExceptionFilter {
 
 一次依赖失败可能同时出现 store.failed 与 http.failed：前者说明失败发生在存储调用，后者说明 HTTP 最终如何回应；它们不是两次业务失败。响应已经开始后再抛错，只能记录 RESPONSE_ALREADY_STARTED 并中止连接，不能改写成一个看似完整的 500 JSON。
 
-OpenAPI 同步描述 X-Request-Id 响应头及 503／SERVICE_DRAINING。成功 JSON 和 Problem 的字段没有因此改变，条件 GET 仍可返回无正文的 304；请求编号仍随这次响应产生，不要把它当作记录 ID 或缓存内容。
+构造参数改变后，还要适配第十二章的独立管线实验。`src/labs/request-pipeline.ts` 中的 TraceFilter 继承了 ProblemFilter，原来的 `super()` 现在缺少 Logger，类型检查会失败。在该文件导入 `AppLogger`，并将 TraceFilter 的构造器改为：
+
+```ts
+constructor(private readonly name: string) { super(new AppLogger('info')); }
+```
+
+导入路径是 `../app-logger.js`。这个实验手工创建 Filter，只观察阶段顺序，因此显式提供自己的 Logger；它没有接入本章的 requestObservation，不能期待阶段日志自动具有请求编号。主应用仍由 RuntimeModule 提供同一份 Logger，并由容器注入 ProblemFilter，不能把实验的手工构造方式复制回主应用。
+
+OpenAPI 也要描述 X-Request-Id 响应头及 503／SERVICE_DRAINING。在 `src/openapi.ts` 的 `createOpenApiDocument` 中，把原来的 `return { ... }` 改为 `const document: OpenAPIObject = { ... }`，保留已有路径和组件定义，然后在函数末尾加入：
+
+```ts
+  for (const path of Object.values(document.paths)) {
+    for (const operation of [path.get, path.post]) {
+      if (!operation?.responses) continue;
+      operation.responses['503'] = problem('Shutdown in progress; code SERVICE_DRAINING');
+      for (const response of Object.values(operation.responses)) {
+        if (!response || '$ref' in response) continue;
+        response.headers = { ...response.headers, 'X-Request-Id': {
+          description: 'Server-generated correlation ID; not an idempotency key.',
+          schema: { type: 'string', format: 'uuid' },
+        } };
+      }
+    }
+  }
+  return document;
+```
+
+这段遍历当前已有的 GET 和 POST 操作，先增加 503，再给各响应补关联头；展开原 headers 是为了保留 Location 与 ETag。`$ref` 指向的响应没有内联字段，不能直接当作 ResponseObject 修改；当前各响应都以内联对象定义，后续若提取为引用，需要在引用目标上补齐。重新构建并导出文档，核对 201、400、304 和 503 都保留各自原有含义并声明关联头。文档声明不会替应用生成头，真正的设置仍在 requestObservation。
+
+成功 JSON 和 Problem 的字段没有因此改变，条件 GET 仍可返回无正文的 304；请求编号仍随这次响应产生，不要把它当作记录 ID 或缓存内容。
 
 ### 保存失败事实，再决定用日志还是断点
 
@@ -808,7 +839,7 @@ node examples/filter-logs.mjs 00000000-0000-0000-0000-000000000000 < logs/dev.lo
 
 本章完成状态保存在 `part-02/chapter-13`。检查继续使用 `npm run check`，最小 HTTP 断言继续用 `npm test`；需要验证真实网络时必须看到客户端收到响应，进程日志不能替代它。生产产物不含 labs，开发资源实验不能混进交付接口。下一章将沿一次完整请求回顾第二篇，并改变配置与执行条件检验这些职责能否接起来。
 
-时间参考（估算）：只阅读约 85～100 分钟；配置、日志与关闭实验另加约 55～70 分钟，合计约 140～170 分钟。按约7400个汉字、530行代码与命令，以及正常/失败启动、请求关联、处理中关闭和期限对照估算，尚未经过读者实测；支线单列，首次安装环境不计入。
+时间参考（估算）：只阅读约 85～100 分钟；配置、日志与关闭实验另加约 55～70 分钟，合计约 140～170 分钟。按约8000个汉字、550行代码与命令，以及正常/失败启动、请求关联、处理中关闭和期限对照估算，尚未经过读者实测；支线单列，首次安装环境不计入。
 
 ## 本章知识支线
 

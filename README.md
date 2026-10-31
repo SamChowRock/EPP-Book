@@ -22,7 +22,9 @@
 - [1.2 用一张请求路径图认识客户端、API、Worker、数据库和外部服务；复杂机制在使用时展开。](part-01-nodejs/chapter-01-epp/chapter.md#12-一条记录怎样经过整个系统)
 - [1.3 明确项目的建设范围与演进路线，以及开发数据的隔离边界。](part-01-nodejs/chapter-01-epp/chapter.md#13-项目的建设范围与演进路线)
 
-阅读参考（估算）：约 22～25 分钟。场景推演可选做。
+- [章末附录：本章必要技术点速查。](part-01-nodejs/chapter-01-epp/chapter.md#附录本章必要技术点速查)
+
+阅读参考（估算）：约 22～25 分钟。场景推演可选做，附录供回查。
 
 ### [第 2 章 先启动一个最小记录服务](part-01-nodejs/chapter-02-minimal-service/chapter.md)
 
@@ -32,7 +34,7 @@
 - [2.4 用断点区分对象构造、写入与响应；处理端口占用，通过重启解释状态寿命与持久化需要。](part-01-nodejs/chapter-02-minimal-service/chapter.md#24-暂停一次请求再停止整个服务)
 - [章末附录：本章必要技术点速查。](part-01-nodejs/chapter-02-minimal-service/chapter.md#附录本章必要技术点速查)
 
-时间参考（估算）：只阅读约 45～50 分钟；跟做另加约 30～40 分钟，边读边做合计约 75～90 分钟。附录按需查阅，首次安装 nvm 与 Node.js 另计。
+时间参考（估算）：只阅读约 47～52 分钟；跟做另加约 30～40 分钟，边读边做合计约 77～92 分钟。附录按需查阅，首次安装 nvm 与 Node.js 另计。
 
 ### [第 3 章 Node.js 程序究竟运行在哪里](part-01-nodejs/chapter-03-node-runtime/chapter.md)
 
@@ -53,13 +55,13 @@
 - [4.5 区分 JavaScript、libuv 线程池、Worker Threads 和独立进程，沿新需求选择执行位置。](part-01-nodejs/chapter-04-event-loop/chapter.md#45-执行到底发生在哪里)
 - [章末附录：本章必要技术点速查。](part-01-nodejs/chapter-04-event-loop/chapter.md#附录本章必要技术点速查)
 
-时间参考（估算）：只阅读约 50～60 分钟；跟做另加约 35～45 分钟，边读边做合计约 85～105 分钟。附录按需查阅。
+时间参考（估算）：只阅读约 53～63 分钟；跟做另加约 40～50 分钟，边读边做合计约 93～113 分钟。附录按需查阅。
 
 ### [第 5 章 TypeScript 如何变成可运行的服务](part-01-nodejs/chapter-05-typescript/chapter.md)
 
 - [5.1 从类型迁移与运行时输入边界，区分类型检查、转译与运行的责任。](part-01-nodejs/chapter-05-typescript/chapter.md#51-类型检查转译与运行各自负责什么)
 - [5.2 沿 CommonJS、ESM、包入口与扩展名解释模块解析的实际报错。](part-01-nodejs/chapter-05-typescript/chapter.md#52-commonjsesm-与模块解析的实际报错)
-- [5.3 用 tsx 与 tsc 建立开发、检查和构建命令，复现开发成功而产物失败。](part-01-nodejs/chapter-05-typescript/chapter.md#53-建立开发检查与构建命令)
+- [5.3 用 TypeScript watch 与 tsc 建立开发、检查和构建命令，并用 tsx 独立示例对照开发工具与产物解析。](part-01-nodejs/chapter-05-typescript/chapter.md#53-建立开发检查与构建命令)
 - [5.4 区分锁文件、开发依赖与运行依赖，在独立目录核对完整运行单元。](part-01-nodejs/chapter-05-typescript/chapter.md#54-锁文件依赖与一份能够搬走的程序)
 - [章末附录：本章必要技术点速查。](part-01-nodejs/chapter-05-typescript/chapter.md#附录本章必要技术点速查)
 
@@ -77,7 +79,7 @@
 
 时间参考（估算）：先按顺序读完第 1～5 章；本章阅读约 38～48 分钟，新增操作另加约 35～50 分钟，附录按需查阅。
 
-**第一篇时间参考（估算）**：第 1～6 章正文，阅读约 251～294 分钟，跟做另加约 176～231 分钟，合计约 427～525 分钟（约 7 小时 7 分～8 小时 45 分）。知识支线单列，首次环境安装与依赖下载另计；计算依据和分项见[篇导读](part-01-nodejs/README.md#整篇投入与使用方式)。
+**第一篇时间参考（估算）**：第 1～6 章正文，阅读约 256～299 分钟，跟做另加约 181～236 分钟，合计约 437～535 分钟（约 7 小时 17 分～8 小时 55 分）。知识支线单列，首次环境安装与依赖下载另计；计算依据和分项见[篇导读](part-01-nodejs/README.md#整篇投入与使用方式)。
 
 ## [第二篇 用 Nest 组织一个可持续扩展的服务](part-02-nestjs/README.md)
 
@@ -156,7 +158,7 @@
 - [13.4 沿同一次请求找到耗时与失败。](part-02-nestjs/chapter-13-configuration-lifecycle/chapter.md#134-沿同一次请求找到耗时与失败)
 - [章末附录：本章必要技术点速查。](part-02-nestjs/chapter-13-configuration-lifecycle/chapter.md#附录本章必要技术点速查)
 
-时间参考（估算）：只阅读约 85～100 分钟；配置、日志与关闭实验另加约 55～70 分钟，合计约 140～170 分钟。按约7400个汉字、530行代码与命令，以及正常/失败启动、请求关联、处理中关闭和期限对照估算，尚未经过读者实测；支线单列，首次安装环境不计入。
+时间参考（估算）：只阅读约 85～100 分钟；配置、日志与关闭实验另加约 55～70 分钟，合计约 140～170 分钟。按约8000个汉字、550行代码与命令，以及正常/失败启动、请求关联、处理中关闭和期限对照估算，尚未经过读者实测；支线单列，首次安装环境不计入。
 
 ### [第 14 章 第二篇回顾：沿一次请求解释职责与生命周期](part-02-nestjs/chapter-14-review/chapter.md)
 
@@ -172,7 +174,7 @@
 
 第二篇主线第 7～14 章合计：阅读约 470～555 分钟，操作另加约 370～460 分钟，总计约 840～1015 分钟（14 小时～16 小时 55 分）。按各章实际内容估算，非读者实测；支线单列在[篇导读](part-02-nestjs/README.md#全篇时间参考)，不并入主线。
 
-## 第三篇 持久化与结构演进：PostgreSQL、SQL、Prisma
+## [第三篇 持久化与结构演进：PostgreSQL、SQL、Prisma](part-03-postgresql/README.md)
 
 **阅读路径**：核心实践。
 
@@ -182,12 +184,14 @@
 
 **阶段边界**：先用 SQL 建立并理解两张最小表，再将已有结构纳入 Prisma 迁移管理；后续全部沿同一批数据追加迁移，修订与候选尚未创建。
 
-### 第 15 章 PostgreSQL 运行环境：解决重启后记录丢失
+### [第 15 章 PostgreSQL 运行环境：安装、连接与实例管理](part-03-postgresql/chapter-15-postgresql-environment/chapter.md)
 
-- 15.1 重启内存版服务后记录丢失，确定持久化范围仍是原文、ID、创建时间和所属用户。
-- 15.2 认识数据库服务、数据库、Schema、表与连接，准备账号和连接串。
-- 15.3 本地安装并启动 PostgreSQL，使用 psql 建立连接，再用 DBeaver 展示同一连接与 SQL；区分连接拒绝、认证失败和连错库，解释停止应用与停止数据库服务的区别。
-- 15.4 确认目标库；本篇沿同一实践数据库保留已写入数据，破坏性实验另用可丢弃环境。
+**时间参考（估算）**：阅读约 75～90 分钟；配置、连接、故障对照和启停操作另加约 45～60 分钟，首次软件下载、网络等待及遇到 WSL 跨环境故障后的处理另计。
+
+- [15.1 从现有存储契约确定接入边界](part-03-postgresql/chapter-15-postgresql-environment/chapter.md#151-从现有存储契约确定接入边界)：核对存储替换中的查询顺序、类型映射、失败语义和首批模型范围。
+- [15.2 PostgreSQL 实例如何定位和授权](part-03-postgresql/chapter-15-postgresql-environment/chapter.md#152-postgresql-实例如何定位和授权)：通过数据目录定位实例，划分开发权限，解释连接参数默认值与 search_path。
+- [15.3 安装、启动，再从两个客户端连接同一个库](part-03-postgresql/chapter-15-postgresql-environment/chapter.md#153-安装启动再从两个客户端连接同一个库)：本机独立 PostgreSQL 18 实例，psql 与 DBeaver 对照，实际区分入口、认证和目标库错误。
+- [15.4 验证实例启停，固定后续开发环境](part-03-postgresql/chapter-15-postgresql-environment/chapter.md#154-验证实例启停固定后续开发环境)：保存环境标识，选择关闭模式并核对重连，安排开发库与迁移校验环境。
 
 ### 第 16 章 关系建模：为已有记录设计第一组表
 

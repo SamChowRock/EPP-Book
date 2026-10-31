@@ -24,13 +24,13 @@ const body = await readJson(request);
 
 因此，`await` 挂起的是本次 `handleRequest()` 的后续执行。当前调用返回以后，同一条 JavaScript 执行线程可以处理其他已经就绪的工作。等请求体结束，`readJson()` 解析 JSON 并兑现 Promise，挂起位置后面的校验和写入才有机会恢复。这里的“有机会”也很重要：兑现 Promise 不会把正在执行的另一段 JavaScript 强行打断。
 
-可以从一次慢速上传中观察这个过程。终端 A 按第三章的默认配置启动服务：
+可以从一次慢速上传中观察这个过程。终端 A 沿用第三章的开发入口；本实验显式指定 3000，避免本机 `.env` 的端口让客户端连到另一处：
 
 ```bash
-npm start
+PORT=3000 npm run dev
 ```
 
-先请求一次列表，知道当前基线：
+在 Postman 打开已保存的列表请求，确认实际地址为 `http://127.0.0.1:3000/captures`，发送一次并记住当前条目。等效终端请求如下：
 
 ```bash
 curl -sS http://127.0.0.1:3000/captures
@@ -89,9 +89,11 @@ wait "$upload_pid"
 curl -sS http://127.0.0.1:3000/captures
 ```
 
-观察终端 A 已出现 `POST /captures`，而上传客户端还没有输出 `201` 的那段时间。中间的列表应能返回，且不包含这次尚未完成的输入。上传完成后，最后一次列表才应多出 `I enjoy learning English.`。已有记录不需要清空，用新增的文本和返回 ID 区分即可；重复实验会新增多条记录。
+观察终端 A 已出现 `{"event":"http.request","method":"POST"}`，而上传客户端还没有输出 `201` 的那段时间。当前日志有意不记录原始 URL；本轮只运行这一个 POST 客户端，才可以用这条方法日志确认它已进入服务。中间的列表应能返回，且不包含这次尚未完成的输入。上传完成后，最后一次列表才应多出 `I enjoy learning English.`。已有记录不需要清空，用新增的文本和返回 ID 区分即可；重复实验会新增多条记录。
 
 `0.2` 秒只是在通常启动速度下创造重叠，不能证明请求已经到达服务端。若列表先于 POST 到达，或电脑繁忙导致列表发得过晚，这轮就没有构成预期对照；先根据服务日志和客户端输出确认时间窗口，再重做。需要更宽窗口时可把客户端的 1500 改成 3000，仍保持小于空闲超时。若你改过服务端口，也要同步修改客户端和 curl 的目标地址。
+
+这里用 Node 客户端控制分段发送，用 shell 安排重叠，分别是普通图形请求难以精确表达的实验条件；日常列表回查继续用保存的 Postman 请求。测时期间先禁用断点并让程序继续运行，也不要保存服务源码触发重启，否则暂停或换进程会改变本来要观察的执行时序。
 
 ### 并发不要求两段 JavaScript 同时执行
 
@@ -215,13 +217,17 @@ server.listen(3002, '127.0.0.1', () => {
 
 ### 同时观察慢请求和快请求
 
-在终端 C 启动实验服务，等到打印监听地址：
+慢上传对照结束后，在终端 A 停止记录服务，释放其调试端口。接下来只观察独立实验服务，不需要两份服务一起保活。在终端 C 使用同一套开发参数启动实验入口，等到打印监听地址：
 
 ```bash
-node examples/event-loop-server.js
+NODE_ENV=development node --watch --watch-preserve-output --inspect=127.0.0.1:9229 examples/event-loop-server.js
 ```
 
-终端 B 先对照 `/wait`：
+`--watch` 继续监听入口及导入模块，保存 `event-loop-work.js` 后会重启实验进程；`--watch-preserve-output` 保留上一轮输出，比较时以新出现的监听日志为界。若改出语法错误，先看终端错误并修正，等新的监听日志出现后再发请求；调试窗口断开时，回到第二章的 `chrome://inspect` 重新选择这个入口。业务端口为 3002，调试端口仍是 9229，两者承担不同用途。
+
+在 Postman 选择 **Import**，导入配套代码的 `requests/event-loop.postman_collection.json`，打开“第4章执行实验”集合。它保存四条无 Body 的 GET 请求，分别使用 `{{experimentBaseUrl}}/quick`、`/wait`、`/block`、`/slice`；集合变量 `experimentBaseUrl` 默认是 `http://127.0.0.1:3002`，发送前检查解析出的完整地址。先逐条 Send，核对状态 200、响应的 `pathname` 和 `elapsedMs`，确认自己访问的是实验服务。若手动创建，就按这四个路径保存请求以便修改后重发；不要修改原记录接口集合的 `baseUrl`，以免之后把 `/captures` 发到 3002。
+
+需要观察分支时，在 Sources 打开 `examples/event-loop-server.js`，在 `const start = performance.now()` 处设断点，发送已保存的请求，查看 `pathname` 后继续执行；它能确认请求选择了哪种工作。完成这项观察后禁用断点，再做下面的计时。图形请求用于日常重复调试；下面使用 curl 的后台运行与 `time_total`，是为了安排可重复的请求重叠并明确客户端计时边界。终端 B 先对照 `/wait`：
 
 ```bash
 curl -sS -w '\nwait total=%{time_total}s\n' http://127.0.0.1:3002/wait &
@@ -590,9 +596,9 @@ Worker Threads 可以显式共享特定内存，但默认消息传递不是任�
 
 本章没有改变记录的存储模型，却让我们能沿一条请求路径区分等待、计算、排队和收尾，并据此选择处理方式。第五章继续沿用同一个项目，把开发入口迁到 TypeScript，解释类型检查、模块解析与构建产物怎样进入实际运行。
 
-本章完成代码分支：`part-01/chapter-04`。`src/` 与三个记录接口沿用第三章；本章新增的观察程序均位于 `examples/`，不增加第三方依赖。观察结束后，分别在记录服务与实验服务终端按 `Ctrl+C`。
+本章完成代码分支：`part-01/chapter-04`。`src/` 与三个记录接口沿用第三章；本章新增的观察程序均位于 `examples/`，不增加第三方依赖。HTTP 对照做完就可以在终端 C 按 `Ctrl+C` 停止实验服务；从 4.3 的异常示例开始，后面的取消、分批和线程池程序都独立运行，不依赖 HTTP 服务继续存在。中断后回来，先在项目根目录执行 `nvm use`，再运行自己停下处对应的示例和模式，无需重做此前的创建请求。
 
-时间参考（估算）：只阅读约 50～60 分钟；跟做另加约 35～45 分钟，边读边做合计约 85～105 分钟。按正文约 8200 个汉字、约 286 行随文代码与命令估算，阅读包含代码理解和因果推导；跟做包括建立观察程序约 12～15 分钟、慢上传与三组请求对照约 10～12 分钟、异常和取消约 7～10 分钟、分批与线程池观察约 6～8 分钟。不重复计入阅读，不含逐字手敲全部代码、首次环境安装或额外排错。附录按需查阅，支线时间单列。
+时间参考（估算）：只阅读约 53～63 分钟；跟做另加约 40～50 分钟，边读边做合计约 93～113 分钟。按正文约 9000 个汉字、约 300 行随文代码与命令估算，阅读包含代码理解和因果推导；跟做包括建立观察程序、导入请求与断点定位约 17～20 分钟、慢上传与三组请求对照约 10～12 分钟、异常和取消约 7～10 分钟、分批与线程池观察约 6～8 分钟。不重复计入阅读，不含逐字手敲全部代码、首次环境安装或额外排错。附录按需查阅，支线时间单列。
 
 ## 本章支线
 
@@ -624,6 +630,7 @@ Worker Threads 可以显式共享特定内存，但默认消息传递不是任�
 | `pbkdf2()`、`UV_THREADPOOL_SIZE` | 观察原生计算与线程池排队 | 示例参数只用于实验；启动前配置，增加线程不等于增加算力 |
 | `Worker`、`workerData`、消息与退出事件 | 明确另一个 JS 执行环境的生命周期 | 消息结果与线程结束不同；完整一次性协议见支线 4B |
 | `curl -w '%{time_total}'`、`&`、`wait` | 比较重叠请求的客户端耗时 | 先确认发生重叠；请求回调内部计时会漏掉回调开始前的等待 |
+| `--watch`、`--watch-preserve-output`、`--inspect` | 为独立 HTTP 实验保留保存重启和断点入口 | 先释放共用 9229；测时前禁用断点，重启后重新发送保存的请求 |
 
 官方查阅：[HTTP](https://nodejs.org/docs/v24.22.1/api/http.html)、[Timers 与 Promise timers](https://nodejs.org/docs/v24.22.1/api/timers.html)、[Performance hooks](https://nodejs.org/docs/v24.22.1/api/perf_hooks.html)、[Process](https://nodejs.org/docs/v24.22.1/api/process.html)、[命令行选项](https://nodejs.org/docs/v24.22.1/api/cli.html)、[AbortController 与全局对象](https://nodejs.org/docs/v24.22.1/api/globals.html)、[Crypto](https://nodejs.org/docs/v24.22.1/api/crypto.html)、[Worker Threads](https://nodejs.org/docs/v24.22.1/api/worker_threads.html)。
 

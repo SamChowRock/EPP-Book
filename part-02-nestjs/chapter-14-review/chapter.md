@@ -75,6 +75,8 @@ git worktree add -b practice/chapter-14 ../epp-chapter-14-practice part-02/chapt
 
 review_root 保存最初目录的位置，只在当前 shell 中保留；后续对照参考继续使用这个终端，另一个终端负责运行 dev。确认创建成功后再进入新目录。分支或目录已存在时，先核对它保存的工作，换一个新名字；不要强制覆盖，也不要把别人的练习清掉重来。
 
+如果分两次完成练习，重开终端后先进入任一已有代码工作目录，用 `git worktree list` 找回最初的第十四章目录和自己的练习目录；回到前者重新执行 `review_root=$(pwd)`，再进入后者继续。不必再次执行 worktree add，已有修改仍在练习目录中。恢复时先核对当前目录、`git status --short` 和启动端口，避免把参考补丁应用到自己的未完成实现上。
+
 ```bash
 cd ../epp-chapter-14-practice
 nvm use
@@ -179,7 +181,7 @@ ArrayCaptureStore,
 
 ### 用旧记录与直接业务调用补上 HTTP 看不到的事实
 
-内存服务热重启会清空数据，不能拿“重启后没有旧记录报错”证明读取兼容。我们需要在同一进程中放入一条此前合法的1500单元记录，再通过 Service 和公开响应投影读取它。参考补丁包含 `examples/review-contract.mjs`：
+内存服务自动重启会清空数据，不能拿“重启后没有旧记录报错”证明读取兼容。我们需要在同一进程中放入一条此前合法的1500单元记录，再通过 Service 和公开响应投影读取它。在自己的练习目录新增 `examples/review-contract.mjs`；参考补丁也包含同一脚本：
 
 ```js
 import { randomUUID } from 'node:crypto';
@@ -325,9 +327,9 @@ cp -R dist "$release_dir/dist" &&
 
 能够完成本章，意味着可以独立组织当前这个单进程、内存版 Nest 服务，并在输入、依赖和运行条件变化时维护它的承诺。完整的数据库维护、发布恢复与长期运行能力还需要后续篇章的实际工作；本篇建立的边界会继续作为它们的起点。
 
-保留自己的实现、排错记录与参考对照；需要移除练习 worktree 时，先保存工作并确认其中没有运行的服务，再用 Git 的 worktree 管理命令处理，不强制删除未提交成果。回到主代码目录后，第十四章主线依旧是第十三章的接口与运行行为。下一章从这里安装并连接 PostgreSQL，解决停止进程后记录丢失的问题。
+保留自己的实现、排错记录与参考对照；需要移除练习 worktree 时，先保存工作并确认其中没有运行的服务，再用 Git 的 worktree 管理命令处理，不强制删除未提交成果。回到主代码目录后，第十四章主线依旧是第十三章的接口与运行行为。下一章先建立 PostgreSQL 运行环境，掌握实例、连接身份和启停管理；随后再建表并接入存储。安装好数据库不会自动让当前三个接口获得持久化能力。
 
-时间参考（估算）：阅读约45～55分钟；独立修改、请求排错、关闭与产物核对另加约50～65分钟，合计约95～120分钟。按正文约 6000 个汉字、100 行代码与命令，以及独立改造和故障对照估算，尚未经过读者实测；复用已安装的环境与前章实验，不重复计算首次安装、依赖下载或无目标的排错时间。
+时间参考（估算）：阅读约45～55分钟；独立修改、请求排错、关闭与产物核对另加约50～65分钟，合计约95～120分钟。按正文约 6200 个汉字、110 行代码与命令，以及独立改造和故障对照估算，尚未经过读者实测；复用已安装的环境与前章实验，不重复计算首次安装、依赖下载或无目标的排错时间。
 
 ## 附录：本章必要技术点速查
 
@@ -343,4 +345,4 @@ cp -R dist "$release_dir/dist" &&
 
 官方查阅：[Git worktree](https://git-scm.com/docs/git-worktree)、[Git apply](https://git-scm.com/docs/git-apply)、[Nest Provider](https://docs.nestjs.com/fundamentals/custom-providers)、[Nest 生命周期](https://docs.nestjs.com/fundamentals/lifecycle-events)。本章是在既有机制上改变条件；具体接口解释与实现位置见相应前章。
 
-[上一章：配置与生命周期](../chapter-13-configuration-lifecycle/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：配置与生命周期](../chapter-13-configuration-lifecycle/chapter.md) · [下一章：PostgreSQL 运行环境](../../part-03-postgresql/chapter-15-postgresql-environment/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)

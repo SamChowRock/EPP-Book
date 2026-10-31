@@ -55,6 +55,8 @@ z.string().default('fallback').safeParse(null).success;
 
 第一项返回 fallback，第二项为 false。默认值补的是这里允许补全的缺失情况，不是把所有错误都吞掉。假如主线 limit 改成默认 20，省略 limit 时的行为会从全部变成最多 20 条；即使类型检查全部通过，接口含义仍然发生了变化。必须同步说明和调用方判断，不能以“只是增加默认值”忽略它。
 
+还要核对默认值自身是否满足规则。在 Zod 4 中，`.default(value)` 遇到 undefined 会直接返回这个输出值，不再让它经过前面的检查或转换。例如 `z.string().regex(/\S/).default(' ').parse(undefined)` 会返回空白字符串；string 类型并不能证明它包含非空白字符。若希望缺失时先补入一个值，再照常校验或转换，使用 `.prefault(value)`；同例改成 `.prefault(' ')` 就会校验失败。前者适合已经确认合法的输出默认值，后者适合仍需解析的输入候选值，不能把默认值当成自动通过了原有规则。
+
 ## 转换成功不等于输入表示正确
 
 用 Number 可以把许多值变成数字，但接口未必希望接受所有这些写法。最直观的反例是：
@@ -165,7 +167,7 @@ node examples/input-contracts.mjs
 | 名称 | 本支线用途 | 必要注意点 |
 | --- | --- | --- |
 | object／strictObject／looseObject | 比较额外字段策略 | 返回结果的处理不等于原对象修改 |
-| optional／nullable／default | 区分缺失、null 与默认补全 | 不自动排除空串，不自动吞掉不合法输入 |
+| optional／nullable／default／prefault | 区分缺失、null 与默认补全 | default 直接提供输出，prefault 让候选输入继续解析；两者都不等于吞掉任意错误 |
 | coerce | 观察 JavaScript 转换语义 | 空串与布尔字符串容易产生意外结果 |
 | transform／pipe | 区分输入、转换与输出 | 类型变换不替代输入表示约束 |
 | input／output／infer | 表达 Schema 两端的静态类型 | infer 对应输出，不证明数据已经解析 |

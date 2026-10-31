@@ -530,7 +530,7 @@ npm run dev
 
 观察 Nest 的路由日志，应包含 `/captures` 的 GET、POST 和 `/captures/:id` 的 GET；最后还要看到自己的监听地址。前者证明注册了入口，后者表示本次监听已经成功。端口被占用时，不应把路由注册日志当成服务可用的证明。
 
-另开终端，先创建再读取：
+先在 Postman 复用此前保存的请求；若换用了本章完整代码，就导入 `requests/epp.postman_collection.json`，确认集合变量 `baseUrl` 指向这次监听地址。用“02 创建原文”将 Body 改成下面的合法输入，Send 后观察状态、Body 和 Headers，再把返回的实际 ID 填入集合变量 `captureId`，依次发送“01 查看列表”和“03 查看详情”。同一组请求的终端表示如下：
 
 ```bash
 curl -i http://127.0.0.1:3000/captures   -H 'Content-Type: application/json'   --data '{"originalText":"  I want to explain this clearly. 🙂  ","id":"client-id"}'
@@ -539,7 +539,7 @@ curl -i http://127.0.0.1:3000/captures
 
 创建应返回 `201`，`Location` 指向新 ID；响应 ID 不应是 `client-id`。原文两端空格和表情保留，`createdAt` 仍是 ISO 字符串。复制实际 ID 后请求 `GET /captures/<id>`，详情与列表中的记录一致。再次提交相同原文会创建第二条，迁移没有引入去重或幂等。
 
-随后分别核对失败：
+随后复用集合中的原文类型错误、JSON 格式错误、内容类型错误和详情不存在请求。其余情况可复制创建或列表请求，分别修改 Body、方法或路径并保存，按下面的等效请求逐条核对；不必每次重新手敲命令：
 
 ```bash
 curl -i http://127.0.0.1:3000/captures   -H 'Content-Type: application/json' --data '{"originalText":42}'
@@ -573,7 +573,7 @@ node --input-type=module -e 'process.stdout.write(JSON.stringify({originalText:"
 
 默认保持 `npm run dev` 运行，选择 `EPP: attach to npm run dev`，保存后自动重启并重连。需要停在应用组装开始之前时，先停止 dev，再选择 `EPP: build and launch`；或运行 `npm run build`、`npm run debug` 后 attach 并继续到监听。
 
-在 Controller 的 `const body = await readJson(request)` 行和 Service.create 中构造 capture 的位置设置断点，发送上面的合法创建请求。第一个暂停点说明路由已经选中创建方法，但正文读取尚未完成；继续到 Service 后，观察 originalText，值应保留输入两端空格。此时再看调用栈，能找到自己的 Controller 与业务调用位置，框架负责了二者之外的分派。
+在 Controller 的 `const body = await readJson(request)` 行和 Service.create 中构造 capture 的位置设置断点，在 Postman 发送刚保存的合法创建请求。第一个暂停点说明路由已经选中创建方法，但正文读取尚未完成；继续到 Service 后，观察 originalText，值应保留输入两端空格。此时再看调用栈，能找到自己的 Controller 与业务调用位置，框架负责了二者之外的分派。
 
 再发一次 originalText 为数字的请求。Service 会在构造记录之前拒绝它，因此构造位置的断点不命中。把断点移到 InvalidCaptureError 的抛出位置，继续到 http.ts 中 respond 的 catch，就能看到业务异常如何转换成 400。现在定位依据是相邻边界上的变量与执行结果，而不只是终端打印了一个错误。
 

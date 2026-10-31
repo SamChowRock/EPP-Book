@@ -75,7 +75,7 @@ npm run typecheck
 npm run dev
 ```
 
-另开终端，创建一条容易识别的记录：
+在 Postman 的“创建原文”中把原文改为 `A module owns its records.`，发送后更新集合的 `captureId`。再用列表请求的 Params 设置 `q=module`、`limit=1`，并发送详情请求。下面保留创建和筛选的等效 curl，便于终端复现；日常仍复用已保存请求：
 
 ```bash
 curl -i http://127.0.0.1:3000/captures \
@@ -179,6 +179,8 @@ node dist/examples/module-consumer/main.js
 应看到 `[ 'One module owns the records.' ]`。写入使用记录模块拥有的 Service，摘要取得的也是同一个 Service，所以读到了这条原文。程序每次启动建立新的应用上下文，和另一个终端中的 HTTP 进程不共享 Map；不能在 HTTP 进程创建一条，再期待本程序读到它。
 
 入口里的 select 用于指定我们要观察哪个模块，`get(..., { strict: true })` 限定从选定模块的本地登记取对象。业务类仍使用构造参数，没有自己查容器。这里特意指定模块，是为了避免重复令牌实验中取错对象。普通 `app.get(token)` 可以在应用范围查找，查到一个内部对象不代表另一个模块有权通过构造参数注入它；不能用这条查找捷径来证明 exports 配置正确。
+
+模块迁移和摘要输出都正常后，可以在这里停下。保留的是 CapturesModule 的登记与 exports、AppModule 的 imports，以及独立摘要程序。后面暂删 imports／exports 的操作都是故障对照；每轮观察后恢复，再进入下一种条件。下次恢复时先编译并运行摘要程序，确认仍输出那条原文，再继续 10.2；不需要保存上一次 HTTP 进程的内存数据。
 
 到这里再回看四个配置项，就有了各自要解决的问题：providers 定义本模块怎样取得对象，controllers 声明由它组装的 HTTP 入口，imports 表达它需要别的模块，exports 表达它愿意提供哪些能力。理解它们时应始终带上具体消费者和所属模块，而不是只记四段定义。
 
@@ -453,7 +455,18 @@ node dist/examples/module-workflow/main.js
 
 如果预览后来需要请求外部服务，纯函数就不再足够。可以引入一个接受记录内容的预览 Provider，由流程对象同时依赖 CapturesService 与预览 Provider。依赖方向仍然朝向这两个能力，而不是让保存能力反过来依赖每一种使用方式。那时要进一步解释等待、费用和失败语义；不能仅仅把函数改成 async 就宣称整个流程可靠。
 
-即使只有当前这两步，也要分清完成边界。若 create 已成功，preview 随后抛错，Map 中仍然存在记录。把两个方法放进同一个 Module，甚至同一个函数，都不会自动回滚第一步。可以在 preview 函数中暂时抛出 `new Error('preview unavailable')`，并在入口捕获 run 的失败后继续调用 captures.list，观察记录仍为 1。此时不能把整条“创建并预览”直接重试为一次新的 create，否则可能新增第二条记录。
+即使只有当前这两步，也要分清完成边界。若 create 已成功，preview 随后抛错，Map 中仍然存在记录。把两个方法放进同一个 Module，甚至同一个函数，都不会自动回滚第一步。可以在 preview 函数中暂时抛出 `new Error('preview unavailable')`，将入口中取得 workflow、captures 之后、外层 finally 之前的调用临时替换为：
+
+```ts
+try {
+  await workflow.run('A preview is a consumer.');
+} catch (error: unknown) {
+  console.log(error instanceof Error ? error.message : 'Preview failed');
+}
+console.log('stored count after failure:', (await captures.list()).length);
+```
+
+保留外层 finally 中的 app.close，重新编译后运行 main.js。这样查询发生在同一次应用运行中、关闭容器之前，应看到预览错误和记录数 1；若直接用原入口，异常会跳过后续查询，只有 finally 执行，便看不到要比较的存储事实。观察后恢复格式函数与原入口，再编译确认正常输出。此时不能把整条“创建并预览”直接重试为一次新的 create，否则可能新增第二条记录。
 
 这个结果并不要求现在接入事务或后台任务；它要求我们准确描述当前行为。当前展示函数是本地确定性的格式化，流程足够简单。将来引入真实外部动作，第三至六篇会在数据、事务、幂等与任务事实建立后重新处理这条失败边界。模块拆分没有替这些机制完成工作。
 
