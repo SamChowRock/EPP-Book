@@ -204,13 +204,16 @@
 - [16.5 时间经过数据库与 JSON 时发生了什么](part-03-postgresql/chapter-16-relational-modeling/chapter.md#165-时间经过数据库与-json-时发生了什么)：核对时区、精度、默认时间与 API 表示，区分稳定排序和插入顺序，保留数据供后续查询与迁移使用。
 - [章末附录：本章必要技术点速查](part-03-postgresql/chapter-16-relational-modeling/chapter.md#附录本章必要技术点速查)。
 
-### 第 17 章 SQL：查询、筛选和修改自己的记录
+### [第 17 章 SQL：查询、筛选和修改自己的记录](part-03-postgresql/chapter-17-sql/chapter.md)
 
-- 17.1 沿已有两张表完成增删改查、条件、排序和基础分页；明确排序契约及并列处理，区分创建时间顺序与原有 Map 插入顺序。
-- 17.2 用用户和记录的 JOIN 获取列表，用聚合、分组与子查询统计记录；观察重复行和 NULL。
-- 17.3 参数绑定与动态条件，避免把输入拼进 SQL。
-- 17.4 用已有数据解释唯一约束与删除行为；关系变化时再引入新的约束。
-- 17.5 在 psql 与图形客户端中核对查询结果、当前数据库和事务状态，解释自动提交、未提交修改与结果刷新；保留这批数据供 ORM 接入和后续迁移使用。
+**时间参考（估算）**：阅读约 100～120 分钟；查询、写入回滚、关联聚合、参数与双会话观察另加约 55～75 分钟，支线单列。
+
+- [17.1 从读取意图推导条件、顺序与修改范围](part-03-postgresql/chapter-17-sql/chapter.md#171-从读取意图推导条件顺序与修改范围)：明确创建时间与 ID 排序、字面搜索和 OFFSET 边界，用归属条件与 RETURNING 观察写入结果。
+- [17.2 先决定结果粒度，再选择 JOIN、分组与子查询](part-03-postgresql/chapter-17-sql/chapter.md#172-先决定结果粒度再选择-join分组与子查询)：解释外连接、NULL 占位、COUNT、ON／WHERE、HAVING 和 EXISTS 的不同问题。
+- [17.3 把输入值与 SQL 结构分开](part-03-postgresql/chapter-17-sql/chapter.md#173-把输入值与-sql-结构分开)：用 PREPARE 观察值参数，以独立 JS 示例推导动态条件与排序白名单。
+- [17.4 从冲突结果回到设计规则](part-03-postgresql/chapter-17-sql/chapter.md#174-从冲突结果回到设计规则)：区分冲突跳过、内容一致与幂等，保留既有唯一性和删除语义。
+- [17.5 用两个会话看清提交与可见性](part-03-postgresql/chapter-17-sql/chapter.md#175-用两个会话看清提交与可见性)：在 DBeaver 按 PID 核对独立会话，观察 READ COMMITTED 下提交、回滚和结果刷新，处理未知结果并清理实验。
+- [章末附录：本章必要技术点速查](part-03-postgresql/chapter-17-sql/chapter.md#附录本章必要技术点速查)。
 
 ### 第 18 章 Prisma：将已有表纳入 Schema 与迁移管理
 
