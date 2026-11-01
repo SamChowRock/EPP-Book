@@ -430,4 +430,4 @@ psql -X -W -v ON_ERROR_STOP=1 \
 
 官方查阅：[psql 18](https://www.postgresql.org/docs/18/app-psql.html)、[客户端认证](https://www.postgresql.org/docs/18/client-authentication.html)、[事务入门](https://www.postgresql.org/docs/18/tutorial-transactions.html)。其余具体命令与客户端文档入口已附在对应操作处。
 
-[上一章：第二篇回顾](../../part-02-nestjs/chapter-14-review/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：第二篇回顾](../../part-02-nestjs/chapter-14-review/chapter.md) · [下一章：关系建模](../chapter-16-relational-modeling/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
