@@ -287,11 +287,15 @@ session_user 表示最初登录角色，current_user 表示当前执行权限的
 4. 在左侧 Database Navigator 对这个连接打开 **SQL Editor → New SQL Script**。确认编辑器工具栏所选的数据源就是刚才的连接；打开旧脚本文件并不保证自动关联正确的数据源。
 5. 粘贴 03-inspect.sql，先选中第一条 SELECT，通过 **Execute SQL Statement** 执行，查看下方结果表。然后逐条运行 SHOW 和最后的查询；也可以用 **Execute SQL Script** 执行整份只读文件并查看各个结果页。
 
-连接向导和 SQL 执行入口分别见 [DBeaver 连接文档](https://dbeaver.com/docs/dbeaver/Create-Connection/)与[SQL 执行文档](https://dbeaver.com/docs/dbeaver/SQL-Execution/)。菜单译名或快捷键会随平台变化，优先按动作名称找，别把“执行光标所在语句”误当成“执行整个脚本”。
+![DBeaver PostgreSQL 连接参数：127.0.0.1、55432、epp_dev 与 epp_owner](images/dbeaver-connection.jpg)
+
+图中核对的是 Host、Port、Database 和 Username 四项；密码栏留空用于展示，实际连接时输入自己的角色密码。Save password 是客户端保存选项，不是连接必需条件。连接向导和 SQL 执行入口分别见 [DBeaver 连接文档](https://dbeaver.com/docs/dbeaver/Create-Connection/)与[SQL 执行文档](https://dbeaver.com/docs/dbeaver/SQL-Execution/)。菜单译名或快捷键会随平台变化，26.2.3 的单条执行菜单称 **Execute SQL query**；按动作含义找，别把“执行光标所在语句”误当成“执行整个脚本”。
 
 对照 psql 的结果：库、角色、地址、端口和所有者应一致；connection_pid 不要求相同，因为这是两个独立会话。展开 `Schemas → public → Tables`，此时仍没有业务表。导航树缓存了对象信息，后面建表后用 Refresh 刷新；结果表也不会因为另一个客户端写了数据就自动重新查询。
 
-在 SQL 编辑器的事务模式菜单中确认当前为 **Auto-commit**；如果启用了 Smart commit，也记住它可能在修改语句前切到手动提交。保存 SQL 文件只是保存文字，执行修改语句也不总等于提交。下一节的备注写入先在 psql 默认自动提交会话完成，DBeaver 只负责重新查询观察；有真实业务行以后，第十七章会展开两个会话的提交可见性。模式入口可参照 [DBeaver 事务模式](https://dbeaver.com/docs/dbeaver/Auto-and-Manual-Commit-Modes/)。
+再按相同步骤保存一个管理连接：Host、Port 不变，Database 为 `postgres`，Username 为 `epp_admin`，命名为 `EPP · ADMIN · 55432 · postgres`，输入独立的管理密码。在它的 SQL 编辑器运行 `SELECT current_database(), current_user, inet_server_port();`，应得到 postgres、epp_admin、55432。这个连接供认证规则检查和后续创建校验库使用；日常业务 SQL 仍选择 DEV。连接显示名称是客户端标签，真正的身份以查询结果为准。
+
+在 DEV 的 SQL 编辑器事务模式菜单中确认当前为 **Auto-commit**，并关闭 **Smart commit**，防止修改语句前自动切到手动提交。先结束此前未完成的事务，再切换模式，不把切换按钮当作撤销操作。保存 SQL 文件只是保存文字；下一节直接在此编辑器写入备注，再重新查询观察。第十七章会展开两个会话的提交可见性。模式入口可参照 [DBeaver 事务模式](https://dbeaver.com/docs/dbeaver/Auto-and-Manual-Commit-Modes/)。
 
 **Windows 上的 DBeaver 连不上 WSL 时**，先在安装数据库的那个 WSL 发行版中，用上面的完整参数新建 psql 连接并执行诊断。成功只能证明 WSL 内部的连接成立，还要区分 Windows 到 WSL 的 TCP 路径与 DBeaver 的驱动、认证设置。在 **Windows PowerShell** 执行：
 
@@ -326,7 +330,7 @@ Test-NetConnection -ComputerName 127.0.0.1 -Port 55432
 
 后续会同时使用日常开发库和迁移校验库。除了给客户端连接命名，还可以给库本身加一条用途备注，让诊断查询直接返回环境标识。备注便于人工核对，不能代替实例地址、权限和配置隔离。
 
-在 epp_owner 连接的 psql 中，先用 `\conninfo` 和 03-inspect.sql 确认目标。保持新开的默认自动提交会话，没有进入 BEGIN，然后执行：
+在 DBeaver 的 DEV 编辑器先执行 03-inspect.sql 确认目标为 epp_dev／epp_owner。保持 Auto-commit、关闭 Smart commit，且没有进入 BEGIN，选中下面一条完整语句，通过 SQL Editor 菜单的 **Execute SQL query**（部分版本称 Execute SQL Statement）执行：
 
 ```sql
 COMMENT ON DATABASE epp_dev IS 'EPP development database; keep across chapters';
@@ -378,7 +382,9 @@ Git 分支保存程序和 SQL 文件，不保存数据库状态。切回第十�
 
 ### 隔天继续开发时，从哪里接上
 
-首次安装、initdb、创建角色和建库只做一次。日常回来先恢复当前终端的程序路径：macOS 执行 `export PATH="$(brew --prefix postgresql@18)/bin:$PATH"`，Ubuntu／WSL 执行 `export PATH="/usr/lib/postgresql/18/bin:$PATH"`，只选自己的那一条。然后恢复实例位置并查看状态：
+首次安装、initdb、创建角色和建库只做一次。日常回来先打开 DBeaver 保存的 DEV 连接，执行 03-inspect.sql。成功且身份、地址、版本与备注符合预期，就可以继续当前章节，不必另开终端再验证一遍。旧结果网格仍在不算连接成功，要实际重新执行查询。
+
+连接失败时根据错误进入前面的诊断路径。若提示连接被拒绝，需要检查实例是否运行，再恢复当前终端的程序路径：macOS 执行 `export PATH="$(brew --prefix postgresql@18)/bin:$PATH"`，Ubuntu／WSL 执行 `export PATH="/usr/lib/postgresql/18/bin:$PATH"`，只选自己的那一条。然后恢复实例位置并查看状态：
 
 ```bash
 export EPP_PGDATA="$HOME/.local/share/epp-book/postgresql-18"
@@ -391,7 +397,7 @@ pg_ctl -D "$EPP_PGDATA" status
 pg_ctl -D "$EPP_PGDATA" -l "$EPP_PGDATA/server.log" -w start
 ```
 
-接着在代码仓库根目录执行一次只读核对：
+启动后回到 DBeaver 重新连接 DEV，再执行 03-inspect.sql。尚未配置 DBeaver，或需要用另一客户端复现时，才在代码仓库根目录使用以下等效核对：
 
 ```bash
 psql -X -W -v ON_ERROR_STOP=1 \
@@ -399,11 +405,11 @@ psql -X -W -v ON_ERROR_STOP=1 \
   -f database/chapter-15/03-inspect.sql
 ```
 
-它运行后退出客户端，实例继续运行。已经配置过 DBeaver 时，再连接保存的数据源并执行同一份查询；尚未配置时，回到 15.3 的“用 DBeaver 做相同的事情”继续。第十六章以后 public 已经有表，不能再把“没有业务表”当作日常健康条件。若停在建角色或建库中途，先按前面的中断恢复说明补完缺失动作，再使用这个入口。
+它运行后退出客户端，实例继续运行。尚未配置 DBeaver 时，回到 15.3 的“用 DBeaver 做相同的事情”继续。第十六章以后 public 已经有表，不能再把“没有业务表”当作日常健康条件。若停在建角色或建库中途，先按前面的中断恢复说明补完缺失动作，再使用这个入口。
 
 走到这里，应该能从一条失败连接判断下一步去看客户端、监听、认证还是目标库；能在两个客户端中证明自己操作的是同一环境；也能解释重启后哪一层状态应该保留。下一章将在这个确切的 epp_dev 中建立第一组业务表，解释每个字段和约束来自哪个需求。环境准备由此结束，真实的记录持久化从表和 SQL 开始。
 
-时间参考（估算）：阅读约 75～90 分钟；安装后的配置、连接、故障对照和启停操作另加约 45～60 分钟。按正文约 8800 个汉字、90 余行 SQL／命令，以及两种客户端和失败条件对照估算，未经过读者实测；日常恢复复用已有操作，不重复计时。首次下载软件、网络等待及遇到 WSL 跨环境故障后的处理另计，知识支线单列。
+时间参考（估算）：阅读约 80～95 分钟；安装后的配置、连接、故障对照和启停操作另加约 50～65 分钟。按正文约 8400 个汉字、90 余行 SQL／命令，以及两种客户端和失败条件对照估算，未经过读者实测；日常恢复复用已有操作，不重复计时。首次下载软件、网络等待及遇到 WSL 跨环境故障后的处理另计，知识支线单列。
 
 ## 知识支线
 

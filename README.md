@@ -186,7 +186,7 @@
 
 ### [第 15 章 PostgreSQL 运行环境：安装、连接与实例管理](part-03-postgresql/chapter-15-postgresql-environment/chapter.md)
 
-**时间参考（估算）**：阅读约 75～90 分钟；配置、连接、故障对照和启停操作另加约 45～60 分钟，首次软件下载、网络等待及遇到 WSL 跨环境故障后的处理另计。
+**时间参考（估算）**：阅读约 80～95 分钟；配置、连接、故障对照和启停操作另加约 50～65 分钟，首次软件下载、网络等待及遇到 WSL 跨环境故障后的处理另计。
 
 - [15.1 从现有存储契约确定接入边界](part-03-postgresql/chapter-15-postgresql-environment/chapter.md#151-从现有存储契约确定接入边界)：核对存储替换中的查询顺序、类型映射、失败语义和首批模型范围。
 - [15.2 PostgreSQL 实例如何定位和授权](part-03-postgresql/chapter-15-postgresql-environment/chapter.md#152-postgresql-实例如何定位和授权)：通过数据目录定位实例，划分开发权限，解释连接参数默认值与 search_path。

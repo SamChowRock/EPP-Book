@@ -36,14 +36,14 @@ HBA 配置中的 `host` 类型匹配 TCP，`local` 类型匹配 socket。`local`
 
 ## HBA 是按顺序选择一条，不是逐条尝试直到成功
 
-先以 epp_admin 连接正文的 postgres 管理库。在配套代码根目录启动 psql：
+先在 DBeaver 连接正文保存的 `EPP · ADMIN · 55432 · postgres`，打开它自己的 SQL 编辑器。下面的 SQL 在这个管理编辑器逐条执行，原 DEV 编辑器保留供后面对照。需要终端复现时，在配套代码根目录使用等效入口：
 
 ```bash
 psql -X -W -v ON_ERROR_STOP=1 \
   'host=127.0.0.1 port=55432 dbname=postgres user=epp_admin connect_timeout=5'
 ```
 
-将下列查询保存为 `database/chapter-15/04-auth-rules.sql`，在这个管理员会话执行 `\i database/chapter-15/04-auth-rules.sql`：
+将下列查询保存为 `database/chapter-15/04-auth-rules.sql`，在管理编辑器执行并查看各结果页；psql 中则使用 `\i database/chapter-15/04-auth-rules.sql`：
 
 ```sql
 SELECT current_database(), current_user, inet_server_addr(), inet_server_port();
@@ -103,7 +103,7 @@ SELECT pg_reload_conf();
 
 返回 true 表示重载信号已成功发出，不保证每个配置项都已成功应用。查看本实例 server.log 中是否有解析或加载错误，再建立新连接验证实际行为。这里不需要重启数据库；监听地址等需要重启的配置，与可重新加载的 HBA 规则不同。函数语义见[服务器管理函数](https://www.postgresql.org/docs/18/functions-admin.html)。
 
-从另一个终端用正确密码新建 epp_owner 连接，应收到 pg_hba.conf rejects connection 一类错误。此时密码再正确也不会通过，因为匹配项是 reject。即使下面仍有允许 SCRAM 的通用规则，也不会继续尝试。
+在 DBeaver 新建一个名为 `EPP · AUTH LAB` 的连接配置，参数与 DEV 完全相同，用正确的 epp_owner 密码测试，应收到 pg_hba.conf rejects connection 一类错误。这次新建连接，不复用已连接的 DEV 编辑器；终端也可用正文完整参数新开 psql 复现。此时密码再正确也不会通过，因为匹配项是 reject。即使下面仍有允许 SCRAM 的通用规则，也不会继续尝试。
 
 回到实验开始前已连接的 DBeaver，重新执行一条只读 SELECT，通常仍能成功。HBA 主要控制建立新连接时的认证，不会因为文件变化就自动撤销所有已有会话。图形客户端可能为其他操作另开连接；某个导航操作失败而旧编辑器还能查询，并不矛盾。可以比较查询返回的 connection_pid，判断当前操作是否仍使用原来的会话。
 
@@ -113,7 +113,7 @@ SELECT pg_reload_conf();
 cp "$EPP_PGDATA/pg_hba.conf.before-15a" "$EPP_PGDATA/pg_hba.conf"
 ```
 
-管理员再次检查规则、执行 `SELECT pg_reload_conf();`，并核对日志。重新建立一条 epp_owner 连接，正确密码应恢复成功；再以错误密码建立连接，仍应失败。最后执行 03-inspect.sql 核对库、角色和端口。只有新连接验证通过，才算恢复完成，不能用一直存活的旧连接替代证明。
+管理员再次检查规则、执行 `SELECT pg_reload_conf();`，并核对日志。用 AUTH LAB 重新建立连接，正确密码应恢复成功；断开这条实验连接，再改成错误密码建立连接，仍应失败。恢复正确密码，最后执行 03-inspect.sql 核对库、角色和端口。只有新连接验证通过，才算恢复完成，不能用一直存活的旧连接替代证明。实验结束后可删除 AUTH LAB 这个客户端配置；这不删除数据库，DEV 和 ADMIN 继续保留。
 
 如果原管理员会话意外断开，新增规则只针对 epp_owner/epp_dev，仍可用原管理参数重连。如果规则写错并影响范围更大，用数据目录所有者恢复已保存的文件，再执行 `pg_ctl -D "$EPP_PGDATA" reload`；它通过操作系统向自己的实例发信号，不需要先通过 SQL 登录。随后查日志并重新连接验证，不删除数据目录、不重新 initdb。
 
@@ -125,7 +125,7 @@ cp "$EPP_PGDATA/pg_hba.conf.before-15a" "$EPP_PGDATA/pg_hba.conf"
 
 本条支线没有让应用接入数据库，也没有建立生产权限模型。它建立的是一种可以迁移的排错方法：先找到服务器真正采用的条件，再用一次只改变一个条件的实验验证因果，最后用新连接证明恢复。
 
-时间参考（估算）：阅读约 25～32 分钟；规则检查、拒绝与恢复实验另加约 20～25 分钟。按约 2800 个汉字、22 行查询／命令／配置与两种会话的对照估算，未经过读者实测，不并入主线时间。
+时间参考（估算）：阅读约 25～32 分钟；规则检查、拒绝与恢复实验另加约 20～25 分钟。按约 2700 个汉字、22 行查询／命令／配置与两种会话的对照估算，未经过读者实测，不并入主线时间。
 
 ## 附录：本支线必要技术点速查
 
