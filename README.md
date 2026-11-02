@@ -237,13 +237,16 @@
 - [19.5 保留事实，分别核对开发重启与交付产物](part-03-postgresql/chapter-19-prisma-nest/chapter.md#195-保留事实分别核对开发重启与交付产物)：保留数据重启，检查独立运行依赖、生产配置与恢复路径。
 - [章末附录：本章必要技术点速查](part-03-postgresql/chapter-19-prisma-nest/chapter.md#附录本章必要技术点速查)。
 
-### 第 20 章 Migration：给已有记录增加中文意图
+### [第 20 章 Migration：给已有记录增加中文意图](part-03-postgresql/chapter-20-migrations/chapter.md)
 
-- 20.1 现有记录只有英语原文，现在需要补充中文意图；先确定旧记录允许暂时没有该字段。
-- 20.2 修改 Prisma Schema、生成迁移、查看实际 SQL，再应用到保留数据的实践库。
-- 20.3 更新写入、修改和查询契约，让新旧记录同时可读；检查接口和数据库中的实际结果。
-- 20.4 如果业务以后要求必填：先回填与检查，再收紧约束，不能直接让旧数据失效。
-- 20.5 漂移、失败迁移与只能追加历史的原因；生产期间的新旧应用兼容在发布篇进一步展开。
+**时间参考**：阅读约 100～120 分钟，操作另加 65～90 分钟（估算；支线单列）。
+
+- [20.1 先决定旧数据的含义，再决定列怎么加](part-03-postgresql/chapter-20-migrations/chapter.md#201-先决定旧数据的含义再决定列怎么加)。
+- [20.2 从模型变更到可审查、可重放的迁移](part-03-postgresql/chapter-20-migrations/chapter.md#202-从模型变更到可审查可重放的迁移)。
+- [20.3 让创建、补充和读取共享同一份事实](part-03-postgresql/chapter-20-migrations/chapter.md#203-让创建补充和读取共享同一份事实)。
+- [20.4 如果以后要求必填，如何不让旧数据突然失效](part-03-postgresql/chapter-20-migrations/chapter.md#204-如果以后要求必填如何不让旧数据突然失效)。
+- [20.5 漂移、迁移失败与回退：先找出哪一层不一致](part-03-postgresql/chapter-20-migrations/chapter.md#205-漂移迁移失败与回退先找出哪一层不一致)。
+- [章末附录：本章必要技术点速查](part-03-postgresql/chapter-20-migrations/chapter.md#附录本章必要技术点速查)。
 
 ### 第 21 章 第三篇回顾：带着旧记录完成一次结构演进
 

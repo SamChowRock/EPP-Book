@@ -707,4 +707,4 @@ NODE_ENV=production PORT=3001 node --env-file=.env --enable-source-maps dist/src
 
 官方查阅：[Prisma 7 驱动适配器](https://www.prisma.io/docs/orm/v7/core-concepts/supported-databases/database-drivers)、[Prisma PostgreSQL](https://www.prisma.io/docs/orm/v7/core-concepts/supported-databases/postgresql)、[Prisma raw queries](https://www.prisma.io/docs/orm/v7/prisma-client/using-raw-sql/raw-queries)、[错误参考](https://www.prisma.io/docs/orm/v7/reference/error-reference)、[查询日志](https://www.prisma.io/docs/orm/v7/prisma-client/observability-and-logging/logging)、[pg.Pool](https://node-postgres.com/apis/pool)、[pg.Client](https://node-postgres.com/apis/client)、[Nest 生命周期](https://docs.nestjs.com/fundamentals/lifecycle-events)、[PostgreSQL 18 超时](https://www.postgresql.org/docs/18/runtime-config-client.html)、[活动统计](https://www.postgresql.org/docs/18/monitoring-stats.html)。
 
-[上一章：Prisma 模型与迁移](../chapter-18-prisma/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：Prisma 模型与迁移](../chapter-18-prisma/chapter.md) · [下一章：Migration](../chapter-20-migrations/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
