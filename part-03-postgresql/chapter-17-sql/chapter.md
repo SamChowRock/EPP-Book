@@ -554,4 +554,4 @@ B5 查询应为零行。最后在两个编辑器确认没有未结束事务，�
 
 官方查阅：[SELECT](https://www.postgresql.org/docs/18/sql-select.html)、[表表达式与 JOIN](https://www.postgresql.org/docs/18/queries-table-expressions.html)、[LIMIT 与 OFFSET](https://www.postgresql.org/docs/18/queries-limit.html)、[字符串函数](https://www.postgresql.org/docs/18/functions-string.html)、[RETURNING](https://www.postgresql.org/docs/18/dml-returning.html)、[子查询表达式](https://www.postgresql.org/docs/18/functions-subquery.html)、[PREPARE](https://www.postgresql.org/docs/18/sql-prepare.html)、[INSERT 与冲突处理](https://www.postgresql.org/docs/18/sql-insert.html)、[事务隔离](https://www.postgresql.org/docs/18/transaction-iso.html)、[会话活动与统计快照](https://www.postgresql.org/docs/18/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW)。文档用于回查具体行为，查询与设计依据已随例子展开。
 
-[上一章：关系建模](../chapter-16-relational-modeling/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：关系建模](../chapter-16-relational-modeling/chapter.md) · [下一章：Prisma](../chapter-18-prisma/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)

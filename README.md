@@ -215,13 +215,16 @@
 - [17.5 用两个会话看清提交与可见性](part-03-postgresql/chapter-17-sql/chapter.md#175-用两个会话看清提交与可见性)：在 DBeaver 按 PID 核对独立会话，观察 READ COMMITTED 下提交、回滚和结果刷新，处理未知结果并清理实验。
 - [章末附录：本章必要技术点速查](part-03-postgresql/chapter-17-sql/chapter.md#附录本章必要技术点速查)。
 
-### 第 18 章 Prisma：将已有表纳入 Schema 与迁移管理
+### [第 18 章 Prisma：将已有表纳入 Schema 与迁移管理](part-03-postgresql/chapter-18-prisma/chapter.md)
 
-- 18.1 从刚刚手写的 SQL 回看 ORM 解决的问题，区分 Prisma Schema、生成客户端和真实数据库。
-- 18.2 对现有最小表做 introspection，核对字段映射、类型、关系与约束；生成运行时客户端。
-- 18.3 为现有结构建立初始迁移基线，只有核对结构一致后才标记已有数据库已应用；不重复执行建表。
-- 18.4 用空的独立校验库确认初始迁移能重建相同结构，日常实践库和记录继续保留。
-- 18.5 介绍开发迁移与部署迁移的不同职责；下一次业务加字段时实际追加迁移。
+**时间参考（估算）**：阅读约 110～130 分钟；配置、模型核对、空库重放与基线登记另加约 55～75 分钟，支线单列，安装与下载等待另计。
+
+- [18.1 先分清模型、客户端与数据库](part-03-postgresql/chapter-18-prisma/chapter.md#181-先分清模型客户端与数据库)：从手写 SQL 的维护责任比较 ORM 与独立迁移工具，建立三种产物的对应关系。
+- [18.2 从已有表得到模型，再生成客户端](part-03-postgresql/chapter-18-prisma/chapter.md#182-从已有表得到模型再生成客户端)：固定 Prisma 7 配置，核对映射、物理类型、关系和约束，区分客户端改名与数据库演进。
+- [18.3 为已有结构建立可重放的基线](part-03-postgresql/chapter-18-prisma/chapter.md#183-为已有结构建立可重放的基线)：区分目标模型与执行历史，补回 CHECK，以目录查询和数据对照核对基线，保留旧数据。
+- [18.4 在独立空库重放，再登记已有库](part-03-postgresql/chapter-18-prisma/chapter.md#184-在独立空库重放再登记已有库)：先验证建表与约束，再登记日常库，解释状态、校验值与中断恢复。
+- [18.5 下一次变化怎样进入同一条历史](part-03-postgresql/chapter-18-prisma/chapter.md#185-下一次变化怎样进入同一条历史)：推导影子库、开发迁移与部署迁移的责任，区分结构重建、代码回退与数据恢复。
+- [章末附录：本章必要技术点速查](part-03-postgresql/chapter-18-prisma/chapter.md#附录本章必要技术点速查)。
 
 ### 第 19 章 Prisma 与 Nest：让记录接口使用持久化数据
 
