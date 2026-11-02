@@ -206,7 +206,7 @@
 
 ### [第 17 章 SQL：查询、筛选和修改自己的记录](part-03-postgresql/chapter-17-sql/chapter.md)
 
-**时间参考（估算）**：阅读约 100～120 分钟；查询、写入回滚、关联聚合、参数与双会话观察另加约 55～75 分钟，支线单列。
+**时间参考（估算）**：阅读约 110～130 分钟；查询、写入回滚、关联聚合、参数与双会话观察另加约 60～80 分钟，支线单列。
 
 - [17.1 从读取意图推导条件、顺序与修改范围](part-03-postgresql/chapter-17-sql/chapter.md#171-从读取意图推导条件顺序与修改范围)：明确创建时间与 ID 排序、字面搜索和 OFFSET 边界，用归属条件与 RETURNING 观察写入结果。
 - [17.2 先决定结果粒度，再选择 JOIN、分组与子查询](part-03-postgresql/chapter-17-sql/chapter.md#172-先决定结果粒度再选择-join分组与子查询)：解释外连接、NULL 占位、COUNT、ON／WHERE、HAVING 和 EXISTS 的不同问题。

@@ -394,7 +394,9 @@ ROLLBACK;
 
 前面的 RETURNING 让我们看到了自己刚写入的内容，但另一个请求何时能读到，需要另一个会话观察。不要用同一编辑器反复 SELECT 证明“大家都看到了”，因为事务总能看到自己此前的修改。
 
-先结束现有实验的事务。在 DBeaver 的连接配置或偏好设置 **Editors → SQL Editor** 中，将为 SQL 编辑器打开独立连接的选项设为 **Always**，再打开两个新编辑器，分别标记为 A 和 B；具体配置说明见 [Multiple datasource connections](https://dbeaver.com/docs/dbeaver/Separate-Connections/)。也可以创建两个使用相同连接参数的连接配置。无论采取哪种方式，都在两个编辑器各自执行：
+先结束现有实验的事务。沿第十五章连接向导创建两个使用相同开发参数的连接配置：地址 127.0.0.1、端口 55432、库 epp_dev、角色 epp_owner，分别命名 `EPP · DEV-A`、`EPP · DEV-B`。对每个连接分别打开一个 SQL 编辑器，工具栏核对数据源名称。名称不同只帮助定位，不能替代会话验证。
+
+如果习惯复用同一连接配置，也可以在连接配置或偏好设置 **Editors → SQL Editor** 中，将为 SQL 编辑器打开独立连接的选项设为 **Always**，再打开两个新编辑器；具体说明见 [Multiple datasource connections](https://dbeaver.com/docs/dbeaver/Separate-Connections/)。两种方式选一种即可，不需要既复制配置又修改全局设置。无论采取哪种方式，都在两个编辑器各自执行：
 
 ```sql
 SELECT current_database(), current_user, pg_backend_pid();
@@ -474,6 +476,33 @@ Auto-commit 模式下，不显式 BEGIN 的独立语句通常各自提交；写�
 
 B2 看不到行时，依次核对 A2 是否确实提交、PID 是否仍对应原会话、库是否相同、B 是否重新执行以及实际隔离级别。B1 提前看到了行，则先查是否和 A 共用 PID、实验行是否在此前已经提交，或客户端是否代为结束了事务。不要通过重新 seed 抹掉现象；需要证据解释边界。
 
+### 从第三个编辑器确认会话停在哪里
+
+仅凭按钮是否变灰，未必看得清客户端与服务器的事务状态。需要诊断时，使用原 DEV 连接新开一个空闲观察编辑器，保持 Auto-commit，不执行 BEGIN。打开配套 `09-session-state.sql`，执行：
+
+```sql
+SELECT pid, application_name, state,
+       xact_start IS NOT NULL AS transaction_open,
+       wait_event_type, wait_event
+FROM pg_stat_activity
+WHERE datname = current_database()
+  AND usename = current_user
+ORDER BY pid;
+```
+
+它查询当前库中以同一角色连接的会话；epp_owner 可以查看自己的会话信息，无需切到管理员。用 A、B 刚才返回的 PID 找到对应行。DBeaver 可能另开元数据连接，application_name 也可能相同，所以不能把列表的前两行直接叫作 A、B。观察编辑器自己的行通常是 active，因为它正在执行这条查询。
+
+| 暂停位置 | A 对应行 | B 对应行 |
+| --- | --- | --- |
+| A1 插入完成、B1 查询完成 | idle in transaction，transaction_open 为 true | idle in transaction，true |
+| A2 提交完成、B2 查询完成 | idle，false | idle in transaction，true |
+| A3 更新完成、B3 查询完成 | idle in transaction，true | idle in transaction，true |
+| A4 回滚且 B4 提交完成 | idle，false | idle，false |
+
+这里 idle 表示服务器正在等客户端下一条命令，不表示连接断开。idle in transaction 表示事务仍开着；ClientRead 等待通常是在等客户端发命令，也不能直接判成锁争用。若出现 idle in transaction (aborted)，说明语句出错后事务尚未结束，要回到对应编辑器执行 ROLLBACK；在别的编辑器回滚无法替它结束事务。
+
+每个阶段重新执行观察查询。观察会话不要自己包在长事务里，以免统计信息的事务内快照影响比较。若 A／B 中某个 PID 消失，先检查连接是否关闭或重连；重新查询它的 PID，并按实验行的实际状态恢复，不继续沿用旧编号。这个视图帮助定位“哪条连接、有没有未结束事务”，是否能读到某行仍由 B 的实际 SELECT 验证，不能只从 state 推断业务可见性。
+
 ### 清理专用实验行，保留前置数据
 
 A5 只删除本章创建且内容未被其他动作改变的实验记录：
@@ -497,7 +526,7 @@ B5 查询应为零行。最后在两个编辑器确认没有未结束事务，�
 
 日常应用入口仍为 `npm run dev` 的断点与自动重启；生产产物仍通过 `npm run check`、`npm start` 管理。本章没有新增驱动或运行依赖，database 下的实验不进入应用构建，保存 SQL 不会自动执行到数据库。应用查询、ORM、连接池与响应映射在第十九章才接到这批数据。
 
-时间参考（估算）：阅读约 100～120 分钟；筛选、写入回滚、关联聚合、参数与双会话操作另加约 55～75 分钟。按正文约 7700 个汉字、170 余行 SQL／JS／命令，以及关联与事务结果对照估算，环境沿用前两章，支线单列，尚未经过读者实测。
+时间参考（估算）：阅读约 110～130 分钟；筛选、写入回滚、关联聚合、参数与双会话操作另加约 60～80 分钟。按正文约 8100 个汉字、170 余行 SQL／JS／命令，以及关联、事务结果与会话状态对照估算，环境沿用前两章，支线单列，尚未经过读者实测。
 
 ## 知识支线
 
@@ -520,8 +549,9 @@ B5 查询应为零行。最后在两个编辑器确认没有未结束事务，�
 | ON CONFLICT DO NOTHING | 观察唯一冲突时跳过写入 | 不验证相同内容，不自动构成幂等 |
 | READ COMMITTED／MVCC | 解释普通读看到哪些行版本 | 每条语句取得快照，能看到自己先前的写入 |
 | pg_backend_pid／事务标记 | 确认会话与操作边界 | 编辑器标签、数据源名称不同不证明 PID 不同 |
+| pg_stat_activity／state／xact_start | 从第三个编辑器定位 A／B 的事务状态 | 观察会话不包 BEGIN；按 PID 匹配，idle 不等于断开 |
 | SET LOCAL lock_timeout | 限制实验等待锁的时长 | 不限制整个执行时长，超时后仍需回滚 |
 
-官方查阅：[SELECT](https://www.postgresql.org/docs/18/sql-select.html)、[表表达式与 JOIN](https://www.postgresql.org/docs/18/queries-table-expressions.html)、[LIMIT 与 OFFSET](https://www.postgresql.org/docs/18/queries-limit.html)、[字符串函数](https://www.postgresql.org/docs/18/functions-string.html)、[RETURNING](https://www.postgresql.org/docs/18/dml-returning.html)、[子查询表达式](https://www.postgresql.org/docs/18/functions-subquery.html)、[PREPARE](https://www.postgresql.org/docs/18/sql-prepare.html)、[INSERT 与冲突处理](https://www.postgresql.org/docs/18/sql-insert.html)、[事务隔离](https://www.postgresql.org/docs/18/transaction-iso.html)。文档用于回查具体行为，查询与设计依据已随例子展开。
+官方查阅：[SELECT](https://www.postgresql.org/docs/18/sql-select.html)、[表表达式与 JOIN](https://www.postgresql.org/docs/18/queries-table-expressions.html)、[LIMIT 与 OFFSET](https://www.postgresql.org/docs/18/queries-limit.html)、[字符串函数](https://www.postgresql.org/docs/18/functions-string.html)、[RETURNING](https://www.postgresql.org/docs/18/dml-returning.html)、[子查询表达式](https://www.postgresql.org/docs/18/functions-subquery.html)、[PREPARE](https://www.postgresql.org/docs/18/sql-prepare.html)、[INSERT 与冲突处理](https://www.postgresql.org/docs/18/sql-insert.html)、[事务隔离](https://www.postgresql.org/docs/18/transaction-iso.html)、[会话活动与统计快照](https://www.postgresql.org/docs/18/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW)。文档用于回查具体行为，查询与设计依据已随例子展开。
 
 [上一章：关系建模](../chapter-16-relational-modeling/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
