@@ -513,4 +513,4 @@ ORDER BY started_at;
 
 官方查阅：[Prisma 7.10.1 发布记录](https://github.com/prisma/orm/releases/tag/7.10.1)、[v7 配置](https://www.prisma.io/docs/orm/v7/reference/prisma-config-reference)、[Introspection](https://www.prisma.io/docs/orm/v7/prisma-schema/introspection)、[数据库映射](https://www.prisma.io/docs/orm/v7/prisma-schema/data-model/database-mapping)、[生成器](https://www.prisma.io/docs/orm/v7/prisma-schema/overview/generators)、[数据库特性支持](https://www.prisma.io/docs/orm/v7/reference/database-features)、[基线](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/baselining)、[CLI](https://www.prisma.io/docs/orm/v7/reference/prisma-cli-reference)、[影子库](https://www.prisma.io/docs/orm/v7/prisma-migrate/understanding-prisma-migrate/shadow-database)、[升级 v7 的命令变化](https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7)、[PostgreSQL 18 CREATE DATABASE](https://www.postgresql.org/docs/18/sql-createdatabase.html)。
 
-[上一章：SQL](../chapter-17-sql/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：SQL](../chapter-17-sql/chapter.md) · [下一章：Prisma 与 Nest](../chapter-19-prisma-nest/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
