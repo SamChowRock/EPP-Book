@@ -427,6 +427,33 @@ SHOW transaction_isolation;
 | 4 | A4：ROLLBACK | B4：重查，仍是原文；随后 COMMIT 结束 B 的读事务 |
 | 5 | A5：按完整条件删除专用实验行并 COMMIT | B5：重查，零行 |
 
+把前四阶段沿时间向下展开，可以看清“SQL 已返回”和“其他会话可见”之间的间隔。下图描述本实验的预期时序；A、B 必须是不同 PID，B 始终采用 READ COMMITTED 的普通 SELECT。
+
+```mermaid
+sequenceDiagram
+    participant A as 会话 A：写入
+    participant P as PostgreSQL
+    participant B as 会话 B：读取
+    B->>P: BEGIN READ COMMITTED
+    A->>P: A1：BEGIN；INSERT
+    P-->>A: RETURNING 新行，尚未提交
+    B->>P: B1：SELECT
+    P-->>B: 零行
+    A->>P: A2：COMMIT
+    P-->>A: 提交完成
+    B->>P: B2：重新 SELECT
+    P-->>B: Visible after commit.
+    A->>P: A3：BEGIN；UPDATE 为 Pending edit.
+    B->>P: B3：重新 SELECT
+    P-->>B: 仍为 Visible after commit.
+    A->>P: A4：ROLLBACK
+    B->>P: B4：重新 SELECT
+    P-->>B: 仍为 Visible after commit.
+    B->>P: COMMIT，结束读事务
+```
+
+重点看 B1 与 B2：B 没有重开事务，却因为两次 SELECT 开始的时间不同而看到不同结果。A3 的更新随后回滚，不会撤销 A2 已提交的插入；表中的第五阶段再负责清理那条实验行。
+
 A1 的关键语句是：
 
 ```sql

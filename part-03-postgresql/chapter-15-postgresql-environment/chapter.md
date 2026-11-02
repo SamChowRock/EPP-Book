@@ -38,6 +38,24 @@ PostgreSQL 将一个初始化数据目录管理的一组数据库称为 **databa
 
 初始化得到的 postgres 库用于管理连接，template0、template1 用于创建数据库；业务实践另建 epp_dev。角色属于整个 cluster，同一角色可以在不同库获得不同权限；Schema 和表则属于具体数据库。因而“在另一个库里也看到了 epp_owner”是正常的，但不能由此推断两个库中的对象授权相同。相关作用范围见 [PostgreSQL 18 数据库概览](https://www.postgresql.org/docs/18/manage-ag-overview.html)。
 
+下面把本章会用到的管理范围画在一起。外框表示同一个实例，连线区分“连接到哪里”“对象属于哪里”和“以谁的身份操作”；不是 DBeaver 的界面布局。
+
+```mermaid
+flowchart TD
+    C["DBeaver / psql"] -->|"host 与 port 定位实例"| E["127.0.0.1:55432"]
+    D["同一个数据目录"] ---|"由 pg_ctl -D 管理"| E
+    subgraph I["同一个 PostgreSQL cluster"]
+        E -->|"dbname = postgres"| P["postgres：管理连接"]
+        E -->|"dbname = epp_dev"| B["epp_dev：业务实践库"]
+        R["角色：epp_admin / epp_owner"]
+        B --> S["public Schema"]
+    end
+    C -.->|"user 选择登录身份"| R
+    R -.->|"对象权限仍须分别判断"| B
+```
+
+换数据库不会创建另一套同名角色；换 Schema 也不会把当前连接切到另一个数据库。第十六章的业务表将建在图中的 `epp_dev.public`，现在还没有这些表。
+
 ### 开发库所有者需要哪些权限
 
 本章创建两个数据库角色：`epp_admin` 是初始化时的实例管理员，只在创建角色、数据库和查看管理配置时使用；`epp_owner` 是开发库的所有者，用于本地建表和演进结构。后者没有超级用户、创建数据库或创建角色权限，但它能修改自己拥有的数据库对象，仍然不是生产 API 应当直接使用的最小权限账号。
@@ -87,7 +105,14 @@ psql --version
 
 Homebrew 的 formula 可能已经创建默认数据目录；本章不启动它，也不执行 `brew services start postgresql@18`。后续只管理自己创建的目录。若已经运行其他实例，保留它，不停止或删除不属于本次实践的服务。[formula 官方说明](https://formulae.brew.sh/formula/postgresql@18)列出其默认目录和服务命令，可以据此分清两者。
 
-**Ubuntu／WSL Ubuntu** 先确认所用系统版本受 PostgreSQL 官方 Apt 仓库支持，再按下面路径安装。没有 sudo 权限或不在支持列表时，先依据[官方 Ubuntu 下载页](https://www.postgresql.org/download/linux/ubuntu/)选择适用安装方法，不把另一个发行版的代号硬填进去。
+**Ubuntu／WSL Ubuntu** 先确认终端所在的系统。Windows 用户先在 PowerShell 执行 `wsl --list --verbose`，找到前文放置项目的发行版，再用 `wsl --distribution "实际发行版名"` 进入它；引号内替换为列表中的完整名称。不要把数据库装到另一个同样叫 Ubuntu 的环境里，详见 [WSL 基本命令](https://learn.microsoft.com/en-us/windows/wsl/basic-commands)。以下命令在 Ubuntu 终端执行：
+
+```bash
+cat /etc/os-release
+dpkg --print-architecture
+```
+
+用输出中的 `ID`、`VERSION_CODENAME` 和架构，对照[官方 Ubuntu 下载页](https://www.postgresql.org/download/linux/ubuntu/)的支持列表。确认是受支持的 Ubuntu 版本与架构后，再执行安装。没有 sudo 权限或不在支持列表时，先选择适用安装方法，不把另一个发行版的代号硬填进去。
 
 ```bash
 sudo apt update
@@ -102,7 +127,7 @@ psql --version
 
 第三行运行已安装包提供的官方仓库配置工具，按提示完成；后续再安装指定大版本。包安装可能同时创建或启动系统默认实例，那通常由 postgres 系统账号管理，和接下来由你自己创建的实例不同。后续的 `initdb`、`pg_ctl` 不加 sudo，也不去接管系统默认目录。
 
-两条路径都必须看到 18.x。`psql --version` 只说明客户端程序版本，连接后还要查服务器版本。安装成功、服务启动、账号登录和 SQL 执行是四个不同的事实，每一步都有自己的证据。
+两条路径都必须看到 18.x。若版本不对，在同一终端运行 `command -v postgres`、`command -v psql`，检查实际命中的程序是否来自刚加入 PATH 的目录，再修正 PATH。`psql --version` 只说明客户端程序版本，连接后还要查服务器版本。安装成功、服务启动、账号登录和 SQL 执行是四个不同的事实，每一步都有自己的证据。
 
 ### 初始化一次，以后反复启动
 
@@ -421,6 +446,9 @@ psql -X -W -v ON_ERROR_STOP=1 \
 | --- | --- | --- |
 | postgres／psql／DBeaver | 服务端与两种客户端 | 核对服务端版本及连接目标，不只核对客户端安装版本 |
 | initdb／PG_VERSION | 首次建立实例，确认数据大版本 | 不用于重启；已有目录先核对来源 |
+| `/etc/os-release`／`dpkg --print-architecture` | 确认 Ubuntu 版本、代号与架构 | 安装前与官方仓库支持范围对照；不借用其他版本代号 |
+| `command -v` | 确认当前终端实际使用的程序路径 | PATH 顺序会影响结果；程序版本仍需另外查询 |
+| `wsl --list --verbose`／`--distribution` | 从 PowerShell 找到并进入项目所在发行版 | 数据库与项目保持在同一发行版；Linux 命令在进入后执行 |
 | pg_ctl -D／-l／-w | 精确控制一个实例并观察启动结果 | 不混用系统服务管理同一数据目录 |
 | pg_ctl stop -m fast | 本机实验的受控关闭 | 活动事务回滚，不代表可无影响地停止共享服务 |
 | pg_isready | 查看目标入口是否接受连接 | 不验证业务角色、密码或查询权限 |

@@ -230,8 +230,8 @@
 
 **时间参考（估算）**：阅读约 120～145 分钟；接入、图形联调、故障与产物核对另加约 65～85 分钟，支线单列，依赖下载另计。
 
-- [19.1 在 Nest 中明确数据库资源的所有者](part-03-postgresql/chapter-19-prisma-nest/chapter.md#191-在-nest-中明确数据库资源的所有者)：推导资源归属、运行时配置、适配器和初始化失败清理。
-- [19.2 用原来的记录验证查询与公开响应](part-03-postgresql/chapter-19-prisma-nest/chapter.md#192-用原来的记录验证查询与公开响应)：保持字段、字面搜索与时间点，落实明确排序，并从 DBeaver 核对已有行。
+- [19.1 在 Nest 中明确数据库资源的所有者](part-03-postgresql/chapter-19-prisma-nest/chapter.md#191-在-nest-中明确数据库资源的所有者)：推导资源归属与运行时配置，先接好错误和安全日志，再建立适配器与初始化失败清理。
+- [19.2 用原来的记录验证查询与公开响应](part-03-postgresql/chapter-19-prisma-nest/chapter.md#192-用原来的记录验证查询与公开响应)：实现存储后接通模块，保持字段、字面搜索与时间点，落实明确排序，并从 DBeaver 核对已有行。
 - [19.3 写入、输入边界与错误如何连接起来](part-03-postgresql/chapter-19-prisma-nest/chapter.md#193-写入输入边界与错误如何连接起来)：拒绝不可原样表示的文本，区分数据库错误与不存在，从断点返回 SQL 复现。
 - [19.4 连接池、等待与关闭的真实顺序](part-03-postgresql/chapter-19-prisma-nest/chapter.md#194-连接池等待与关闭的真实顺序)：用池耗尽和等锁实验定位等待阶段，排空已有工作后释放资源。
 - [19.5 保留事实，分别核对开发重启与交付产物](part-03-postgresql/chapter-19-prisma-nest/chapter.md#195-保留事实分别核对开发重启与交付产物)：保留数据重启，检查独立运行依赖、生产配置与恢复路径。
@@ -248,14 +248,17 @@
 - [20.5 漂移、迁移失败与回退：先找出哪一层不一致](part-03-postgresql/chapter-20-migrations/chapter.md#205-漂移迁移失败与回退先找出哪一层不一致)。
 - [章末附录：本章必要技术点速查](part-03-postgresql/chapter-20-migrations/chapter.md#附录本章必要技术点速查)。
 
-### 第 21 章 第三篇回顾：带着旧记录完成一次结构演进
+### [第 21 章 第三篇回顾：带着旧记录完成一次结构演进](part-03-postgresql/chapter-21-review/chapter.md)
 
 **阅读前提**：先完成第 15～20 章。
 
-- 21.1 从接口结果回到 SQL、Prisma Schema 和迁移历史，说明每一层保存或约束什么。
-- 21.2 在保留旧记录的条件下改变一个字段约束，独立安排追加迁移、旧数据回填与接口兼容。
-- 21.3 通过重启、约束拒绝和读取旧记录核对结果；区分程序版本、数据库结构与数据内容，避免用重建库绕过问题。
-- 21.4 说明持久化与单表约束的保证范围，带着多次写入可能部分成功的问题进入修订与采纳篇。
+- [21.1 从接口结果回到 SQL、模型和历史](part-03-postgresql/chapter-21-review/chapter.md#211-从接口结果回到-sql模型和历史)。
+- [21.2 保留旧记录，安排一次约束放宽](part-03-postgresql/chapter-21-review/chapter.md#212-保留旧记录安排一次约束放宽)。
+- [21.3 用失败和恢复区分三个版本](part-03-postgresql/chapter-21-review/chapter.md#213-用失败和恢复区分三个版本)。
+- [21.4 单行正确之后，下一步为什么是一致性](part-03-postgresql/chapter-21-review/chapter.md#214-单行正确之后下一步为什么是一致性)。
+- [章末附录：本章必要技术点速查](part-03-postgresql/chapter-21-review/chapter.md#附录本章必要技术点速查)。
+
+时间参考（估算）：只阅读约65～80分钟；跟做另加50～70分钟，合计约115～150分钟。第三篇全部主线阅读约705～840分钟，操作约395～530分钟；支线另列于篇导读。
 
 ## 第四篇 业务一致性：修订、候选、事务与采纳
 

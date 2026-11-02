@@ -333,6 +333,20 @@ npm run db -- migrate diff --from-config-datasource \
 
 ## 18.4 在独立空库重放，再登记已有库
 
+同一份基线在两个库上承担不同动作。先在独立空库执行建表，证明历史可以重放；核对通过后，才在已有库登记历史。下面的汇合点表示比较证据，不表示复制数据库或导入业务行。
+
+```mermaid
+flowchart TD
+    M["0_init：建表与约束 SQL"] -->|"migrate deploy：实际执行"| V["epp_migration_check：从空库建立结构"]
+    D["epp_dev：已有结构与业务行"] --> Q{"结构与完整约束是否一致？"}
+    V --> Q
+    Q -->|"不一致"| X["先解释差异，暂不登记"]
+    Q -->|"一致，且 CHECK 拒绝验证通过"| R["epp_dev：resolve --applied 0_init"]
+    R --> K["历史已登记；旧行保持原值"]
+```
+
+`resolve --applied` 的箭头没有经过建表 SQL 执行：已有库中的两张表不会再创建一次。最后仍要逐字段比较旧行，结构核对不能代替内容核对。
+
 ### 空库证明的是结构可以重新建立
 
 先在 DBeaver 使用第十五章保存的管理连接，连接同一实例的 `postgres` 数据库，执行身份查询核对实例。确认自动提交开启，逐条执行配套 `03-create-verification-database.sql`：

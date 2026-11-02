@@ -4,7 +4,7 @@
 
 本章从 `part-03/chapter-18` 继续，不增加表、不修改基线、不重新导入开发数据。我们要让已有列表、详情和创建接口连接同一批数据库记录，并回答几个仅凭“能调用 ORM”无法解决的问题：相同输入是否仍得到相同含义的结果，字段怎样跨过数据库与 JSON，连接失败算什么，进程退出时谁负责收尾。
 
-直接使用本章完成代码时，可先配置连接，再运行 19.2 的图形验证；如果从第十八章逐步手写，先读完并落实 19.1～19.3 的资源、存储、校验和错误出口，再回到 19.2 启动。代码按职责展开，所以错误定义与日志字段会在 19.3 补齐，不能只复制第一段 DatabaseService 就期待编译成功。
+从第十八章逐步手写时，按 19.1→19.2→19.3 推进：先定义配置、故障、日志和连接资源，再实现存储并切换模块，读取原有记录后继续补齐写入边界。19.1 结束可以编译，19.2 结束可以启动并验证 GET，19.3 再验证创建与拒绝；不需要跳读后文才能补齐第一次运行的依赖。使用完成代码时，配置连接后直接从 19.2 的图形验证进入，再完成后续实验。
 
 日常操作继续以 Postman、VS Code 调试器和 DBeaver 为主。它们分别观察请求、程序状态和数据库事实；三处证据能对应起来，才有依据判断问题在哪一层。固定开发用户仍是 `10000000-0000-4000-8000-000000000001`，它是数据库行的归属，不代表请求已经完成身份认证。
 
@@ -108,6 +108,109 @@ export function parseDatabaseConfig(env: NodeJS.ProcessEnv): DatabaseConfig {
 本章刻意只接受既定本机连接格式：URL 可带 `schema=public`，其他查询参数拒绝。`schema` 是 Prisma CLI 的约定，不能指望 pg 自动照办；解析后将它去掉，再在适配器明确指定 `public`。这也防止 URL 中随手加的参数覆盖池选项，让正文声明的超时与实际行为不同。以后接远程 TLS 或连接代理，应明确增加对应配置和验证，不能把当前限制解释成 pg 不支持这些能力，更不能遇到证书错误就关闭验证。
 
 开发服务重启后才能读取新 `.env`。保存 TypeScript 会触发自动编译重启；保存环境文件则需要结束整个 `npm run dev` 后重新启动，因为父进程已经持有旧环境。两种动作的边界不能混淆。
+
+### 先接好故障出口和安全日志
+
+数据库访问失败与成功查询没有行，是两件不同的事。连接资源在启动和查询时都可能失败，因此先定义它们能交给上层的错误，再创建使用这些定义的资源对象。原始 message、meta、stack 和参数可能含有原文或连接信息，不直接写入日志。
+
+先新增 `src/database-errors.ts`。资源初始化和查询都使用这套分类：读取结构化错误码，只对明确认识的连接、容量与超时失败标记 temporarily unavailable；其他失败保留为内部故障。
+
+```ts
+export class StorageUnavailableError extends Error {
+  constructor() { super('Storage is temporarily unavailable; write outcome may be unknown'); }
+}
+export class StorageFailureError extends Error {
+  constructor() { super('Storage operation failed'); }
+}
+const object = (value: unknown): Record<string, unknown> =>
+  typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
+const transientCodes = new Set([
+  'P1001', 'P1002', 'P1008', 'P1017', 'P2024', 'P2037',
+  'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND',
+  '53300', '57014', '57P01', '57P02', '57P03', '08000', '08003', '08006',
+]);
+// pg 8.16.3 pool acquisition errors have messages but no stable code.
+const acquisitionMessages = new Set([
+  'timeout exceeded when trying to connect',
+  'Connection terminated due to connection timeout',
+]);
+export function databaseFailure(error: unknown): { code: string; unavailable: boolean } {
+  const root = object(error);
+  const meta = object(root.meta);
+  const adapterCause = object(object(meta.driverAdapterError).cause);
+  const directCause = object(root.cause);
+  const codes = [root.code, meta.code, adapterCause.originalCode, adapterCause.code,
+    directCause.originalCode, directCause.code].filter((v): v is string => typeof v === 'string');
+  const unavailable = codes.some(code => transientCodes.has(code))
+    || [root, directCause].some(value => acquisitionMessages.has(String(value.message)));
+  // Do not log messages, metadata, parameter values, stack or connection URL.
+  const code = codes.includes('DEV_USER_MISSING') ? 'DEV_USER_MISSING' : codes.find(value => /^(?:P[0-9]{4}|[0-9A-Z]{5}|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND)$/.test(value))
+    ?? (unavailable ? 'POOL_TIMEOUT' : 'DATABASE_FAILURE');
+  return { code, unavailable };
+}
+```
+
+在 `http.ts` 导入 StorageUnavailableError，在原有 statusCode 分支中让它得到 503，在 code 分支中得到 STORAGE_UNAVAILABLE。保留 HttpError、InvalidCaptureError、CaptureNotFoundError 的原处理，核心结果如下：
+
+```ts
+  const statusCode = error instanceof HttpError ? error.statusCode
+    : error instanceof InvalidCaptureError ? 400
+    : error instanceof CaptureNotFoundError ? 404
+    : error instanceof StorageUnavailableError ? 503 : clientStatus ?? 500;
+  const code = statusCode === 500 ? 'INTERNAL_ERROR'
+    : error instanceof StorageUnavailableError ? 'STORAGE_UNAVAILABLE'
+    : error instanceof InvalidCaptureError ? 'INVALID_CAPTURE'
+    : error instanceof CaptureNotFoundError ? 'CAPTURE_NOT_FOUND'
+    : error instanceof HttpError ? error.code : `HTTP_${statusCode}`;
+```
+
+通用 500 的 detail 继续固定为 Internal server error；503 使用存储错误中固定的非敏感说明。这样数据库故障不会被旧的“查不到记录”分支吞掉。
+
+资源对象接下来会记录数据库事件和池计数，先同步 `src/app-logger.ts` 的事件与字段白名单。保留原有 HTTP、存储、生命周期事件，完整文件如下：
+
+```ts
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { ConsoleLogger } from '@nestjs/common';
+import type { AppConfig } from './config.js';
+
+type Level = AppConfig['logLevel'];
+type Event = 'http.started' | 'http.completed' | 'http.aborted' | 'http.failed'
+  | 'store.completed' | 'store.failed' | 'app.ready' | 'app.start_failed'
+  | 'app.draining' | 'app.stopped' | 'app.stop_failed' | 'app.stop_timeout'
+  | 'database.ready' | 'database.start_failed' | 'database.closed'
+  | 'database.failed' | 'database.idle_error' | 'database.query'
+  | 'resource.opened' | 'resource.closed' | 'resource.used';
+type Fields = {
+  method?: string; route?: string; status?: number; code?: string;
+  operation?: string; durationMs?: number; signal?: string;
+  port?: number; active?: number; field?: string;
+  total?: number; idle?: number; waiting?: number;
+};
+const priority: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
+
+export class AppLogger {
+  private readonly context = new AsyncLocalStorage<{ requestId: string }>();
+  private readonly output = new ConsoleLogger('EPP', { json: true, colors: false });
+  constructor(private readonly level: Level) {}
+
+  withRequest<T>(requestId: string, action: () => T): T {
+    return this.context.run({ requestId }, action);
+  }
+  write(level: Level, event: Event, fields: Fields = {}): void {
+    if (priority[level] < priority[this.level]) return;
+    const { method, route, status, code, operation, durationMs, signal, port, active, field, total, idle, waiting } = fields;
+    const message = {
+      event, requestId: this.context.getStore()?.requestId,
+      method, route, status, code, operation, durationMs, signal, port, active, field, total, idle, waiting,
+    };
+    if (level === 'info') this.output.log(message);
+    else this.output[level](message);
+  }
+  onApplicationShutdown(): void { this.context.disable(); }
+}
+```
+
+这里增加的 total、idle、waiting 只表示池状态。事件类型、参数解构和最终输出同时列出允许字段，完整异常、连接串和业务文本不会因为多传一个对象就进入日志。
 
 ### 创建一次，启动时验证，失败也释放
 
@@ -225,50 +328,7 @@ export class DatabaseModule {}
 
 配置 factory 在异常离开容器之前记录安全字段名。否则外层启动协调只会记录通用 START_FAILURE，读者无法判断是 DATABASE_URL 还是 DB_POOL_MAX 不合法；这条日志仍不包含配置值。
 
-再调整 `CapturesModule`：
-
-```ts
-import { Module } from '@nestjs/common';
-import { CapturesController } from './captures.controller.js';
-import { CapturesService } from './captures.service.js';
-import { CAPTURE_STORE } from './capture-store.js';
-import type { CaptureStore } from './capture-store.js';
-import { CaptureListQueryPipe } from './capture-query.js';
-import { DatabaseModule } from './database.module.js';
-import { DatabaseService } from './database.service.js';
-import { PrismaCaptureStore } from './prisma-capture.store.js';
-import { ObservedCaptureStore } from './observed-capture.store.js';
-import { AppLogger } from './app-logger.js';
-import { ApplicationState } from './application-state.js';
-
-@Module({
-  imports: [DatabaseModule],
-  controllers: [CapturesController],
-  providers: [
-    CaptureListQueryPipe,
-    { provide: PrismaCaptureStore,
-      useFactory: (database: DatabaseService) => new PrismaCaptureStore(database),
-      inject: [DatabaseService] },
-    {
-      provide: CAPTURE_STORE,
-      useFactory: (store: PrismaCaptureStore, logger: AppLogger, state: ApplicationState) =>
-        new ObservedCaptureStore(store, logger, state),
-      inject: [PrismaCaptureStore, AppLogger, ApplicationState],
-    },
-    {
-      provide: CapturesService,
-      useFactory: (store: CaptureStore) => new CapturesService(store),
-      inject: [CAPTURE_STORE],
-    },
-  ],
-  exports: [CapturesService],
-})
-export class CapturesModule {}
-```
-
-DatabaseModule 导出 DatabaseService；CapturesModule 导入它，随后在同一个依赖链中创建存储。不要在每个使用者的 providers 再登记一次 DatabaseService，否则又把“消费同一个资源”写成“创建一个资源”。普通 Provider 的默认作用域是应用上下文内共享，不是操作系统全局单例；两个 API 进程仍各有自己的池。
-
-Controller 与 CapturesService 的注入令牌没有变化，`ObservedCaptureStore` 仍包在真正的存储外侧。19.2 与 19.3 实现新的存储方法后，再执行 `npm run check` 和 `npm run dev`；不要在依赖尚未补齐时把编译错误误认为数据库错误。
+此时 `DatabaseModule` 已经定义，但 `CapturesModule` 仍保留前章的内存实现，尚未导入它。可以先运行 `npm run check`，确认配置、错误、日志和资源文件能够独立编译；这一步不要求数据库在线，也不表示主服务已经接上数据库。下一节实现存储后再切换模块。
 
 ## 19.2 用原来的记录验证查询与公开响应
 
@@ -331,6 +391,53 @@ export class PrismaCaptureStore implements CaptureStore {
 
 `$queryRaw<Row[]>` 的泛型是作者给出的类型承诺，不是数据库返回值的运行时校验。如果把 SQL 中别名写错，泛型不会替数据库验证；后面的映射和响应检查会失败。改 raw SQL 时必须核对实际行，不能把编译通过当成查询已经正确。
 
+### 存储实现完成后再切换模块
+
+现在三个存储方法都已定义，再将 `src/captures.module.ts` 从内存实现切换到 Prisma：
+
+```ts
+import { Module } from '@nestjs/common';
+import { CapturesController } from './captures.controller.js';
+import { CapturesService } from './captures.service.js';
+import { CAPTURE_STORE } from './capture-store.js';
+import type { CaptureStore } from './capture-store.js';
+import { CaptureListQueryPipe } from './capture-query.js';
+import { DatabaseModule } from './database.module.js';
+import { DatabaseService } from './database.service.js';
+import { PrismaCaptureStore } from './prisma-capture.store.js';
+import { ObservedCaptureStore } from './observed-capture.store.js';
+import { AppLogger } from './app-logger.js';
+import { ApplicationState } from './application-state.js';
+
+@Module({
+  imports: [DatabaseModule],
+  controllers: [CapturesController],
+  providers: [
+    CaptureListQueryPipe,
+    { provide: PrismaCaptureStore,
+      useFactory: (database: DatabaseService) => new PrismaCaptureStore(database),
+      inject: [DatabaseService] },
+    {
+      provide: CAPTURE_STORE,
+      useFactory: (store: PrismaCaptureStore, logger: AppLogger, state: ApplicationState) =>
+        new ObservedCaptureStore(store, logger, state),
+      inject: [PrismaCaptureStore, AppLogger, ApplicationState],
+    },
+    {
+      provide: CapturesService,
+      useFactory: (store: CaptureStore) => new CapturesService(store),
+      inject: [CAPTURE_STORE],
+    },
+  ],
+  exports: [CapturesService],
+})
+export class CapturesModule {}
+```
+
+DatabaseModule 导出 DatabaseService；CapturesModule 导入它，随后在同一个依赖链中创建存储。不要在每个使用者的 providers 再登记一次 DatabaseService，否则又把“消费同一个资源”写成“创建一个资源”。普通 Provider 的默认作用域是应用上下文内共享，不是操作系统全局单例；两个 API 进程仍各有自己的池。
+
+Controller 与 CapturesService 的注入令牌没有变化，`ObservedCaptureStore` 仍包在真正的存储外侧。到这里已具备启动所需的全部类型、日志、故障出口与存储方法。先继续核对下面的读取语义，再执行本节末尾的 check、启动和已有记录 GET；无需提前跳到 19.3 补文件。写入的编码规则与创建实验在 19.3 完成，本节先不发送 POST。
+
 ### 时间点要用独立证据核对
 
 还有一个容易被“写完再读回来”掩盖的问题。本章固定的 `@prisma/adapter-pg` 7.10.1 在非 UTC 会话下处理 timestamptz 存在兼容问题：读取时会把返回文本的偏移替换成 UTC 标记，写入 Date 时又可能发送不带时区的时间文本。只核对同一个驱动写入、再由它读取的结果，两边偏差可能相互抵消。
@@ -346,7 +453,7 @@ FROM public.captures
 WHERE id = '20000000-0000-4000-8000-000000000001';
 ```
 
-其 epoch 应为 `1793433600.123000`，HTTP 对应 `2026-10-31T08:00:00.123Z`。DBeaver 自己的会话改为上海时区后，server_text 可以显示 16:00+08，但 epoch 和 HTTP 时间点不应变。再创建新记录，比较响应时间对应的 epoch 与 DBeaver 中实际保存的 epoch，不能只比较 POST 与 GET 两份 JSON。
+其 epoch 应为 `1793433600.123000`，HTTP 对应 `2026-10-31T08:00:00.123Z`。DBeaver 自己的会话改为上海时区后，server_text 可以显示 16:00+08，但 epoch 和 HTTP 时间点不应变。19.3 创建新记录时，再比较响应时间对应的 epoch 与 DBeaver 中实际保存的 epoch，不能只比较 POST 与 GET 两份 JSON。
 
 读列表、读详情和创建都经过同一个池，才共同遵守这项设置。以后代码不要随意修改池会话时区；要给用户显示当地时间，在显示层转换。升级适配器后重新执行这个交叉核对，而非仅凭新版本号移除兼容配置。相关问题可查 [Prisma 的时间适配问题记录](https://github.com/prisma/orm/issues/28629)；判断当前项目仍以固定版本与实际数据核对为准。
 
@@ -373,6 +480,8 @@ Map 按插入先后遍历，而关系查询没有天然顺序。这里落实第�
 数据库 UUID 类型会把 `not-a-uuid` 拒绝为类型输入错误，旧 Map 则只会查不到。把这次异常当 500 会使存储替换改变无效详情路径的结果。因此先识别本服务使用的规范小写 UUID 文本，其他路径直接作为 miss；再把合法 ID 与固定 userId 一起查询。不存在返回 undefined，由已有 Service 转为 404。
 
 这里不把大写、无横线等 PostgreSQL 也能接受的表示规范化后查询；原来的路径契约使用创建返回的字面 ID，没有承诺它们是别名。合法但属于别的用户的行同样不返回，然而“固定开发用户条件”仍不是鉴权：每个调用者此时都使用同一个用户范围。服务继续绑定本机，不把它部署成多用户公开应用。
+
+切换到数据库后，接口描述也要反映本节已经落实的行为。在 `src/openapi.ts` 将版本改为 0.3.0，列表说明写明 `createdAt ASC, id ASC`；三个操作的公共响应中增加 503／STORAGE_UNAVAILABLE，并保留 SERVICE_DRAINING 的说明。19.3 再随 Unicode 校验更新字段描述。文档版本不会自动改变代码，这里是同步已经实现的行为。
 
 ### 在 Postman 和 DBeaver 对照同一批行
 
@@ -465,6 +574,8 @@ Service.list 的 text 条件同时加入 `!isPostgresText(text)`，放在 `typeo
 
 这是一次明确的输入契约收紧；成功字段不变，emoji 等正确代理对继续合法。原文仍至多 2000 个 UTF-16 单元，q 仍至多 200，长度没有改成码点数。Schema 的自定义 refine 不会完整转换成 OpenAPI 的标准限制，因此 description 要说明规则，再用真实请求核对。
 
+写入规则和字段描述补齐后，停止旧 dev，运行 `npm run check`，再启动 `npm run dev`。下面开始创建请求；本节之前的读取验证保留了数据库基线，现在可以比较写入前后的同一条记录。
+
 在 Postman “03 创建特殊字符原文”使用以下 JSON：
 
 ```json
@@ -479,62 +590,7 @@ Service.list 的 text 条件同时加入 `!isPostgresText(text)`，放在 `typeo
 
 把所有异常转换成 undefined，是持久化接入中很危险的“兼容”：数据库掉线会变成 404，列表失败会变成空数组，调用方可能据此覆盖本地数据。只有成功查询后没有行，才是不存在。
 
-DatabaseService.run 统一记录安全诊断，再转成存储层错误。HTTP 层认识 `StorageUnavailableError`，将它映射为 503／STORAGE_UNAVAILABLE；其他存储故障继续走通用 500／INTERNAL_ERROR。完整分类在 `src/database-errors.ts`，它读取 Prisma code、raw 查询的 meta.code 和适配器 cause 中的结构化 SQLSTATE，只把允许的代码交给日志。不会输出原始 message、完整 meta、stack 或参数，因为它们可能带出原文和连接信息。
-
-沿前章手写时，新增 `src/database-errors.ts`，使 19.1 的资源实现能使用同一套分类：
-
-```ts
-export class StorageUnavailableError extends Error {
-  constructor() { super('Storage is temporarily unavailable; write outcome may be unknown'); }
-}
-export class StorageFailureError extends Error {
-  constructor() { super('Storage operation failed'); }
-}
-const object = (value: unknown): Record<string, unknown> =>
-  typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
-const transientCodes = new Set([
-  'P1001', 'P1002', 'P1008', 'P1017', 'P2024', 'P2037',
-  'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND',
-  '53300', '57014', '57P01', '57P02', '57P03', '08000', '08003', '08006',
-]);
-// pg 8.16.3 pool acquisition errors have messages but no stable code.
-const acquisitionMessages = new Set([
-  'timeout exceeded when trying to connect',
-  'Connection terminated due to connection timeout',
-]);
-export function databaseFailure(error: unknown): { code: string; unavailable: boolean } {
-  const root = object(error);
-  const meta = object(root.meta);
-  const adapterCause = object(object(meta.driverAdapterError).cause);
-  const directCause = object(root.cause);
-  const codes = [root.code, meta.code, adapterCause.originalCode, adapterCause.code,
-    directCause.originalCode, directCause.code].filter((v): v is string => typeof v === 'string');
-  const unavailable = codes.some(code => transientCodes.has(code))
-    || [root, directCause].some(value => acquisitionMessages.has(String(value.message)));
-  // Do not log messages, metadata, parameter values, stack or connection URL.
-  const code = codes.includes('DEV_USER_MISSING') ? 'DEV_USER_MISSING' : codes.find(value => /^(?:P[0-9]{4}|[0-9A-Z]{5}|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND)$/.test(value))
-    ?? (unavailable ? 'POOL_TIMEOUT' : 'DATABASE_FAILURE');
-  return { code, unavailable };
-}
-```
-
-在 `http.ts` 导入 StorageUnavailableError，在原有 statusCode 分支中让它得到 503，在 code 分支中得到 STORAGE_UNAVAILABLE。保留 HttpError、InvalidCaptureError、CaptureNotFoundError 的原处理，核心结果如下：
-
-```ts
-  const statusCode = error instanceof HttpError ? error.statusCode
-    : error instanceof InvalidCaptureError ? 400
-    : error instanceof CaptureNotFoundError ? 404
-    : error instanceof StorageUnavailableError ? 503 : clientStatus ?? 500;
-  const code = statusCode === 500 ? 'INTERNAL_ERROR'
-    : error instanceof StorageUnavailableError ? 'STORAGE_UNAVAILABLE'
-    : error instanceof InvalidCaptureError ? 'INVALID_CAPTURE'
-    : error instanceof CaptureNotFoundError ? 'CAPTURE_NOT_FOUND'
-    : error instanceof HttpError ? error.code : `HTTP_${statusCode}`;
-```
-
-通用 500 的 detail 继续固定为 Internal server error；503 使用存储错误中固定的非敏感说明。OpenAPI 的三个操作同时声明 STORAGE_UNAVAILABLE，版本改为 0.3.0，列表描述改成时间与 ID 排序。否则实际结果变了，图形文档仍会误导调用方。
-
-另外在 AppLogger 的 Event 类型加入 `database.ready`、`database.start_failed`、`database.closed`、`database.failed`、`database.idle_error`、`database.query`；Fields 增加可选 number 类型的 total、idle、waiting，并把这三个字段加入 write 的解构和输出白名单。不要把“允许传入任意对象”当作省事办法，那会使完整数据库异常和秘密进入日志。配套文件保留完整白名单。
+19.1 已经接好 `DatabaseService.run`、`database-errors.ts` 与 HTTP 出口，现在用业务结果检查这套分类是否诚实。Prisma code、raw 查询的 meta.code 和适配器 cause 中的 SQLSTATE 属于不同层，不能只看最外层异常名字。资源层只记录允许的诊断字段，再由 HTTP 层区分暂时不可用的 503 与其他内部故障的 500。
 
 当前几类结果应按业务原因理解：
 
@@ -627,6 +683,31 @@ LOCK TABLE public.captures IN ACCESS EXCLUSIVE MODE;
 拿到锁后，在 Postman 两个标签页接近同时发送 `GET /captures`，间隔尽量小于一秒。第一条取得唯一连接，进入数据库等锁；第二条没有连接，在 Node 的池中排队。第三个 DBeaver 观察会话重新执行活动查询，会看到第一条被阻塞的 API 会话，通常只见一条 epp-api 连接：第二条请求尚未进入数据库。
 
 预期结果是：第二条约两秒后池获取到期；第一条约三秒后由服务器 statement_timeout 取消。二者均返回 503／STORAGE_UNAVAILABLE，但安全日志的数据库代码与等待阶段不同，第一条 raw 查询通常为 P2010 并在内部携带 57014。Postman 中响应耗时也包含其他开销，不要求刚好等于整数秒。
+
+把这两个请求放在同一张时序图中，等待位置就不同了。图中的两秒从请求二开始获取连接时计算，三秒从请求一的 SQL 到达服务器后计算；图不按耗时比例绘制。
+
+```mermaid
+sequenceDiagram
+    participant H as DBeaver 持锁会话
+    participant A as API 请求一
+    participant Q as pg.Pool：max=1
+    participant B as API 请求二
+    participant P as PostgreSQL
+    H->>P: BEGIN；持有 captures 强表锁
+    A->>Q: 获取连接
+    Q-->>A: 交付唯一连接
+    A->>P: SELECT，等待表锁
+    B->>Q: 不到一秒后申请连接
+    Note over Q,B: 请求二在池中排队，尚未发送 SQL
+    Q-->>B: 约两秒：获取连接超时
+    Note over B: HTTP 503
+    P-->>A: 约三秒：statement_timeout 取消语句
+    A->>Q: 结束占用，释放或移除连接
+    Note over A: HTTP 503
+    H->>P: 原持锁会话 ROLLBACK
+```
+
+因此，活动视图能看到请求一的阻塞会话，却看不到请求二的 SQL；后者还没有进入服务器。两个 503 相同，不代表故障发生在同一层。请求一超时也不会替 DBeaver 结束持锁事务，最后一条 ROLLBACK 仍由持锁者负责。
 
 若两条都得到语句超时，先确认池确实为 1，环境文件修改后整个 dev 是否重启；若只有一条请求，检查是否复用了同一个正在发送的标签；若直接成功，确认锁仍然持有且连到同一库。不要靠重复加锁直到出现红字来验证假设。
 
