@@ -135,6 +135,31 @@ CHECK 还有一个容易从 JS 经验误判的地方：表达式结果为 false 
 
 默认值选择 `CURRENT_TIMESTAMP`。它表示当前事务开始的时间，同一事务里创建多条记录可能拿到同一个值；它不是每次调用都读取墙上时钟，也不是提交时间。应用后续传入已有 createdAt 时会覆盖默认值，因此仍保持“由业务创建记录时确定时间”的来源。默认值只是省略列时的约定，不强迫应用改用数据库时间。
 
+### 把当前两张表放进 ER 图
+
+把前面的决定汇成实体关系图（ER 图），再进入建表。每个框表示一张表，框内列出字段；这张图对应本章实际要建立的 `public.users` 与 `public.captures`，也作为第十七章查询和第十八章迁移基线的结构起点。
+
+```mermaid
+erDiagram
+    users ||..o{ captures : "拥有"
+    users {
+        uuid id PK
+        timestamptz created_at "非空，毫秒精度"
+    }
+    captures {
+        uuid id PK
+        uuid user_id FK "非空，引用 users.id"
+        text original_text "非空，长度大于零"
+        timestamptz created_at "非空，毫秒精度"
+    }
+```
+
+PK 表示主键，FK 表示外键。users 一端的 `||` 表示每条记录必须对应且只对应一个用户；captures 一端的 `o{` 表示一个用户可以对应零条或多条记录。这里“零条”允许用户尚未创建记录，不表示一条记录可以没有拥有者。
+
+虚线表示非标识关系：记录由自己的 id 标识，user_id 不参与 captures 的主键。虚线不表示外键可以省略，也不表示允许 NULL；必须有拥有者仍由 `user_id NOT NULL` 与外键共同保证。user_id 上没有唯一约束，所以同一用户可以拥有多条记录。
+
+图让身份和关系一眼可见，完整规则还要落实到下一节的 DDL：两列 created_at 都使用 `timestamptz(3)` 和 CURRENT_TIMESTAMP 默认值；original_text 用 NOT NULL 与 CHECK 分别拒绝 NULL 和空字符串；外键更新、删除动作均为 RESTRICT；user_id 另有普通索引。关系线本身不表达级联删除、查询性能或访问权限。
+
 ## 16.3 建表、写入，再确认留下了什么
 
 ### 在 DBeaver 准备本章工作台
@@ -215,6 +240,7 @@ WHERE table_schema = 'public' AND table_name IN ('users', 'captures')
 ORDER BY table_name, ordinal_position;
 
 SELECT conrelid::regclass AS table_name, conname,
+       convalidated, conenforced,
        pg_get_constraintdef(oid) AS definition
 FROM pg_constraint
 WHERE conrelid IN ('public.users'::regclass, 'public.captures'::regclass)
@@ -223,11 +249,13 @@ ORDER BY table_name, conname;
 
 `information_schema.columns` 提供列元数据，不是业务行。`udt_name` 能看到 uuid、text、timestamptz 这样的底层类型名，datetime_precision 应是 3。`regclass` 把表名解释成数据库中的对象引用，`pg_get_constraintdef` 将已保存的约束还原成可读定义。这里按两张表限定范围，不需要记住整个系统目录；理解它们查询的是服务器现状，就能用它们检查工具生成的结构。
 
+再看 convalidated 与 conenforced：本章新建的约束均应为 true。前者说明已有数据已通过约束验证，后者说明约束处于执行检查的状态。PostgreSQL 18 可以在部分约束上表达尚未验证或不执行的状态；只看到名字和定义，不能认定完整性保证已经成立。本章不使用这些特殊状态，后续迁移核对也需要保留这一判断。
+
 配套 `03-inspect-model.sql` 保存了这两条查询，并补充索引与数据读取。此时表为空，可以运行来查看结构，数据结果应为零行。不要把仓库里的 CREATE TABLE 文件当作已经应用到数据库的证据。
 
 ### 用关系图检查设计，用属性确认图的含义
 
-双击 captures，在对象编辑器切换到 **Diagram**；也可以双击 public 或其 Tables 节点查看 Schema 的关系图，具体入口见 [DBeaver 关系图说明](https://dbeaver.com/docs/dbeaver/ER-Diagrams/)。图中找到 captures.user_id 到 users.id 的关联，再回到 Properties 检查它引用的列与删除动作。如果图没显示关联，先 Refresh 并查看 Foreign Keys 是否存在，不靠手动画一根线修复数据库。
+双击 captures，在对象编辑器切换到 **Diagram**；也可以双击 public 或其 Tables 节点查看 Schema 的关系图，具体入口见 [DBeaver 关系图说明](https://dbeaver.com/docs/dbeaver/ER-Diagrams/)。将实际结构与上一节 ER 图对照：两张表、六个字段，以及 captures.user_id 到 users.id 的关联是否一致；再回到 Properties 检查引用列、非空与删除动作。如果图没显示关联，先 Refresh 并查看 Foreign Keys 是否存在，不靠手动画一根线修复数据库。不同工具的线形和布局可以不同，核对的是键、引用与数量约束。
 
 把图与前面的需求逐条对应：记录端为什么必须有拥有者，由 user_id 的非空和外键回答；用户端为什么能有多条记录，由引用端没有唯一约束回答；用户为什么可以还没有记录，由 users 不依赖 captures 回答。图能帮助看到结构，但必须结合这些属性，才能确认数量边界。
 
@@ -329,7 +357,7 @@ ROLLBACK;
 | 把 user_id 改成 NULL | 一条记录不能没有归属 | 23502，非空约束 |
 | 使用第一条已有记录的 id | 同一记录身份不能占两行 | 23505，captures_pkey |
 | original_text 写成空字符串 | 有值但长度为零 | 23514，captures_original_text_nonempty |
-| 删除拥有两条记录的开发用户 | 会破坏已有引用 | 23503，captures_user_id_fkey |
+| 删除拥有两条记录的开发用户 | 被 ON DELETE RESTRICT 阻止 | 23001，captures_user_id_fkey |
 
 前三个变式的完整操作如下。逐组执行 BEGIN 与 INSERT，报错后单独执行该组 ROLLBACK，不要全选后假定执行器一定继续：
 
@@ -358,7 +386,7 @@ ROLLBACK;
 
 每组中与当前约束无关的值保持合法，避免本想观察空串却先撞上重复 ID。删除拥有者的变式在下面接着解释。
 
-这里的 SQLSTATE 比本地化错误文案更适合程序判断，但仍需结合约束名和操作上下文；同样一个 23503，可能来自插入不存在的拥有者，也可能来自删除被引用的用户。第十九章会把这些数据库事实映射到应用错误，而不是把服务器完整错误发给客户端。
+这里的 SQLSTATE 比本地化错误文案更适合程序判断，但仍需结合约束名、操作上下文和服务端版本。本书 PostgreSQL 18 中，插入不存在的拥有者返回 `23503`（foreign_key_violation），本例删除被引用用户触发 RESTRICT 则返回 `23001`（restrict_violation）；不能把两种操作统一写成同一个码。第十九章会把这些数据库事实映射到应用错误，而不是把服务器完整错误发给客户端。可在[错误码表](https://www.postgresql.org/docs/18/errcodes-appendix.html)中回查条件名称。
 
 若实验结果与预期不同，先重新运行 03-inspect-model.sql：连接目标对不对、约束是否真的存在、固定用户与记录是否仍在？例如删除居然成功，可能是误连空库，或开发用户根本没有被引用；不能只根据“SQL 执行成功”得出 RESTRICT 失效。若错误发生在 INSERT 的类型转换阶段，先检查 UUID 拼写，因为那还没走到期望的外键检查。
 
@@ -407,7 +435,7 @@ SELECT 后面的列是要读出的投影，WHERE 限定归属，ORDER BY 明确�
 
 ```mermaid
 erDiagram
-    users ||--o{ captures : owns
+    users ||..o{ captures : owns
     captures ||--o{ capture_members : grants
     users ||--o{ capture_members : receives
     capture_members {
@@ -418,7 +446,7 @@ erDiagram
     }
 ```
 
-两个外键分别保证记录和成员存在；组合主键 `(capture_id, member_user_id)` 保证同一人对同一记录最多一份当前授权。permission 描述这一对关系上的权限，所以属于成员表；它不属于 users，因为同一个人在不同记录上可以有不同权限。granted_at 也属于这次授权，而不是用户注册时间。这里已经由属性归属推导出了典型的**关联实体模式**，不是先背“多对多要三张表”。
+两个外键分别保证记录和成员存在；组合主键 `(capture_id, member_user_id)` 保证同一人对同一记录最多一份当前授权。这两个外键都参与成员行的主键，因此指向 capture_members 的关系用实线表示标识关系。permission 描述这一对关系上的权限，所以属于成员表；它不属于 users，因为同一个人在不同记录上可以有不同权限。granted_at 也属于这次授权，而不是用户注册时间。这里已经由属性归属推导出了典型的**关联实体模式**，不是先背“多对多要三张表”。
 
 假设成员从只读改为可编辑：如果产品只关心当前权限，更新原关系行即可；若必须追溯每次授权变化，同一对记录和用户就会有多次历史事件。此时不能删掉组合唯一性、容许多行后让程序随便选一个；应该继续保留唯一的当前授权，另用历史行表达每次变化，或者明确改为带有效期的版本模型。**当前关系与历史事件的行粒度不同**，键的选择也会随之改变。
 
@@ -435,15 +463,19 @@ erDiagram
 ```sql
 BEGIN;
 SET LOCAL TIME ZONE 'UTC';
-SELECT id, created_at
+SELECT id, created_at, created_at::text AS server_text,
+       extract(epoch FROM created_at) AS epoch_seconds
 FROM public.captures WHERE id = '20000000-0000-4000-8000-000000000001';
 
 SET LOCAL TIME ZONE 'Asia/Shanghai';
-SELECT id, created_at
+SELECT id, created_at, created_at::text AS server_text,
+       extract(epoch FROM created_at) AS epoch_seconds
 FROM public.captures WHERE id = '20000000-0000-4000-8000-000000000001';
 ```
 
-psql 默认文本显示应分别包含 `2026-10-31 08:00:00.123+00` 与 `2026-10-31 16:00:00.123+08`。这是同一个时间点的两种显示，没有执行 UPDATE。DBeaver 的驱动与单元格格式还可能做额外展示转换，所以不要单凭表格显示判断服务器存的时间变了。
+在同一个 DBeaver 编辑器逐条执行，先观察 UTC 的 SELECT，再执行上海设置及下一条 SELECT。server_text 应分别为 `2026-10-31 08:00:00.123+00` 与 `2026-10-31 16:00:00.123+08`；epoch_seconds 两次都是 `1793433600.123`。`::text` 在服务器端转成文本，使结果不会再作为时间类型被客户端换算；extract(epoch ...) 则把时间点表达为距 Unix 纪元的秒数。这里比较的是同一个 ID，显示偏移改变，数值时间点不变，也没有执行 UPDATE。
+
+DBeaver 的驱动与单元格格式可能对 created_at 做额外展示转换，因此那一列不一定跟随 SET LOCAL 改变。把它与 server_text、epoch_seconds 对照，就能区分客户端展示、服务器会话时区和实际时间点。psql 默认文本显示通常与 server_text 一致。不要为让两张网格看起来一样而修改已保存的时间。
 
 继续用带类型的常量让数据库比较：
 
@@ -517,7 +549,7 @@ pg_ctl -D "$EPP_PGDATA" -l "$EPP_PGDATA/server.log" -w start
 
 这份解释也暴露了设计的适用范围。若需求改成保留每次修改，行粒度和版本关系要重新讨论；若改成多人共享，增加的是授权关系，不能抹掉拥有者；若只是读取变慢，先取得查询证据，再决定索引或派生副本。下一章在同一批数据上展开查询、修改、关联和提交可见性，继续用实际读写检验这些判断。
 
-时间参考（估算）：阅读约 120～140 分钟；建表、写入、关系图与结构核对、约束失败对照与时间／重连操作另加约 50～65 分钟。按正文约 12800 个汉字、107 行代码／命令、一张关系图和五组约束实验估算，尚未经过读者实测；安装配置沿用上一章，支线单列。16.1～16.2 可先完成模型推导，16.3 再落地并留下可恢复的数据。
+时间参考（估算）：阅读约 120～140 分钟；建表、写入、关系图与结构核对、约束失败对照与时间／重连操作另加约 50～65 分钟。按正文约 13200 个汉字、111 行代码／命令、当前模型与共享变式两张关系图和五组约束实验估算，尚未经过读者实测；安装配置沿用上一章，支线单列。16.1～16.2 可先完成模型推导，16.3 再落地并留下可恢复的数据。
 
 ## 知识支线
 
@@ -532,6 +564,7 @@ pg_ctl -D "$EPP_PGDATA" -l "$EPP_PGDATA/server.log" -w start
 | 函数依赖／规范化 | 按事实归属减少插入、更新与删除异常 | 拆开后须能通过稳定键还原关系 |
 | 候选键／代理键／组合唯一性 | 区分行身份与业务重复规则 | 添加 UUID 不会自动阻止重复关系 |
 | 关联实体／当前关系与历史事件 | 保存关系自己的权限与时间 | 需求改变行粒度时重新检查键 |
+| ER 图／PK／FK／关系数量 | 汇总当前表、身份与引用，和实际结构对照 | 虚线不表示可空；删除动作、CHECK 和权限仍需另查 |
 | uuid／PRIMARY KEY | 保存稳定身份并拒绝重复 | 类型不保证唯一；主键自动建立唯一索引 |
 | text／char_length | 保存原文与拒绝空字符串 | 字符数不是 JS UTF-16 单元数，也不是完整业务校验 |
 | NOT NULL／CHECK | 限制缺失值与列值条件 | CHECK 只在结果为 false 时拒绝，不能独自排除 NULL |
@@ -550,6 +583,6 @@ pg_ctl -D "$EPP_PGDATA" -l "$EPP_PGDATA/server.log" -w start
 | SQLSTATE／\errverbose | 查看数据库错误依据 | DBeaver 看错误详情；备用 psql 元命令不用于 SQL 编辑器 |
 | information_schema／pg_constraint／pg_indexes | 跨客户端核对列、约束、索引 | 查询现状，不能拿源文件代替已应用的结构 |
 
-官方查阅：[约束](https://www.postgresql.org/docs/18/ddl-constraints.html)、[CREATE TABLE](https://www.postgresql.org/docs/18/sql-createtable.html)、[UUID](https://www.postgresql.org/docs/18/datatype-uuid.html)、[字符类型](https://www.postgresql.org/docs/18/datatype-character.html)、[日期时间类型](https://www.postgresql.org/docs/18/datatype-datetime.html)、[日期时间函数](https://www.postgresql.org/docs/18/functions-datetime.html)、[事务](https://www.postgresql.org/docs/18/tutorial-transactions.html)、[错误代码](https://www.postgresql.org/docs/18/errcodes-appendix.html)、[psql](https://www.postgresql.org/docs/18/app-psql.html)。这些入口供回查行为，建模与操作依据已在正文展开。
+官方查阅：[约束](https://www.postgresql.org/docs/18/ddl-constraints.html)、[CREATE TABLE](https://www.postgresql.org/docs/18/sql-createtable.html)、[UUID](https://www.postgresql.org/docs/18/datatype-uuid.html)、[字符类型](https://www.postgresql.org/docs/18/datatype-character.html)、[日期时间类型](https://www.postgresql.org/docs/18/datatype-datetime.html)、[日期时间函数](https://www.postgresql.org/docs/18/functions-datetime.html)、[事务](https://www.postgresql.org/docs/18/tutorial-transactions.html)、[错误代码](https://www.postgresql.org/docs/18/errcodes-appendix.html)、[约束系统目录](https://www.postgresql.org/docs/18/catalog-pg-constraint.html)、[psql](https://www.postgresql.org/docs/18/app-psql.html)。这些入口供回查行为，建模与操作依据已在正文展开。
 
 [上一章：PostgreSQL 运行环境](../chapter-15-postgresql-environment/chapter.md) · [下一章：SQL](../chapter-17-sql/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
