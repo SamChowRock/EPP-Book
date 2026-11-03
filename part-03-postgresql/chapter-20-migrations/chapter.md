@@ -6,7 +6,7 @@
 
 起点代码为 `part-03/chapter-19`，完成代码为 `part-03/chapter-20`。继续使用 Node.js 24.22.1、Prisma CLI／Client／adapter-pg 7.10.1、pg 8.16.3 和 PostgreSQL 18；本章不升级依赖。读者应已完成第十八章迁移基线和第十九章数据库接入，日常库 `epp_dev` 有真实旧记录。Prisma 官方站点的默认文档可能指向新主版本，本章命令以 **v7** 文档和固定版本的 `--help` 为准。
 
-**时间参考**：阅读约 100～120 分钟，编码与操作另加 65～90 分钟，均为估算；不含下载和支线。手写推进按 20.1→20.2→20.3，先完成数据库扩展再启动新代码；直接使用完成代码时，先按 20.2 的“已有迁移文件”路径应用迁移，再进行 20.3 的图形联调。不要对成品再生成同名迁移。
+**时间参考**：阅读约 115～135 分钟，编码与操作另加 65～90 分钟，均为估算；不含下载和支线。手写推进按 20.1→20.2→20.3，先完成数据库扩展再启动新代码；直接使用完成代码时，先按 20.2 的“已有迁移文件”路径应用迁移，再进行 20.3 的图形联调。不要对成品再生成同名迁移。
 
 ## 20.1 先决定旧数据的含义，再决定列怎么加
 
@@ -364,11 +364,37 @@ patch: {
 
 ![为已有记录补充意图，原文与创建时间保持](images/01-patch-intent.jpg)
 
+Postman 中也按同样方法操作。下面一组改用一条独立演示记录，原文为 `Chapter 20 screenshot sample`；在这组对照内部始终保持 URL 中同一个 ID，填写意图“用于比较缺失字段与清空。”。
+
+![Postman：PATCH 成功写入意图并返回同一条记录](images/postman-patch-success.jpg)
+
+Body 选择 raw／JSON，响应的 `chineseIntent` 与输入相同；记下 ID、原文、意图和创建时间，作为随后拒绝实验的比较基线。图中端口为 3220，跟做使用自己的服务地址。
+
 继续在图形客户端比较 `{}`、`{"chineseIntent":"   "}` 和 `{"chineseIntent":null}`：前两项 400 且旧值不变，后一项 200 并明确清空。发送仅包含原文的旧创建请求，201 响应意图为 null；带意图的新创建请求则保留输入。这时数据库中旧记录、新记录、已填写和未填写记录可以同时存在。
+
+![Postman：PATCH 的空对象不代表保留原值或清空](images/postman-missing-intent.jpg)
+
+请求 Body 是合法 JSON 对象 `{}`，问题发生在字段契约：`issues` 指向 `chineseIntent`，消息中的 `undefined` 表示未提供字段，不是数据库中的 SQL NULL。创建接口允许省略意图，不代表修改接口也接受省略；先看当前请求方法，再解释响应。
+
+![Postman：仅含空格的意图不能作为有效文本写入](images/postman-blank-intent.jpg)
+
+这次字段存在且类型为字符串，失败原因变为没有非空白字符。和后面的成功清空图对照：空对象、纯空白字符串、JSON null 是三种不同意图，不能由客户端统一改成空字符串。两张 400 图只证明输入拒绝；再 GET 同一个 ID 并与操作前比较，才补齐旧值保持的观察。
+
+![Postman：两个非法 PATCH 之后，GET 仍返回最后一次成功的意图](images/postman-rejected-preserves-value.jpg)
+
+这次 GET 在发送空对象和纯空白请求之后执行。与成功 PATCH 图相比，ID、原文、意图“用于比较缺失字段与清空。”及创建时间都保持；这才把“请求被拒绝”和“旧值未改变”连起来。完成比较后，再发送显式 null，观察清空的不同结果。
 
 ![Postman：显式 null 清空意图，响应保留字段](images/postman-clear-intent.jpg)
 
 注意请求确实包含 chineseIntent，值是 JSON null，不是字符串 "null"，也不是省略字段。响应仍包含 chineseIntent: null；应按同一 id 与操作前结果比较原文和 createdAt，并在 DBeaver 核对列值。端口使用当前服务地址。
+
+![Postman：旧创建请求省略意图时，响应明确返回 null](images/postman-create-without-intent.jpg)
+
+这个 POST 的 Body 只有 `originalText`，201 响应仍明确包含 `chineseIntent: null`。它和前面的 PATCH 空对象不是同一种操作：创建时可以尚无意图，修改时则要求说明要改成什么。
+
+![Postman：新创建请求可以同时保存原文与意图](images/postman-create-with-intent.jpg)
+
+第二个 POST 显式提供意图，201 响应保留该值。两张创建图的 ID 不同，这是两个新记录，不是给上一条记录追加内容；第 22 章才引入修订身份。继续在详情、列表与 DBeaver 中按各自 ID 核对，不用只看原文相似就认定是同一条记录。
 
 若 PATCH 返回 405，先检查方法边界；415 看 Content-Type；400 看 Problem 的 code 和字段路径；500／503 再用 `X-Request-Id` 关联日志。若数据库已改但响应 500，检查输出投影及 Schema，不能直接重放修改。给 `updateIntent`、SQL 返回与响应拦截器设断点，分别看输入、实际更新行和最终表示；查询事件参数中含用户文本，只在本机示例调试时观察，不增加常态原文日志。
 
