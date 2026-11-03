@@ -192,6 +192,10 @@ SHUTDOWN_TIMEOUT_MS=0 npm start
 
 用 `PORT=3001 npm start` 核对正常产物，Postman 的产物集合指向 3001，开发集合仍指向 3000。创建和查询照常工作；生产的 `/docs` 与 `/openapi.json` 默认 404。只有有意提供 `DOCS_ENABLED=true` 才改变文档入口，开文档不附带身份校验。验证完结束该进程，不要让下一次检查误连仍在运行的旧产物。
 
+![Postman：生产配置关闭文档入口，GET /docs 返回 404](images/postman-production-docs.jpg)
+
+图中请求独立生产进程的 /docs，返回 ROUTE_NOT_FOUND。复现时使用自己产物进程的端口，并先确认同一进程的 /captures 正常；不能把所有路径都访问失败、甚至没有监听，误认为文档开关生效。
+
 ## 13.3 让停止接收、完成工作和释放资源按顺序发生
 
 ### 构造完成、初始化完成、监听成功不是一件事
@@ -824,6 +828,10 @@ LOG_LEVEL=debug npm run dev 2>&1 | tee logs/dev.log
 这些命令沿用本书的 macOS、Linux 或 WSL shell。文件中会有 npm 和编译器的非 JSON 行，也有应用的 JSON 行；这不表示所有终端输出都满足一个 JSON 文件格式。日志保存在本机，分享前仍检查内容，长期采集与轮转不靠无限增长的 tee 文件解决。
 
 在 Postman 的创建请求点击 Send，查看响应 Headers 的 X-Request-Id。复制编号，在编辑器打开 logs/dev.log 搜索；应关联 http.started、store.completed(insert) 和 http.completed(201)。将 Body 改为 `{"originalText":7}` 后再发一次，取得新的编号；应有 VALIDATION_ERROR 和完成状态400，没有对应的 store.completed(insert)。把 Body 改成非法 JSON，又会在更早的读取边界失败。这里不是凭“没看到写入”下结论，而是结合已启用 debug、稳定的编号和入口/出口证据判断。
+
+![Postman 响应 Headers：X-Request-Id 与 Location](images/postman-request-id.jpg)
+
+响应区左侧下拉从 Body 切到 Headers，找到服务端生成的 X-Request-Id，再复制到日志搜索。Location 中的是记录 ID，X-Request-Id 是这一次请求的编号；重复创建会同时得到新的记录 ID 和请求编号。截图端口以当前启动地址为准。
 
 需要精确筛选时，使用配套 `examples/filter-logs.mjs`，把响应中的编号作为第一个参数：
 
