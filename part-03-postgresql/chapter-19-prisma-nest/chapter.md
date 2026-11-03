@@ -8,7 +8,7 @@
 
 日常操作继续以 Postman、VS Code 调试器和 DBeaver 为主。它们分别观察请求、程序状态和数据库事实；三处证据能对应起来，才有依据判断问题在哪一层。固定开发用户仍是 `10000000-0000-4000-8000-000000000001`，它是数据库行的归属，不代表请求已经完成身份认证。
 
-**时间参考（估算）**：阅读约 120～145 分钟；接入、图形联调、故障与产物核对另加约 65～85 分钟。支线单列，估时依据见篇导读。
+**时间参考（估算）**：阅读约 135～160 分钟；接入、图形联调、故障与产物核对另加约 65～85 分钟。支线单列，估时依据见篇导读。
 
 ## 19.1 在 Nest 中明确数据库资源的所有者
 
@@ -505,6 +505,10 @@ DBeaver Data 网格可能不明显显示两端空格，可查看文本编辑器�
 
 图中为便于完整显示，id_tail 只展示 UUID 的最后四位，实际查询仍按完整 ID 排序；两个字符数分别为 28、21，utc_time 通过 SQL 显式显示 UTC。接口查询和详情仍使用完整 UUID，不能把四位尾数当作唯一标识。左侧连接名称只是标签，目标身份仍以查询为准。
 
+![Postman：通过完整 UUID 读取 SQL 阶段已有的记录](images/postman-existing-record.jpg)
+
+这里没有重新 POST。详情返回前置数据的完整 ID、两端空格与 `2026-10-31T08:00:00.123Z`，可以逐项和上方数据库结果对应。图中 Postman 使用 3219 端口；端口只标识这次请求的 API 进程，不能据此判断其连接的数据库，仍要核对启动配置与数据库身份。
+
 也可复用第十一章的 Swagger：打开 `/docs`，展开 GET /captures，点击 Try it out，再点击 Execute，查看 Server response 而不是下方静态 Example Value。
 
 ![Swagger 实际返回前章记录与 UTC 时间](images/02-http-data.jpg)
@@ -592,7 +596,19 @@ Service.list 的 text 条件同时加入 `!isPostgresText(text)`，放在 `typeo
 
 WHERE 使用上一张响应的完整 UUID，表格只将 ID 尾部缩短显示。created_utc 显式转换为 UTC，与响应中带 Z 的 createdAt 对照：两者都是 01:23:14.553。网格里的 C:\temp 是实际文本，JSON 显示的双反斜线是转义表示。首尾空格难以目测时，再用本篇已有的长度或定界显示查询确认。
 
+![Postman：q 中的百分号按普通字符搜索](images/postman-literal-search.jpg)
+
+Params 中的 q 是一个 `%`，limit 为 10。响应只包含刚才那条带 `100%` 的原文，没有把其他不含百分号的记录一起匹配出来；它不是 SQL LIKE 中代表任意长度文本的通配符。发送前核对勾选状态，让 Postman 处理 URL 编码。再分别替换为 `_`、反斜线和 emoji，继续比较同一条记录；不要把一次百分号成功扩展成所有特殊字符都已验证。
+
 “12 拒绝 NUL”和“13 拒绝孤立代理项”保存的正文分别包含 `a\u0000b`、`a\ud800b`。应返回 400／VALIDATION_ERROR，而不是 500 或保存替换后的字符。再次在 DBeaver 查询，失败请求没有产生新行。搜索 q 同样拒绝 NUL；前端通常会把孤立代理项先替换或拒绝编码，服务内的共同判断仍不能省略。
+
+![Postman：JSON 转义出的 NUL 被原文字段校验拒绝](images/postman-reject-nul.jpg)
+
+Body 中的 `\u0000` 是 JSON 转义，解析后是一个 NUL；若写成 `\\u0000`，得到的是反斜线与字母数字组成的普通文本，检验的就不是同一种输入。观察 400、`VALIDATION_ERROR` 和 `issues[0].path` 中的 `originalText`，而不只看状态码的颜色。
+
+![Postman：孤立高代理项同样返回字段校验错误](images/postman-reject-surrogate.jpg)
+
+这里的 `\ud800` 没有配对的低代理项。响应沿用“合法 Unicode 且不含 NUL”的共同规则，不意味着这次输入也含有 NUL。两张图展示的是请求输入被拒绝；拒绝后数据库行数是否保持，仍按前面的数据库查询核对，不能单靠一张 400 响应图得出结论。图中服务端口为 3219，跟做使用自己的实际端口。
 
 ### 从数据库异常得到业务上诚实的结果
 
@@ -609,6 +625,10 @@ WHERE 使用上一张响应的完整 UUID，表格只将 ID 尾部缩短显示�
 | 连接中断、连接池等待到期、容量不足或语句超时 | 503／STORAGE_UNAVAILABLE | 连接、池容量、阻塞及执行时间 |
 | 表／列缺失、权限不符、未预期约束失败 | 500／INTERNAL_ERROR | 目标库、迁移、应用模型与维护操作 |
 | 应用已进入关闭阶段，明确未接收工作 | 503／SERVICE_DRAINING | 进程生命周期；不同于执行中的存储失败 |
+
+![Postman：存储连接不可用时，详情请求返回 503](images/postman-storage-unavailable.jpg)
+
+这张图展示数据库连接不可用时的详情查询：API 仍接收 HTTP 请求，但无法完成读取，因此返回 `STORAGE_UNAVAILABLE`，不能用 404 或空对象假装查询成功。图中的几十毫秒不是后面持锁实验的两秒／三秒等待证据；具体原因需用同次请求的日志区分。detail 是读写共用的保守提示，本次方法为 GET，并不表示发生了未知写入。恢复连接后重新发送同一个 GET，再判断记录是否存在。
 
 Prisma 的错误码不是 PostgreSQL SQLSTATE。模型 create 的主键冲突通常是 P2002、外键冲突为 P2003；相同数据库错误在 raw SQL 路径可能先表现为 P2010，再在元数据里携带 SQLSTATE。本版本 CHECK 在模型写入中可表现为 P2039。不要只背错误码表，把发生位置与实际规则一起看。
 
@@ -692,6 +712,12 @@ LOCK TABLE public.captures IN ACCESS EXCLUSIVE MODE;
 
 预期结果是：第二条约两秒后池获取到期；第一条约三秒后由服务器 statement_timeout 取消。二者均返回 503／STORAGE_UNAVAILABLE，但安全日志的数据库代码与等待阶段不同，第一条 raw 查询通常为 P2010 并在内部携带 57014。Postman 中响应耗时也包含其他开销，不要求刚好等于整数秒。
 
+![Postman：后发请求等待连接池约两秒后返回 503](images/postman-pool-timeout.jpg)
+
+![Postman：先发请求在数据库等锁约三秒后返回 503](images/postman-statement-timeout.jpg)
+
+两张图来自同一轮并发观察：请求 A 先发出，请求 B 约 0.60 秒后发出，耗时分别约 3.03 秒、2.03 秒。图中加 `limit=1` 只是缩短成功响应，不会绕过表锁；3249 是本轮 API 端口。两份 Problem 都是 `STORAGE_UNAVAILABLE`，单看响应正文或耗时不能确定等待层次。应再用各自 `X-Request-Id` 对照日志：这轮 B 对应 `POOL_TIMEOUT`，A 对应 raw 查询的 `P2010`。结合已知持锁步骤，才能解释两个相近的失败为什么需要不同排查入口。图中持锁会话的空闲保护为 60 秒，API 的两秒／三秒期限未变；跟做按上面的 15 秒保护即可。
+
 把这两个请求放在同一张时序图中，等待位置就不同了。图中的两秒从请求二开始获取连接时计算，三秒从请求一的 SQL 到达服务器后计算；图不按耗时比例绘制。
 
 ```mermaid
@@ -721,6 +747,10 @@ sequenceDiagram
 
 观察后立即回到**原持锁编辑器**执行 `ROLLBACK`。如果十五秒保护已断开会话，事务和锁已随断开回滚，重连再查；不要在观察会话中执行 ROLLBACK 并误以为释放了别人的锁。重新发送列表，应恢复 200；确认没有残留阻塞，把 DB_POOL_MAX 恢复 5，重启 API。实验没有新增、修改或删除业务行。
 
+![Postman：原持锁事务结束后，同一列表请求恢复 200](images/postman-lock-recovered.jpg)
+
+URL 与 `limit=1` 保持，恢复后返回已有记录。这里比较的是锁释放前后的请求结果，不是改 URL 换到另一个正常服务。恢复 200 还需配合活动／锁查询确认没有残留阻塞；最后恢复连接池配置，不把实验用的单连接限制留在日常环境。
+
 ### 为什么关闭必须晚于已经接受的工作
 
 第十三章的 serve 已负责信号：标记 draining，停止 HTTP 接收，等待在途响应和 ApplicationState 追踪的工作，再调用 app.close。Nest 随之调用 DatabaseService.onModuleDestroy。这里不再调用 `enableShutdownHooks()` 登记第二套信号协调，避免两个关闭流程同时争夺顺序。
@@ -734,6 +764,10 @@ sequenceDiagram
 ## 19.5 保留事实，分别核对开发重启与交付产物
 
 先记下刚创建的实际 ID、原文和时间。停止 API，保持 PostgreSQL 与 DBeaver 运行。在 DBeaver 查询该 ID，行仍在；再运行 `npm run dev`，通过 Postman 详情读取，三个字段应与停止前一致。接着保存一个无业务变化的源码编辑，等待自动编译、旧进程退出、新进程 app.ready，再读同一 ID。自动重启不会清空数据库，也不会自动重放你的 POST。
+
+![Postman：开发进程自动重启后仍读到原来的记录](images/postman-after-dev-restart.jpg)
+
+把这张详情图和 19.3 创建特殊字符原文的响应对照：完整 ID 仍为 `033ea9e4-ade9-4746-9aac-e11845427b05`，原文和 `01:23:14.553Z` 都保持。3251 是此处开发进程端口。先在终端确认旧 PID 退出、新 PID 出现 `app.ready`，再发送请求；仅有 200 响应无法证明重启确实发生，也不能证明自动重放了创建请求。
 
 这次观察的重点是资源独立：API 进程管理连接，PostgreSQL 管理数据，DBeaver 只是另一个客户端。关闭客户端不停止服务端，关闭 API 不撤销已提交记录。持久化也不等于备份，误删和磁盘故障仍需要后面的恢复方案。
 
@@ -755,6 +789,10 @@ NODE_ENV=production PORT=3001 node --env-file=.env --enable-source-maps dist/src
 ```
 
 这条命令是显式使用开发连接的**本机产物检查**；DB_QUERY_DEBUG 必须先设为 false。Postman 复制集合并把 baseUrl 改为 3001，重复已有详情与一次合法创建，在 DBeaver 核对；不带 docs override 时 `/docs` 应不可用。它与 dev 可能连接同一个开发库，所以两边会看到相同的新行，不再有“两份进程各自一份 Map”的效果。
+
+![Postman：生产运行入口读取同一条已持久化的记录](images/postman-production-read.jpg)
+
+这次请求发往 3250，开发请求发往 3251；返回的 ID、原文和时间保持一致，因为两个进程连接同一份数据库事实。端口变化本身不证明生产模式，仍需核对上面的启动命令、环境和进程参数，确认没有 Inspector 与源码监听。此图证明本机产物的读取路径，独立依赖安装仍按下一步验证。
 
 要验证独立运行单元，在新的临时目录只复制 `dist/`、package.json、package-lock.json、.npmrc，安装 `npm ci --omit=dev`；不复制源码、秘密文件和已有 node_modules。生成的 Prisma JS 已随 dist 带上，运行时仍需要 @prisma/client、adapter-pg 与 pg。通过目标环境注入 DATABASE_URL、端口等再运行 npm start；核对成功后停止该进程，保留数据库数据。若依赖安装过程中涉及受控安装脚本，沿前章的固定版本批准规则处理，不因缺少开发 CLI 而在运行目录临时生成客户端。
 
