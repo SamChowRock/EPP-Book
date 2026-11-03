@@ -487,6 +487,12 @@ WHERE id = '40000000-0000-4000-8000-000000000006'
 
 等 B1 查询完成后，A2 单独执行 `COMMIT;`。B2 不结束原事务，直接再次查询，就应该读到新行。这说明 READ COMMITTED 并不是整个事务固定住一份结果：普通 SELECT 每次语句开始时取可见快照，可以看见在本次语句开始前已经提交的其他事务修改。
 
+![DBeaver 会话 B：A 尚未提交时，同一 ID 查询返回零行](images/dbeaver-b-before-commit.jpg)
+
+![DBeaver 会话 B：A 提交后，重新查询得到 Visible after commit.](images/dbeaver-b-after-commit.jpg)
+
+两图上方的 WHERE 相同，下方从 `No data` 变为一行。结果网格中的 ID 列较窄，完整身份以查询条件为准。这里改变的是 A 的提交状态和 B 的查询时刻；B 没有结束原来的 READ COMMITTED 事务。
+
 然后在 A 执行 A3：
 
 ```sql
@@ -500,6 +506,12 @@ RETURNING id, original_text;
 ```
 
 应返回一行新内容；如果返回零行，先检查实验状态，不去掉条件强行覆盖。B3 普通 SELECT 仍读取旧的已提交版本。PostgreSQL 的多版本并发控制（MVCC）让读者按可见性规则读取行版本，而不是让普通读取直接看到另一事务尚未提交的覆盖结果。这里不使用 FOR UPDATE 等锁定读取，也不让 B 修改同一行；那些动作会引入另外的等待与竞争规则。
+
+![DBeaver 会话 A：未提交更新的 RETURNING 已显示 Pending edit.](images/dbeaver-a-pending-update.jpg)
+
+![DBeaver 会话 B：同时重查仍得到已经提交的旧值](images/dbeaver-b-pending-update.jpg)
+
+这两张图对应 A3／B3。A 已执行 UPDATE 并收到新值，B 却仍读到 `Visible after commit.`，所以 RETURNING 出现一行不能当作其他会话已可见的证据。
 
 A4 执行 `ROLLBACK;`，B4 再读仍是 Visible after commit.。回滚撤销的是 A3 这次事务，A2 已提交的插入仍然存在。B 随后执行 `COMMIT;`，结束自己的读取事务。读事务也应及时结束，不能留着连接隔夜等待下一章。
 
@@ -540,6 +552,10 @@ ORDER BY pid;
 
 这里 idle 表示服务器正在等客户端下一条命令，不表示连接断开。idle in transaction 表示事务仍开着；ClientRead 等待通常是在等客户端发命令，也不能直接判成锁争用。若出现 idle in transaction (aborted)，说明语句出错后事务尚未结束，要回到对应编辑器执行 ROLLBACK；在别的编辑器回滚无法替它结束事务。
 
+![DBeaver 第三个观察会话：A 和 B 都停在尚未结束的事务中](images/dbeaver-observe-transactions.jpg)
+
+图取自 A3／B3 之后：两行都是 `idle in transaction`，`tx_open` 勾选表示 true，等待事件是 `ClientRead`。为便于辨认，本次在各自事务中用 `SET LOCAL application_name = 'EPP 17 A';`／`'EPP 17 B'` 加了标签，并按事先核对的两个 PID 筛选。标签只是辅助，自己的 PID 要重新查询；A 的待提交内容仍须结合前面两张结果图判断。
+
 每个阶段重新执行观察查询。观察会话不要自己包在长事务里，以免统计信息的事务内快照影响比较。若 A／B 中某个 PID 消失，先检查连接是否关闭或重连；重新查询它的 PID，并按实验行的实际状态恢复，不继续沿用旧编号。这个视图帮助定位“哪条连接、有没有未结束事务”，是否能读到某行仍由 B 的实际 SELECT 验证，不能只从 state 推断业务可见性。
 
 ### 清理专用实验行，保留前置数据
@@ -565,7 +581,7 @@ B5 查询应为零行。最后在两个编辑器确认没有未结束事务，�
 
 日常应用入口仍为 `npm run dev` 的断点与自动重启；生产产物仍通过 `npm run check`、`npm start` 管理。本章没有新增驱动或运行依赖，database 下的实验不进入应用构建，保存 SQL 不会自动执行到数据库。应用查询、ORM、连接池与响应映射在第十九章才接到这批数据。
 
-时间参考（估算）：阅读约 110～130 分钟；筛选、写入回滚、关联聚合、参数与双会话操作另加约 60～80 分钟。按正文约 8100 个汉字、170 余行 SQL／JS／命令，以及关联、事务结果与会话状态对照估算，环境沿用前两章，支线单列，尚未经过读者实测。
+时间参考（估算）：阅读约 115～135 分钟；筛选、写入回滚、关联聚合、参数与双会话操作另加约 60～80 分钟。按正文约 9400 个汉字、170 余行 SQL／JS／命令，八张实际界面结果，以及关联、事务结果与会话状态对照估算，环境沿用前两章，支线单列，尚未经过读者实测。
 
 ## 知识支线
 
