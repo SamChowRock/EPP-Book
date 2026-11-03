@@ -540,6 +540,10 @@ Location: /captures/4cb5e1b4-1e0b-4daa-978b-1541c5d2fb5b
 
 这里既要看 `201`，也要看原文是否保持不变。`201` 表示当前实现完成了一次创建，不表示内容已经写入磁盘，更不表示 AI 已经润色或用户已经采纳。
 
+![Postman 创建原文：raw JSON 与 201 响应](images/postman-create.jpg)
+
+上半区是请求 Body，下半区是服务器实际返回的 Body。对照 originalText，确认原文逐字保留；id 和 createdAt 由服务器生成，每次运行都会不同。Location 在响应 Headers 中查看，不在 JSON 正文里。
+
 再次执行列表请求，`items` 中应有刚才的记录。再把自己的 ID 放进详情地址：
 
 ```bash
@@ -565,6 +569,10 @@ curl -i http://127.0.0.1:3000/captures \
 ```json
 {"error":"originalText must be a non-empty string"}
 ```
+
+![Postman：合法 JSON 中的空白原文返回 400](images/postman-blank-rejected.jpg)
+
+这份 Body 可以解析为 JSON，但 originalText 只有空格。观察 400 和 non-empty string 错误；随后再试下面的损坏 JSON，比较相同状态码背后的不同失败位置。
 
 然后把 JSON 本身写坏：
 
