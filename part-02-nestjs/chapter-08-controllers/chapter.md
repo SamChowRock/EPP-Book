@@ -372,6 +372,10 @@ curl -i 'http://127.0.0.1:3000/captures?q=unmatched'
 
 在 Postman 复制列表请求，在 Params 中分别保存上述 q、limit 条件，缺省项取消勾选，不把空字符串当作缺省。第一条看到全部三条；第二条只看到 tea；第三条应得到第二条原文，而不是空数组，这检验的是“筛选在截取之前”；第四条只匹配大写 Coffee；第五条是 200 与空 items。URL 用引号包住，避免 shell 把 `&` 当作后台执行符号。带空格或加号的关键词可用 `curl --get --data-urlencode 'q=C++ & Node' URL`，不要自己用字符串拼接猜编码。
 
+![Postman Params：q 与 limit 的勾选状态、URL 和响应](images/postman-query-params.jpg)
+
+勾选的两项进入 URL；下面只返回一条包含小写 coffee 的记录。图示用于辨认 Params 和响应位置；单看这一条结果还不能证明筛选、排序与截取的顺序，仍需按上面的 tea／coffee／Coffee 三条数据逐项比较。端口使用当前启动地址。
+
 再从普通列表响应的 Headers 中复制实际 ETag，在请求 Headers 新增 If-None-Match，做一次条件查询。复制完整值，包括可能出现的 `W/` 和双引号，替换下面的占位文字；这期间先不要创建新记录：
 
 ```bash
