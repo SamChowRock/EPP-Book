@@ -99,6 +99,10 @@ RETURNING id, original_text;
 
 INSERT 省略 created_at，让默认值确定时间，RETURNING 取回实际写入的行；UPDATE 的 RETURNING 默认返回更新后的内容。因此两次结果应分别包含 temporary 和 corrected。它们表示语句完成时的影响，尚不表示事务已经提交。lock_timeout 限制等待锁的时间，避免实验意外等待别处未结束的写入；它不是整个查询的执行时限，超时后同样要回滚并排查。
 
+![DBeaver：UPDATE RETURNING 显示本次修改后的原文](images/dbeaver-update-returning.jpg)
+
+观察完整实验 ID、包含归属的 WHERE 和返回的 A corrected draft.。结果表格展示本语句实际影响的一行；当前仍处在前面 BEGIN 开启的事务中，继续下面的操作后再统一回滚。
+
 接着故意使用不匹配的拥有者删除这个实验 ID：
 
 ```sql
@@ -109,6 +113,10 @@ RETURNING id;
 ```
 
 结果应为零行，执行统计为零条删除；数据还在。零行是正常结果，可以表示对象不存在或不满足条件，不能只凭这一次结果区分二者。面向用户的接口是否统一返回“未找到”，要结合权限边界设计，不能为了区分而先查询并泄漏他人的记录。
+
+![DBeaver：归属不匹配时 DELETE RETURNING 为零行](images/dbeaver-zero-delete.jpg)
+
+WHERE 中的记录 ID 没变，user_id 换成了另一个用户，结果区显示 No data。这里的零行来自实际执行，不是客户端忘记刷新；可以回到同一事务查询这条记录，确认它仍存在，再使用正确归属继续删除。
 
 再用正确归属删除，并结束实验：
 
@@ -122,6 +130,10 @@ ROLLBACK;
 ```
 
 这次应返回一条被删除记录，其原文为 corrected；ROLLBACK 撤销整组实验，最初的插入也不存在了。重新运行 01-read.sql 仍能看到原来的 001、002 两条记录。这里的 `400...` 专用实验身份与 `200...` 原始记录区分开，不能把实验 SQL 改成对原始 ID 的批量修改。
+
+![DBeaver：ROLLBACK 后按实验 ID 查询为空](images/dbeaver-after-rollback.jpg)
+
+结束事务后重新执行 SELECT，实验 ID 没有留下记录。此图只检查这一个实验 ID；原始两条记录是否保留，仍按上面的 01-read.sql 单独比较，不能从实验行消失推断整库状态。
 
 预览 SELECT 有助于发现错误条件，但在有并发写入时，“预览了两行”不能保证稍后 UPDATE 仍只影响相同两行；返回行数和 RETURNING 才是该次语句的实际结果，要求更强保证时需要事务与并发策略。也不要把普通 UPDATE 的成功理解为它保留了历史，覆盖就是覆盖，第十六章的版本判断仍然适用。
 
