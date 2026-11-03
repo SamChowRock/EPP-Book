@@ -251,6 +251,10 @@ ORDER BY table_name, conname;
 
 再看 convalidated 与 conenforced：本章新建的约束均应为 true。前者说明已有数据已通过约束验证，后者说明约束处于执行检查的状态。PostgreSQL 18 可以在部分约束上表达尚未验证或不执行的状态；只看到名字和定义，不能认定完整性保证已经成立。本章不使用这些特殊状态，后续迁移核对也需要保留这一判断。
 
+![DBeaver：从系统目录确认 captures 指向 users 的外键](images/dbeaver-foreign-key.jpg)
+
+这张查询把范围缩小为 captures 的外键（contype = 'f'），child_table 与 parent_table 分别显示 captures、users，convalidated 勾选表示已验证。引用的具体列、删除动作和执行状态仍用上面的完整定义查询核对；只看到两个表名不能替代这些细节。
+
 配套 `03-inspect-model.sql` 保存了这两条查询，并补充索引与数据读取。此时表为空，可以运行来查看结构，数据结果应为零行。不要把仓库里的 CREATE TABLE 文件当作已经应用到数据库的证据。
 
 ### 用关系图检查设计，用属性确认图的含义
