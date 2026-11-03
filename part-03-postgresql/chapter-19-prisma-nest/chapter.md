@@ -584,6 +584,14 @@ Service.list 的 text 条件同时加入 `!isPostgresText(text)`，放在 `typeo
 
 应返回 201、Location 与完整原文。把返回 id 保存到集合 captureId，发送“04 按返回 ID 读取”；再刷新 DBeaver Data 页按该 ID 查同一行。不要把集合的初始占位 ID 当成刚才创建的 ID。随后在各搜索请求中分别发送 `%`、`_`、反斜线、emoji 和不同大小写的词，检查只匹配包含那段字面的记录。Params 由客户端负责 URL 编码，反斜线作为查询值只填一个字符，不把 JSON 转义写法直接抄进 Params。
 
+![Postman：数据库写入路径保留空格、特殊字符与 emoji](images/postman-special-text.jpg)
+
+请求和响应中的百分号、下划线、反斜线与 emoji 均保留；JSON 里的双反斜线表示原文中的一个反斜线。复制这次响应的完整 id，再到数据库查同一行；201 本身不能代替数据库对照。端口以当前启动地址为准。
+
+![DBeaver：按 Postman 返回的完整 ID 读取同一行](images/dbeaver-same-capture.jpg)
+
+WHERE 使用上一张响应的完整 UUID，表格只将 ID 尾部缩短显示。created_utc 显式转换为 UTC，与响应中带 Z 的 createdAt 对照：两者都是 01:23:14.553。网格里的 C:\temp 是实际文本，JSON 显示的双反斜线是转义表示。首尾空格难以目测时，再用本篇已有的长度或定界显示查询确认。
+
 “12 拒绝 NUL”和“13 拒绝孤立代理项”保存的正文分别包含 `a\u0000b`、`a\ud800b`。应返回 400／VALIDATION_ERROR，而不是 500 或保存替换后的字符。再次在 DBeaver 查询，失败请求没有产生新行。搜索 q 同样拒绝 NUL；前端通常会把孤立代理项先替换或拒绝编码，服务内的共同判断仍不能省略。
 
 ### 从数据库异常得到业务上诚实的结果
