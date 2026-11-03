@@ -8,7 +8,7 @@
 
 日常操作继续以 Postman、VS Code 调试器和 DBeaver 为主。它们分别观察请求、程序状态和数据库事实；三处证据能对应起来，才有依据判断问题在哪一层。固定开发用户仍是 `10000000-0000-4000-8000-000000000001`，它是数据库行的归属，不代表请求已经完成身份认证。
 
-**时间参考（估算）**：阅读约 135～160 分钟；接入、图形联调、故障与产物核对另加约 65～85 分钟。支线单列，估时依据见篇导读。
+**时间参考（估算）**：阅读约 145～170 分钟；接入、图形联调、故障与产物核对另加约 65～85 分钟。支线单列，估时依据见篇导读。
 
 ## 19.1 在 Nest 中明确数据库资源的所有者
 
@@ -515,7 +515,19 @@ DBeaver Data 网格可能不明显显示两端空格，可查看文本编辑器�
 
 图中演示实例使用 3019 端口；跟做沿用自己的 PORT，默认仍是 3000。响应中的完整 UUID、原文空格和 `08:00:00.123Z` 与数据库侧相同；这里显示的是已执行请求的 200 响应，不是文档生成的示例值。
 
-在 VS Code attach 到已有调试进程，在 `project` 处设置断点后再 GET，观察 row.createdAt 是 Date，返回对象中的 createdAt 是字符串。检查完继续执行，避免把断点暂停导致的请求等待当成数据库慢查询。到这里可以中断：读路径已跑通，数据库没有因读操作新增业务行；恢复时从身份核对和列表请求继续。
+在 VS Code attach 到已有调试进程，在 `prisma-capture.store.ts` 的 `project` 返回对象处设置断点，再发送前面的详情 GET。黄色行表示程序停在这里；此时可以在 Debug Console 输入下面的表达式，把内部类型、输出值和输出类型放在一起比较：
+
+```js
+JSON.stringify({
+  isDate: row.createdAt instanceof Date,
+  iso: row.createdAt.toISOString(),
+  type: typeof row.createdAt.toISOString(),
+}, null, 2)
+```
+
+![VS Code：在 project 暂停，核对 Date 与 ISO 字符串的对应关系](images/vscode-date-mapping.jpg)
+
+控制台中的 `isDate: true`、`08:00:00.123Z` 和 `type: "string"` 分别回答内部是什么、转换后是哪一刻、对外用什么表示。这里求值的是转换表达式，不能把暂停画面当成客户端已收到响应；继续执行后再核对 GET 的 200 与完整对象。避免把断点暂停导致的请求等待当成数据库慢查询。到这里可以中断：读路径已跑通，数据库没有因读操作新增业务行；恢复时从身份核对和列表请求继续。
 
 ## 19.3 写入、输入边界与错误如何连接起来
 
@@ -644,6 +656,10 @@ pg 8.16.3 有两种池连接等待失败只提供固定 message，没有稳定 c
 
 在 DatabaseService 的 `$on('query', event => ...)` 回调设置断点，发同一个查询。展开 event.query、event.params 与 event.duration：SQL 结构中应看到参数占位，参数包含固定用户、搜索词和可选 limit；核对 WHERE、ORDER BY 和 LIMIT，而非只确认“SQL 有输出”。事件在查询完成后到达，不能靠它定位一条仍在锁上等待的语句；等待时看 19.4 的活动会话。
 
+![VS Code：在 query 回调观察查询事件，常态日志只取耗时](images/vscode-query-event.jpg)
+
+左侧 Local 展开 `event` 后可以看到 `query`、`params`、`duration`；Watch 中的 `JSON.parse(event.params)` 把参数字符串展开为数组。这次虚构查询有三个参数，依次是固定用户、`%`、`10`。窄侧栏会截断长值，可展开 Watch，或在 Debug Console 分别求值 `event.query` 和 `JSON.parse(event.params)`，不要把省略号当成实际 SQL。图中的约 17.29 毫秒是该次事件的查询耗时，不包含随后停在断点上的观察时间；黄色行也能看到写入日志的只有 `durationMs`。
+
 复制占位 SQL 到 DBeaver 直接执行，会因为没有参数绑定而失败。应重新表达为 PREPARE 的参数类型和 EXECUTE 的值，配套脚本已经保存等价形式：
 
 ```sql
@@ -690,6 +706,10 @@ ORDER BY pid;
 
 application_name 来自池配置。DBeaver 的连接不在这个池里，所以可以在 API 堵住时继续观察。刚发完列表，一条连接可能显示 idle；十秒后池回收空闲连接，结果可能为空。不要要求启动后必须恰好五行，也不要把空闲连接减少误判为服务退出。
 
+![DBeaver：列表请求完成后，epp-api 连接空闲且没有阻塞者](images/dbeaver-api-idle.jpg)
+
+图中 `app` 是 application_name 的简短别名；`idle` 配合 `ClientRead` 表示服务器在等客户端下一条命令，`blocker={}` 表示此刻没有阻塞 PID。它证明 API 的数据库连接仍存在，不证明连接池当前还有多少排队请求。
+
 `active` 只表示当前正在执行某条命令，可能正在等锁；要结合 wait_event 和 blocked_by 判断。数据库里的 idle 表示服务器当前没有执行 SQL，不保证应用已经把该连接归还到池。池的 total、idle、waiting 是进程内计数，pg_stat_activity 是服务器会话状态，它们不是同一份状态表。
 
 每次观察要重新执行查询，不只是回到旧结果标签。默认自动提交避免观察者长期停在事务中使用过期的统计快照。我们没有把 query 原文放进这个观察脚本，避免普通诊断时顺带展示业务值。
@@ -710,6 +730,10 @@ LOCK TABLE public.captures IN ACCESS EXCLUSIVE MODE;
 
 拿到锁后，在 Postman 两个标签页接近同时发送 `GET /captures`，间隔尽量小于一秒。第一条取得唯一连接，进入数据库等锁；第二条没有连接，在 Node 的池中排队。第三个 DBeaver 观察会话重新执行活动查询，会看到第一条被阻塞的 API 会话，通常只见一条 epp-api 连接：第二条请求尚未进入数据库。
 
+![DBeaver：API 会话 active，但正在等待 relation 锁，阻塞者 PID 可见](images/dbeaver-api-lock-wait.jpg)
+
+这张数据库侧补拍图显示 `active`、`Lock`、`relation` 以及非空的 `blocker`。查询仍限定 `application_name='epp-api'`；`blocker` 是 `pg_blocking_pids` 的别名。它与下方 Postman 图分别记录同一种等待实验，PID 和请求 ID 不跨轮对应。仅凭这一行看不到 Node 池内排队的第二条请求。
+
 预期结果是：第二条约两秒后池获取到期；第一条约三秒后由服务器 statement_timeout 取消。二者均返回 503／STORAGE_UNAVAILABLE，但安全日志的数据库代码与等待阶段不同，第一条 raw 查询通常为 P2010 并在内部携带 57014。Postman 中响应耗时也包含其他开销，不要求刚好等于整数秒。
 
 ![Postman：后发请求等待连接池约两秒后返回 503](images/postman-pool-timeout.jpg)
@@ -717,6 +741,15 @@ LOCK TABLE public.captures IN ACCESS EXCLUSIVE MODE;
 ![Postman：先发请求在数据库等锁约三秒后返回 503](images/postman-statement-timeout.jpg)
 
 两张图来自同一轮并发观察：请求 A 先发出，请求 B 约 0.60 秒后发出，耗时分别约 3.03 秒、2.03 秒。图中加 `limit=1` 只是缩短成功响应，不会绕过表锁；3249 是本轮 API 端口。两份 Problem 都是 `STORAGE_UNAVAILABLE`，单看响应正文或耗时不能确定等待层次。应再用各自 `X-Request-Id` 对照日志：这轮 B 对应 `POOL_TIMEOUT`，A 对应 raw 查询的 `P2010`。结合已知持锁步骤，才能解释两个相近的失败为什么需要不同排查入口。图中持锁会话的空闲保护为 60 秒，API 的两秒／三秒期限未变；跟做按上面的 15 秒保护即可。
+
+下面摘出上述两张 Postman 图所对应的实际 `database.failed` 日志字段，省略外层时间、进程和日志级别：
+
+```json
+{"event":"database.failed","requestId":"a96d9b40-22e3-42d2-be8f-34321bed7e93","code":"POOL_TIMEOUT","operation":"list","total":1,"idle":0,"waiting":0}
+{"event":"database.failed","requestId":"03ddf028-1054-4750-8543-93c8df5c72ee","code":"P2010","operation":"list","total":0,"idle":0,"waiting":0}
+```
+
+错误日志写出时，请求已经退出对应的等待，因而 `waiting=0` 不表示它之前没有排队；第二行的 `total=0` 也不能推翻此前连接正在等锁的观察。先按 requestId 对齐请求，再结合错误码和发生阶段读取这些瞬时计数。
 
 把这两个请求放在同一张时序图中，等待位置就不同了。图中的两秒从请求二开始获取连接时计算，三秒从请求一的 SQL 到达服务器后计算；图不按耗时比例绘制。
 
