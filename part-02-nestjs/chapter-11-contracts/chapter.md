@@ -124,6 +124,10 @@ const capture = await this.captures.create(input.originalText);
 
 id 与 createdAt 不在输入 Schema 中，也没有传给 Service，由服务端继续生成。未知字段被忽略不意味着允许客户端修改这些字段。反过来，即使把一个 userId 写进 Schema 并通过字符串检查，也没有证明调用者可以访问那个用户的数据；权限判断将在身份篇建立。
 
+![Postman：额外字段被忽略，合法原文仍创建成功](images/postman-unknown-field.jpg)
+
+请求包含 extra: true，响应仍为 201，公开对象只包含 id、originalText 与 createdAt。它展示本章“接受并移除未知字段”的约定；是否在进入 Service 前就移除了 extra，还可在 parseInput 返回处观察解析结果。端口以当前启动地址为准。
+
 ### 查询参数先检查表示，再转换数值
 
 第八章已经区分了 URL 中的字符串与业务需要的整数。本章保持那套约定：q 与 limit 至多出现一次，q 是非空白的字面子串，limit 是 1～100 的十进制文本，不接收空格、正号、前导零或指数形式。没有 limit 时仍返回全部匹配记录。
@@ -649,6 +653,10 @@ export async function createApp(): Promise<NestExpressApplication> {
 这条顺序来自我们现有 Express 接入方式，下一章再系统追踪 Nest 请求过程。现在不需要为了显示文档就引入全局过滤器或自定义 Pipe。
 
 完成文档导出后运行默认开发入口 `npm run dev`，打开 `http://127.0.0.1:3000/docs`。Swagger UI 资源由依赖包提供；页面请求当前服务，示例禁用了外部 validator。先展开 POST /captures，查看 originalText 的说明，再用 Try it out 提交带首尾空格的原文。执行会真正创建记录，多点一次就多一条，不是文档页中的虚拟演示。
+
+![Swagger：创建接口、Schema 字段规则与 Try it out 入口](images/swagger-input-schema.jpg)
+
+展开 POST /captures，在 Request body 下选择 Schema，再展开 originalText。星号表示必填；这里能看到字符串类型、非空白模式及 2000 个 UTF-16 单元的文字说明。此图是文档描述，尚未执行请求；点击 Try it out 并 Execute 后，要看 Server response，不能把 Example Value 当作真实响应。
 
 核对状态 201、Location 和返回字段，然后把 originalText 改成数字，再执行。应得到 400，code 为 VALIDATION_ERROR，issues 中出现 originalText 的位置。最后通过 GET 列表确认失败请求没有产生记录。若浏览器预先阻止了某种输入，用下面的 curl 检查服务端；浏览器控件不是接口可信边界。
 
