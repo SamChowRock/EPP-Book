@@ -6,7 +6,7 @@
 
 起点代码为 `part-03/chapter-19`，完成代码为 `part-03/chapter-20`。继续使用 Node.js 24.22.1、Prisma CLI／Client／adapter-pg 7.10.1、pg 8.16.3 和 PostgreSQL 18；本章不升级依赖。读者应已完成第十八章迁移基线和第十九章数据库接入，日常库 `epp_dev` 有真实旧记录。Prisma 官方站点的默认文档可能指向新主版本，本章命令以 **v7** 文档和固定版本的 `--help` 为准。
 
-**时间参考**：阅读约 115～135 分钟，编码与操作另加 65～90 分钟，均为估算；不含下载和支线。手写推进按 20.1→20.2→20.3，先完成数据库扩展再启动新代码；直接使用完成代码时，先按 20.2 的“已有迁移文件”路径应用迁移，再进行 20.3 的图形联调。不要对成品再生成同名迁移。
+**时间参考**：阅读约 125～145 分钟，编码与操作另加 65～90 分钟，均为估算；不含下载和支线。手写推进按 20.1→20.2→20.3，先完成数据库扩展再启动新代码；直接使用完成代码时，先按 20.2 的“已有迁移文件”路径应用迁移，再进行 20.3 的图形联调。不要对成品再生成同名迁移。
 
 ## 20.1 先决定旧数据的含义，再决定列怎么加
 
@@ -398,6 +398,17 @@ Body 选择 raw／JSON，响应的 `chineseIntent` 与输入相同；记下 ID�
 
 若 PATCH 返回 405，先检查方法边界；415 看 Content-Type；400 看 Problem 的 code 和字段路径；500／503 再用 `X-Request-Id` 关联日志。若数据库已改但响应 500，检查输出投影及 Schema，不能直接重放修改。给 `updateIntent`、SQL 返回与响应拦截器设断点，分别看输入、实际更新行和最终表示；查询事件参数中含用户文本，只在本机示例调试时观察，不增加常态原文日志。
 
+沿同一次 PATCH 观察时，先在 `captures.service.ts` 的 `updateIntent` 中、调用 `validateIntent` 的位置暂停，在 Debug Console 求值 `JSON.stringify({id, chineseIntent}, null, 2)`：
+
+![VS Code：PATCH 进入业务层时，核对目标 ID 与意图输入](images/vscode-patch-input.jpg)
+
+图中使用独立的虚构记录，完整 ID 与控制台中的输入对应；黄色行尚未执行下一行的存储更新。因此这里只能确认传入业务层的值，不能据此断言数据库已经保存。继续沿下面两个位置观察，才把输入、更新和输出连起来：
+
+1. 在 `prisma-capture.store.ts` 的 `updateIntent` 中，停在 `await` 之后的 `return rows[0] ...`，求值 `JSON.stringify(rows, null, 2)`。此时 `UPDATE ... RETURNING` 已返回；应有一行，其 ID 与输入相同，意图是新值，原文和创建时间保持。若数组为空，接下来的业务判断会产生 404，不能自行构造一个“更新成功”的对象。
+2. 在 `response-schema.interceptor.ts` 的 `map(value => this.schema.parse(value))` 回调内部暂停，核对 `value`，再求值 `this.schema.parse(value)`。这一行同时包含外层 `intercept` 调用和稍后执行的回调；若尚无 `value`，说明停在外层，需把断点移到回调中的 `parse`，可用行内断点定位。这里检查的是返回对象能否通过公开契约，数据库成功不自动保证这一步成功。
+
+检查完继续执行，再在请求客户端和数据库中按同一 ID 核对。若客户端因长时间暂停而超时，先读取实际结果，不直接重发修改；调试器中的求值和黄色行都不等于 HTTP 已成功送达。控制台只使用虚构数据，关闭调试后仍保持常态日志不含原文。
+
 现在可以再次暂停：追加迁移已应用，四个接口在相同结构上工作。开发进程重启后意图仍来自数据库；暂停前完成请求和事务，记住正在使用的程序分支与数据库目标。
 
 ## 20.4 如果以后要求必填，如何不让旧数据突然失效
@@ -420,6 +431,10 @@ ROLLBACK;
 ```
 
 第二条记录有值，不会让第一条 NULL 自动合法。ALTER 预期返回 23502，事务失败后在同一编辑器执行 ROLLBACK。给列 `SET DEFAULT` 也不等于更新旧行；而默认填“未知”又改变了事实含义，不能拿假值换约束通过。
+
+![DBeaver：旧行仍有 NULL，直接 SET NOT NULL 返回 23502](images/dbeaver-not-null-rejected.jpg)
+
+错误详情指出 `intent_lab.chinese_intent` 仍包含 null。失败发生在收紧列定义时，不是客户端拒绝执行 ALTER；先回滚本次失败事务，再安排旧值处理。
 
 ### “先回填、再检查”的缝隙
 
@@ -455,6 +470,12 @@ COMMIT;
 
 `NOT VALID` 表示尚未证明所有历史行符合，**不表示这个约束暂时不工作**。旧 NULL 可以暂时留着，新插入和更新后的行必须通过。尝试插入 NULL，应得到 23514；失败事务随后回滚。即使只改某个其他字段，更新后的行若仍是 NULL，也可能被此防线拒绝，这也是上线前要协调所有写入行为的原因。
 
+![DBeaver：辅助 CHECK 已存在，但 convalidated 尚为 false](images/dbeaver-not-valid-gate.jpg)
+
+![DBeaver：NOT VALID 的 CHECK 仍以 23514 拒绝新 NULL](images/dbeaver-gate-rejects-new-null.jpg)
+
+第一张的 `convalidated` 未勾选，定义末尾仍有 `NOT VALID`；第二张插入新 NULL，错误直接指向 `intent_lab_present`。两图要一起看：尚未完成历史验证与已经保护新写入可以同时成立。
+
 在约束页或配套 `pg_constraint` 查询中观察 `convalidated=false`。补上第一条经确认的实验意图：
 
 ```sql
@@ -487,6 +508,10 @@ COMMIT;
 验证检查剩余历史行，成功后 `convalidated` 为 true。验证期间已有防线约束新写入，因此全表证明不会因为又插入 NULL 而立即失效。PostgreSQL 可以利用已验证的 `CHECK (列 IS NOT NULL)` 跳过 SET NOT NULL 所需的重复全表扫描；**取得变更结构所需的锁仍然必要**。
 
 验证与最后收紧分开提交，是为了不把前一阶段较长的工作都包在最后的强锁事务里。先 SET NOT NULL，再删除辅助 CHECK；不要在同一条 ALTER 中一边删除证明一边指望它帮助优化。正式非空生效后，再插 NULL 应得到 23502。配套脚本最后删除临时表，业务表没有变化。
+
+![DBeaver：完成验证与收紧后，chinese_intent 的 attnotnull 为 true](images/dbeaver-not-null-established.jpg)
+
+图中查询限定 `pg_temp.intent_lab` 的这一列，`attnotnull` 勾选说明最终列定义已经非空；不能把辅助 CHECK 创建成功当作同一个结果。清理临时表之前先完成这项核对。
 
 若以后真的采用该需求，以上步骤要转成有审查与部署顺序的追加迁移和数据回填任务，Schema 的 `String?` 也要相应改为 `String`，输入、清空动作和响应契约随之改变。不能只手工改数据库，然后让模型继续声称可空。生成器无法替你确定这些步骤该跨几个发布完成；在当前 nullable 功能尚未退出前，本章不把“未来必填”文件加入正式迁移目录。
 
@@ -548,7 +573,37 @@ B 运行 `04-observe-migration-lock.sql`，看等待事件、阻塞 PID 和事�
 
 不要把 CLI 最后一条错误机械当成首因。带 BEGIN 的迁移在这个版本组合中，可能最后只显示 `current transaction is aborted`，迁移记录的 logs 也可能为空。用第十五章实例启动时指定的 PostgreSQL 日志文件查看服务端记录；日志位置不在应用日志里，也不由 Prisma 保存。先记录失败时间；若观察到了等待中的迁移后端，再记录其 pid，在服务器日志中沿这个 PID 向前找第一个错误，应是 `canceling statement due to lock timeout`；后续事务失败只是结果。DBeaver 约束异常同理，需要区分导致失败的语句和失败状态下继续执行的语句。
 
-回到 A 执行 ROLLBACK。B 检查 `chinese_intent` 不存在，基线两表仍在，迁移历史里本次尝试未完成。由于本文件显式包在事务里，列添加和 CHECK 不会只留下半套。**只有查明回滚事实后**，用相同隔离库配置登记这一失败已回滚，再部署：
+下面是这次隔离恢复实验的服务端日志摘录，保留同一个 PID 与先后顺序，省略无关语句：
+
+```text
+2026-11-03 11:59:25.280 CST [97090] ERROR: canceling statement due to lock timeout
+2026-11-03 11:59:25.280 CST [97090] STATEMENT:
+ALTER TABLE public.captures ADD COLUMN chinese_intent text;
+2026-11-03 11:59:25.281 CST [97090] ERROR: current transaction is aborted, commands ignored until end of transaction block
+```
+
+首因指向 ADD COLUMN 等锁超过预算，随后才进入失败事务状态。自己的复现应按实际时间与 PID 查找，不照抄这里的编号。
+
+回到 A 执行 ROLLBACK。B 检查 `chinese_intent` 不存在，基线两表仍在，迁移历史里本次尝试未完成。由于本文件显式包在事务里，列添加和 CHECK 不会只留下半套。
+
+图中将迁移状态与列的存在性放到同一查询中比较；`finished`／`rolled_back` 分别表示相应时间戳是否非空，`column_exists` 查询当前实际结构：
+
+```sql
+SELECT (finished_at IS NOT NULL)::text AS finished,
+       (rolled_back_at IS NOT NULL)::text AS rolled_back,
+       (EXISTS (SELECT 1 FROM information_schema.columns
+         WHERE table_schema='public' AND table_name='captures'
+           AND column_name='chinese_intent'))::text AS column_exists
+FROM public._prisma_migrations
+WHERE migration_name='20261102040511_add_chinese_intent'
+ORDER BY started_at;
+```
+
+![DBeaver：失败尝试未完成，尚未登记回滚，实际新列不存在](images/dbeaver-migration-failed.jpg)
+
+三个 false 分别说明不同事实：迁移未完成、工具尚未登记已回滚、当前列不存在。`rolled_back=false` 不能解释为服务器事务仍未回滚；实际结构检查与历史状态必须分开。
+
+**只有查明回滚事实后**，用相同隔离库配置登记这一失败已回滚，再部署：
 
 ```bash
 node --env-file=.env.database-recovery node_modules/prisma/build/index.js \
@@ -559,6 +614,10 @@ node --env-file=.env.database-recovery node_modules/prisma/build/index.js \
 ```
 
 本章配套名如上；自行生成的迁移用自己的名称。`resolve --rolled-back` 只是修改迁移状态，不执行数据库 ROLLBACK，也不帮你清理已提交的半成品。重试成功后，历史应保留失败尝试及新的成功尝试，实际结构与完整历史一致。直接重复 deploy 而不处理失败记录，会被阻止，这正是工具要求先解释现场的地方。
+
+![DBeaver：恢复后保留失败与成功尝试，当前新列已经存在](images/dbeaver-migration-recovered.jpg)
+
+重新执行同一查询，现在有两行：先前尝试是 `finished=false, rolled_back=true`，新尝试是 `finished=true, rolled_back=false`。两行的 `column_exists=true` 都来自**当前**结构查询，不表示失败尝试当时已经建列；迁移历史记录尝试，结构查询回答现在实际有什么。
 
 如果某个迁移没有事务，已经提交了部分步骤，不能套用“没有留下半套”的结论。应先决定恢复到迁移前，还是完成剩余步骤；确认真实对象和数据后再选择 `--rolled-back` 或 `--applied`。后者登记为已完成，同样不替你执行剩余 SQL，也不验证数据。不能用它把失败记录变成绿色而让现场继续残缺。
 
