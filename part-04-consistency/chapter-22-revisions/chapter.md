@@ -674,4 +674,6 @@ Prisma 对 JSON 字段区分 `DbNull` 与 `JsonNull`。本章使用 SQL NULL，�
 
 本章完成代码分支：`part-04/chapter-22`。
 
+[下一章：修订如何进入候选确认](../chapter-23-candidates/chapter.md)
+
 [上一章：第三篇回顾](../../part-03-postgresql/chapter-21-review/chapter.md) · [第四篇导读](../README.md) · [返回全书目录](../../README.md)
