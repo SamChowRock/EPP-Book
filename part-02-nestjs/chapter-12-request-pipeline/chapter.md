@@ -338,6 +338,10 @@ export class CapturesController {
 
 在 `SchemaPipe.transform`、`CapturesController.create`、`ResponseSchemaInterceptor` 的 map 回调和 `ProblemFilter.catch` 设置断点。Postman 选择集合里的“04 原文类型错误”，保留合法 JSON，Send。请求应进入 SchemaPipe 并抛出输入异常，Controller 和输出 map 不执行，最后停在 Filter；外部得到 VALIDATION_ERROR。调用栈用于确认当前是谁调用了 transform，不要因为 Inspector 里显示了 rxjs 调度帧就把错误归给 RxJS。
 
+![Postman：数字原文触发 VALIDATION_ERROR 与字段路径](images/postman-schema-rejected.jpg)
+
+请求 JSON 合法，但 originalText 为数字。响应 issues.path 指向 originalText，message 说明期望字符串、实际为数字。用这个外部结果对照断点：不能仅因看见 400 就推断 Controller 是否执行。图中端口对应当前服务。
+
 再发送“05 JSON 格式错误”，正文只有一个左花括号。它应在 readJson 的 end 回调中失败，经 captureBody 的 catch 交给 next(error)，到 Filter。SchemaPipe、Controller 和输出 map 都不会运行。如果 Filter 收到了错误而业务断点没有命中，这恰好符合错误发生的位置。
 
 第三次发送合法创建。按顺序观察 Pipe 返回值、Service 的 insert、Controller 返回对象、输出 map。Map 写入与 HTTP 结果出现仍是不同时间点。若改变输出 Schema 或存储返回值制造输出失约，应看到内部错误被转换成 500，而不是又一次输入错误；详情与列表能帮助判断写入是否已经发生。
