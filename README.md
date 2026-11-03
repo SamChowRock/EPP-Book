@@ -228,7 +228,7 @@
 
 ### [第 19 章 Prisma 与 Nest：让记录接口使用持久化数据](part-03-postgresql/chapter-19-prisma-nest/chapter.md)
 
-**时间参考（估算）**：阅读约 120～145 分钟；接入、图形联调、故障与产物核对另加约 65～85 分钟，支线单列，依赖下载另计。
+**时间参考（估算）**：阅读约 135～160 分钟；接入、图形联调、故障与产物核对另加约 65～85 分钟，支线单列，依赖下载另计。
 
 - [19.1 在 Nest 中明确数据库资源的所有者](part-03-postgresql/chapter-19-prisma-nest/chapter.md#191-在-nest-中明确数据库资源的所有者)：推导资源归属与运行时配置，先接好错误和安全日志，再建立适配器与初始化失败清理。
 - [19.2 用原来的记录验证查询与公开响应](part-03-postgresql/chapter-19-prisma-nest/chapter.md#192-用原来的记录验证查询与公开响应)：实现存储后接通模块，保持字段、字面搜索与时间点，落实明确排序，并从 DBeaver 核对已有行。
@@ -239,7 +239,7 @@
 
 ### [第 20 章 Migration：给已有记录增加中文意图](part-03-postgresql/chapter-20-migrations/chapter.md)
 
-**时间参考**：阅读约 100～120 分钟，操作另加 65～90 分钟（估算；支线单列）。
+**时间参考**：阅读约 115～135 分钟，操作另加 65～90 分钟（估算；支线单列）。
 
 - [20.1 先决定旧数据的含义，再决定列怎么加](part-03-postgresql/chapter-20-migrations/chapter.md#201-先决定旧数据的含义再决定列怎么加)。
 - [20.2 从模型变更到可审查、可重放的迁移](part-03-postgresql/chapter-20-migrations/chapter.md#202-从模型变更到可审查可重放的迁移)。
