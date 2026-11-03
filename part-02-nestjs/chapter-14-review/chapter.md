@@ -28,6 +28,10 @@ app.ready 日志说明配置与应用初始化已经完成，而且这个子进�
 - 把 Body 改成 `{"originalText":7}`。JSON 已经合法，SchemaPipe 才能拒绝字段类型，返回 VALIDATION_ERROR；依然不应进入写入。
 - 恢复合法字符串，再在写入前暂停。可以看到已经通过前面边界的输入、由 Service 创建的记录，以及即将接收它的存储对象。
 
+![Postman：损坏 JSON 在字段校验之前被拒绝](images/postman-invalid-json.jpg)
+
+上半区缺少字段值与结束花括号，下半区为 INVALID_JSON；与上一章数字原文的 VALIDATION_ERROR 对比，可以先区分正文解析和字段规则两类失败。具体经过哪些函数，继续结合断点和同一请求编号核对。端口使用自己的监听地址。
+
 这些事实串起来，才能解释执行顺序。观察 Middleware 先分配请求编号，httpBoundary 保留方法、路径与查询数量约定，captureBody 负责一次性读取正文，Pipe 解析字段，Controller 适配 HTTP，Service 执行业务规则，存储完成操作，输出 Interceptor 检查公开表示。途中未处理的异常由 Filter 转成 Problem。GET 的查询 Pipe 与创建正文的 Pipe 不同，但它们都不负责存储。
 
 下面只画创建请求的主要分歧，避免把启动生命周期和每次请求混成一条线：
