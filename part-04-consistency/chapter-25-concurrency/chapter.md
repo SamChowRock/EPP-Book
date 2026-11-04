@@ -482,4 +482,4 @@ FOR UPDATE;
 
 本章完成代码分支：`part-04/chapter-25`。
 
-[上一章：事务](../chapter-24-transactions/chapter.md) · [返回第四篇](../README.md) · [返回全书目录](../../README.md) · 下一章：幂等与审计
+[上一章：事务](../chapter-24-transactions/chapter.md) · [返回第四篇](../README.md) · [返回全书目录](../../README.md) · [下一章：幂等与审计](../chapter-26-idempotency/chapter.md)
