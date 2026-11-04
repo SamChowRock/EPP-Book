@@ -480,4 +480,4 @@ npm run check后按前章方式将dist、package.json、package-lock.json与.npm
 
 本章完成代码状态为 `part-04/chapter-26`，下一章从此继续。
 
-[上一章：并发控制](../chapter-25-concurrency/chapter.md) · [返回第四篇](../README.md) · [返回全书目录](../../README.md) · 下一章：一致性整合
+[上一章：并发控制](../chapter-25-concurrency/chapter.md) · [返回第四篇](../README.md) · [返回全书目录](../../README.md) · [下一章：一致性整合](../chapter-27-integration/chapter.md)
