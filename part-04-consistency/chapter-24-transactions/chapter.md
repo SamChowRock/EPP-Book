@@ -548,4 +548,4 @@ flowchart TD
 
 本章完成代码分支：`part-04/chapter-24`。
 
-[上一章：状态机与关系建模](../chapter-23-candidates/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
+[上一章：状态机与关系建模](../chapter-23-candidates/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md) · [下一章：并发控制](../chapter-25-concurrency/chapter.md)
