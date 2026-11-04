@@ -706,4 +706,4 @@ flowchart LR
 
 本章完成代码分支：`part-04/chapter-23`。
 
-[上一章：保留修订历史](../chapter-22-revisions/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
+[上一章：保留修订历史](../chapter-22-revisions/chapter.md) · [下一章：事务](../chapter-24-transactions/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
