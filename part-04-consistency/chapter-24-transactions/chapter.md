@@ -397,10 +397,11 @@ OpenAPI沿用已有的jsonResponse、problem与schema辅助函数。导入Accept
 
 正常执行到Service拿到result时，事务Promise已经返回，COMMIT已完成，Postman随后收到201。如果事务内断点暂停太久，继续后可能得到P2028及HTTP500；先确认原候选仍pending、关联结果没有留下，再关闭断点重发同一采纳。不要把局部变量里出现过表达ID当成已提交证据。保存源码后等待自动编译与进程重启，再发候选GET确认结果仍在；本章没有内存采纳状态需要恢复。不要因为调试器重连而重复05。
 
-失败路径也要在真正的数据库上观察。配套最小回归 `test/acceptance.test.mjs` 在隔离测试库为本次虚构候选临时增加一条拒绝学习记录的CHECK，触发最后一步失败，断言三张结果表行数不变、候选仍pending且acceptedAt为空；移除临时约束后再做两个同时采纳的请求，观察一个201、一个409。它不向正式路由添加fail参数。测试使用DDL并串行执行，DATABASE_URL必须指向已迁移、已建立固定开发用户的隔离库，不能对日常或共享库运行。
+失败路径也要在真正的数据库上观察。配套最小回归 `test/acceptance.test.mjs` 在隔离测试库为本次虚构候选临时增加一条拒绝学习记录的CHECK，触发最后一步失败，断言三张结果表行数不变、候选仍pending且acceptedAt为空；移除临时约束后再做两个同时采纳的请求，观察一个201、一个409。它不向正式路由添加fail参数。测试使用DDL并串行执行，沿用第十九章的 `.env.test` 与 `TEST_DATABASE_URL`，必须指向已迁移、已建立固定开发用户的隔离库，不能对日常或共享库运行。新增数据库测试同样导入 `./database-env.mjs`，缺少测试连接时在打开应用前退出。
 
 ```bash
-# 在终端中提供隔离测试库的 DATABASE_URL，不提交连接凭据。
+# 先在 .env.test 填写隔离库的 TEST_DATABASE_URL，不提交连接凭据。
+unset TEST_DATABASE_URL DB_QUERY_DEBUG DOCS_ENABLED
 npm test
 ```
 

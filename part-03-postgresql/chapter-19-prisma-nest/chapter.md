@@ -8,7 +8,7 @@
 
 日常操作继续以 Postman、VS Code 调试器和 DBeaver 为主。它们分别观察请求、程序状态和数据库事实；三处证据能对应起来，才有依据判断问题在哪一层。固定开发用户仍是 `10000000-0000-4000-8000-000000000001`，它是数据库行的归属，不代表请求已经完成身份认证。
 
-**时间参考（估算）**：阅读约 145～170 分钟；接入、图形联调、故障与产物核对另加约 65～85 分钟。支线单列，估时依据见篇导读。
+**时间参考（估算）**：阅读约 150～175 分钟；接入、图形联调、故障与产物核对另加约 70～90 分钟。支线单列，估时依据见篇导读。
 
 ## 19.1 在 Nest 中明确数据库资源的所有者
 
@@ -806,7 +806,31 @@ URL 与 `limit=1` 保持，恢复后返回已有记录。这里比较的是锁�
 
 ### 接入后，原来的小检查怎样调整
 
-第十二章已有一条非法 JSON 请求检查，原先以“新进程列表为空”为起点。现在不能再假设空库，更不能为了测试先清表。它改为先保存当前列表，发送非法 JSON，再比较列表未变；`npm test` 使用 `.env` 或已有进程环境提供开发连接，并按 test 模式运行。运行这项检查时停止其他写入，否则合法并发变化会破坏前后比较。
+第十二章已有一条非法 JSON 请求检查，原先以“新进程列表为空”为起点。现在不能再假设空库，更不能为了测试先清表。它改为先保存当前列表，发送非法 JSON，再比较列表未变。测试连接也从开发连接中分开：`NODE_ENV=test` 只选择程序模式，不会替我们选择另一个数据库。后续加入写入与回滚检查时，这个边界尤其重要。
+
+首次将配套 `test/database.env.example` 复制为项目根目录 `.env.test`，将 `TEST_DATABASE_URL` 填为已应用本章迁移、含固定开发用户的独立校验库连接，可以沿用第十八章建立的 VERIFY；保持 `DB_QUERY_DEBUG=false`。已有配置文件只补字段，不覆盖；凭据仍不提交。测试不自动建库、迁移或清表，也不能仅给 DEV 换一个环境变量名就称为隔离。
+
+从前章手写时，先建立 `test/database.env.example`，内容如下，再按上述方式复制并填写本机密码；保留示例中的占位值：
+
+```dotenv
+TEST_DATABASE_URL="postgresql://epp_owner:REPLACE_WITH_URL_ENCODED_PASSWORD@127.0.0.1:55432/epp_migration_check?schema=public"
+DB_QUERY_DEBUG=false
+```
+
+新增 `test/database-env.mjs`，并在 `test/captures.test.mjs` 顶部加入 `import './database-env.mjs';`。以后新增需要数据库的测试也从这个入口加载：
+
+```js
+const testUrl = process.env.TEST_DATABASE_URL;
+if (!testUrl?.trim()) {
+  throw new Error('TEST_DATABASE_URL is required; use an isolated, migrated verification database.');
+}
+// Never fall back to the application's development connection.
+process.env.DATABASE_URL = testUrl;
+```
+
+`package.json` 的 test 命令改为 `npm run build && NODE_ENV=test node --env-file-if-exists=.env.test --test test/*.test.mjs`。它只加载测试配置，不读取开发 `.env`；缺少明确的测试连接时，在打开应用前退出。测试进程用 `TEST_DATABASE_URL` 替换继承的 `DATABASE_URL`，日常开发和生产入口不受影响。
+
+进程中已有的同名变量优先于文件。使用文件前先执行 `unset TEST_DATABASE_URL DB_QUERY_DEBUG DOCS_ENABLED`，核对文件指向的主机、端口与库名，再运行 `npm test`，不要打印含密码的完整连接串。运行期间暂停该校验库的其他写入，否则合法并发变化会破坏前后比较。只运行单个文件时使用 `NODE_ENV=test node --env-file-if-exists=.env.test --test test/captures.test.mjs`，同样必须提供测试连接。
 
 这仍是一条最小回归证据，不扩建测试工程。表约束、特殊字符、池等待和重启分别通过前面的实际操作观察。旧章节独立创建 MemoryCaptureStore 的机制示例仍可以研究内存行为；第十四章改变为数组的参考补丁应在对应章节快照应用，不能把针对旧组装代码的补丁直接套到本章数据库分支。
 
