@@ -398,4 +398,4 @@ A暂不释放时，在Postman采纳对应pending候选。每次锁获取最多�
 | Prisma $queryRaw／交互式事务 | 参数化调用规则，原子提交状态、来源及回执 | 取锁后独立查询；不加入外部网络等待，[原始查询](https://www.prisma.io/docs/orm/v7/prisma-client/using-raw-sql/raw-queries)、[事务](https://www.prisma.io/docs/orm/v7/prisma-client/queries/transactions) |
 | migrate deploy／status／diff／resolve | 追加迁移、核对实际结构及登记失败恢复 | resolve不修复数据，diff不证明旧内容没变，[Prisma CLI](https://www.prisma.io/docs/orm/v7/reference/prisma-cli-reference) |
 
-[上一章：幂等与审计](../chapter-26-idempotency/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
+[上一章：幂等与审计](../chapter-26-idempotency/chapter.md) · [下一章：查询接口](../chapter-28-queries/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
