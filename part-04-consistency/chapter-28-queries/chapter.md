@@ -372,4 +372,4 @@ VS Code选择Run and Debug中的 `EPP: attach to npm run dev` 并启动附加。
 
 本章完成代码状态为 `part-04/chapter-28`，配套入口为 `database/chapter-28/README.md`。
 
-[上一章：一致性整合](../chapter-27-integration/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
+[上一章：一致性整合](../chapter-27-integration/chapter.md) · [下一章：分页与时间](../chapter-29-pagination/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)

@@ -345,12 +345,15 @@
 
 时间参考（估算）：阅读约100～120分钟，跟做另加60～85分钟；按正文、查询与契约代码、一张机制图、六张实拍、图形请求、数据库对照、断点与旧数据交付验证估算，支线单列于篇导读。
 
-### 第 29 章 分页与时间 容易低估的数据问题
+### [第 29 章 分页与时间：下一页从哪里继续](part-04-consistency/chapter-29-pagination/chapter.md)
 
-- 29.1 在上一章列表上加入 Offset 和 Cursor 分页，比较同时间戳和并发插入时的行为。
-- 29.2 为稳定排序选择字段与唯一补充键，解释游标携带查询条件的校验；签名实现使用到的 HMAC 在本节就地说明。
-- 29.3 旧调用方的默认分页行为与响应兼容，避免接口升级后无法读取。
-- 29.4 UTC、时区、数据库时间类型与自然日；用实际记录的日期边界说明，练习计算在练习篇应用。
+- [29.1 Offset跳过位置，Cursor接着边界](part-04-consistency/chapter-29-pagination/chapter.md#291-offset跳过位置cursor接着边界)。
+- [29.2 给边界加上可验证的查询上下文](part-04-consistency/chapter-29-pagination/chapter.md#292-给边界加上可验证的查询上下文)。
+- [29.3 接回两个列表，保留旧调用方](part-04-consistency/chapter-29-pagination/chapter.md#293-接回两个列表保留旧调用方)。
+- [29.4 先确定是哪一天，再形成UTC区间](part-04-consistency/chapter-29-pagination/chapter.md#294-先确定是哪一天再形成utc区间)。
+- [章末附录：本章必要技术点速查](part-04-consistency/chapter-29-pagination/chapter.md#附录本章必要技术点速查)。
+
+时间参考（估算）：阅读约120～145分钟，跟做另加70～95分钟；按正文、分页与签名代码、两张机制图、五张操作截图、图形请求、SQL日期边界、断点和产物恢复估算，支线单列于篇导读。
 
 ### 第 30 章 索引与执行计划 查询为什么变慢
 
