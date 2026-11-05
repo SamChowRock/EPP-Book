@@ -206,4 +206,4 @@ npm run db:verify -- migrate deploy
 
 时间参考（估算）：阅读约65～85分钟，跟做另加50～70分钟。依据五节推导、四种读取计划、接口与断点对照、连接池实验和一次校验库升级估算，支线单列。
 
-[上一章：分页与时间](../chapter-29-pagination/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
+[上一章：分页与时间](../chapter-29-pagination/chapter.md) · [下一章：让采纳经得起竞争与重试](../chapter-31-review/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
