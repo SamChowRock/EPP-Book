@@ -206,22 +206,20 @@ COMMIT;
 
 `IS DISTINCT FROM` 用于比较包含 NULL 的值：两边都 NULL 认为没有变化，一边 NULL 一边字符串认为不同。普通 `<>` 在有 NULL 时得到未知，会漏掉本来想报告的差异。DO 块在迁移内部发现差异就抛错，让整个事务不能成功提交；迁移工具的“完成”不能早于业务核对。
 
-应用前先向独立 VERIFY 库重放，再向停写的日常库应用：
+在 DBeaver 打开独立 VERIFY 的 SQL 编辑器。先单独执行配套 `database/chapter-22/00-verify-samples.sql` 的第一条查询，确认库名，再在第二十一章结构上执行余下的事务。在 DBeaver 保存 INSERT 返回的两行（含 ID 和创建时间），供迁移后逐字段对照。第一条原文两端有空格、意图为 NULL，第二条意图为“出去散步”。脚本使用固定 ID；中断后先按这两个 ID 查 captures，已经提交的样本直接复用。若库已升级，用已有迁移前导出核对，或从第二十一章备份另建验证库重做。
+
+先只部署到 VERIFY。清除终端继承的连接变量，让命令读取本章的验证库配置。
 
 ```bash
+unset DATABASE_URL SHADOW_DATABASE_URL
 npm run db:verify -- migrate deploy
-npm run db -- migrate deploy
 npm run db:verify -- migrate status
-npm run db -- migrate status
-npm run db -- migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
 npm run db:verify -- migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
-npm run prisma:generate
-npm run check
 ```
 
-自写草稿也可以在审查后使用 deploy 应用已有 SQL，避免把生成新草稿和部署既有迁移混为一步。VERIFY 原来没有业务行，回填自然是零行，不代表回填失败；日常库则必须为每条旧 Capture 产生第 1 版。两库都保留之前迁移，不 reset、不 db push，也不把这次迁移登记为“已经执行”来跳过实际搬迁。
-
 ### 数量对了，还要核对什么
+
+留在 VERIFY 连接，先用两个样本 ID 查 captures，对照刚才保存的 ID、归属、原文、意图和创建时间。再在 capture_revisions 按这两个 capture_id 筛选，各应有一个第 1 版，原文和意图逐字一致，input_source 为 unknown，chunks 为 SQL NULL。
 
 DBeaver 刷新 public → Tables，找到 `capture_revisions`，在 Properties 的 Columns、Constraints／Foreign Keys 和 Indexes 中核对列类型、联合唯一和 RESTRICT；在 ER Diagram 中同时选择 captures 与修订表，确认外键连向 captures.id。打开 Data 页按 capture_id 筛选，看同一记录的多版，不直接编辑历史网格。用 SQL 编辑器执行配套 `database/chapter-22/01-inspect.sql`，保存核对结果。
 
@@ -242,6 +240,17 @@ WHERE r.id IS NULL OR c.original_text IS DISTINCT FROM r.original_text
 ![DBeaver：修订表的外键与联合唯一约束](images/dbeaver-revision-constraints.jpg)
 
 图中将 pg_constraint 筛选为外键和唯一约束：第一行把 capture_id 指向 captures.id，更新、删除均为 RESTRICT；第二行约束同一 capture_id 的 revision_no 不重复。它核对的是数据库现场定义，不是仅在 Prisma Schema 中写下的意图；CHECK 仍需另查。
+
+只有 VERIFY 的迁移状态、结构差异和旧行核对都通过，再升级已停写的 DEV。随后在 DBeaver 切回 DEV，重复上面的覆盖数、字段和约束检查，用本节开头保存的 DEV 导出逐行对照。
+
+```bash
+unset DATABASE_URL SHADOW_DATABASE_URL
+npm run db -- migrate deploy
+npm run db -- migrate status
+npm run db -- migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+npm run prisma:generate
+npm run check
+```
 
 迁移失败时先看第一个错误。等锁超时就找到持锁事务，由原操作方结束；字段约束失败则定位原行和规则，不能删掉原行只为让迁移通过。此迁移显式 BEGIN，连接退出后应回滚，但仍核对 `to_regclass('public.capture_revisions')` 和失败历史再处理。确认所有动作已回滚、根因已处理后，用实际迁移名执行 `migrate resolve --rolled-back`，再 deploy。它只登记失败尝试的处理，不负责撤销 SQL。成功迁移不再编辑文件；后续发现业务差异用追加修复处理。
 
@@ -372,7 +381,7 @@ const chunks = full
   : Prisma.sql`chunks`;
 ```
 
-完整请求插入提交的内容；PATCH 的三个固定列引用从数据库读到的上一版继承。下面是同一方法中的 SQL 主体，`revisionColumns` 为随后的固定投影：
+完整请求插入提交的内容；PATCH 的三个固定列引用从数据库读到的上一版继承。读下面这条 SQL 时，可以先看两个名字。`WITH` 给同一条语句里的中间结果起名。先看 `previous`，它为这条输入找出上一版；其中 `LATERAL` 让右边的小查询能用左边当前输入的 ID。再看 `inserted`，它用 `RETURNING` 取回这次真正插入的行。最后的 SELECT 把两份结果放在一起，应用据此判断本次追加是否成功。`revisionColumns` 列出返回给应用的修订字段。
 
 ```ts
 const revisionColumns = Prisma.sql`r.id, r.capture_id AS "captureId", r.revision_no AS "revisionNo",
@@ -418,7 +427,7 @@ const rows = await this.database.run('appendRevision', () =>
 
 SQL 时间返回 Date，分别用 `toISOString()` 转成公开字符串。配套源码把 statement 直接写在同一 `$queryRaw` 调用内，参数化行为相同。
 
-`LATERAL` 允许右侧查询引用左侧当前的 c.id；它在逻辑上为每条父记录选取最多一版，不表示应用循环发送 N 次请求。这里左连接保留“父记录存在但没有修订”的异常状态。previous 是本条语句看到的前提，inserted 是实际插入的结果；读取新行使用 RETURNING 输出，不再从基础表重查、期待同一语句的其他部分看见自己的写入。
+数据库在这一条语句里为每条父记录选取最多一版。这里左连接保留“父记录存在但没有修订”的异常状态。previous 是本条语句看到的前提，inserted 是实际插入的结果；读取新行使用 RETURNING 输出，不再从基础表重查、期待同一语句的其他部分看见自己的写入。
 
 真正防止同一记录出现两个第 3 版的是联合唯一约束。两条语句都可能看到第 2 版并尝试插入 3；把查询和写入写在同一个 SQL 文本里，并没有自动给整个业务排队。`ON CONFLICT (capture_id, revision_no) DO NOTHING` 只跳过这个已明确的冲突，不覆盖对方的内容，也不把所有错误都吞掉。
 

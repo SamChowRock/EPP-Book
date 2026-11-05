@@ -305,7 +305,7 @@ npm run dev
 
 导入 `requests/chapter-28.postman_collection.json`，确认baseUrl是本次开发服务。01～11复用前章写入链准备样本：A、B同义项，C义项不同；08先追加新修订，09～11仍采纳初版候选。D、E保持未选择，不会进入学习列表。01每次运行会新建输入并更新本集合变量，中断后继续查询，不为重发GET重新执行全部准备。
 
-12读取星图。找到A/B共同的expressionId，recordCount至少为2；若前章已有相同带句号表达，复用同一身份后数量可能更大，所以不能把示例环境总数写死为2。13把学习列表limit设为1，应只有一个items元素且hasMore=true。14按该expressionId筛选，应能找到A、B两条来源；两者learningRecord.id不同，expression.id相同。
+12 读取星图首页，最多 100 个节点。每个节点代表一个表达，recordCount 是该表达可见的学习来源数。星图按表达创建时间排列，A、B 复用旧表达时，即使刚刚采纳，它也可能排在首页之外。13 把学习列表 limit 设为 1，应只有一个 items 元素且 hasMore=true。14 按 A、B 共用的 expressionId 查询：在本轮刚采纳的来源中找到两个 candidateId，核对 learningRecord.id 不同、expression.id 相同。
 
 ![Postman返回limit为1且hasMore为true](images/postman-list.jpg)
 

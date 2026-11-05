@@ -269,12 +269,13 @@ const learningRecord = await tx.learningRecord.create({ data: {
 nvm use
 npm ci
 npm run check
-npm run prisma:verify -- migrate deploy
-npm run prisma:verify -- migrate status
-npm run prisma:verify -- migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+unset DATABASE_URL SHADOW_DATABASE_URL
+npm run db:verify -- migrate deploy
+npm run db:verify -- migrate status
+npm run db:verify -- migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
 ```
 
-prisma:verify读取 `.env.database-verify`，API读取自己的 `.env` 或进程配置；先分别确认数据库名。已有DEV要沿同样的停写和核对顺序升级，命令改为 `npm run prisma -- migrate deploy`。不要把VERIFY验证成功当作DEV已经更新。迁移有显式BEGIN／COMMIT、2秒lock_timeout和30秒statement_timeout，小规模已有数据在停写窗口完成；大表需要重新估算锁持有与回填成本，不能原样照搬这份一次性UPDATE。
+`db:verify` 读取 `.env.database-verify`，`db` 读取 DEV 的 `.env.database`，API读取自己的 `.env` 或进程配置；先分别确认数据库名。已有DEV要沿同样的停写和核对顺序升级，命令改为 `npm run db -- migrate deploy`。不要把VERIFY验证成功当作DEV已经更新。迁移有显式BEGIN／COMMIT、2秒lock_timeout和30秒statement_timeout，小规模已有数据在停写窗口完成；大表需要重新估算锁持有与回填成本，不能原样照搬这份一次性UPDATE。
 
 模型和存储实现已一起修改后再执行这些命令。SQL函数只随完整迁移创建，不单独执行CREATE片段；check会生成客户端，但不会连接数据库或应用DDL。
 
@@ -332,16 +333,16 @@ prisma:verify读取 `.env.database-verify`，API读取自己的 `.env` 或进程
 
 ### 失败时分辨哪一层已经改变
 
-迁移的历史审核发现孤立表达时，会抛出 `Expression history needs owner/form review`。由于函数创建、字段增加与回填在同一显式事务里，这次失败不应留下半批规范化字段。先在DBeaver检查列是否存在、函数是否存在，再查看_prisma_migrations的logs；迁移历史中可能记录失败尝试，这不代表业务DDL已经提交。
+迁移的历史审核发现孤立表达时，会抛出 `Expression history needs owner/form review`。CLI 有时只显示事务已经中止（`current transaction is aborted`）；这时在失败库重跑历史审核的第一条只读查询，定位缺少归属或形式的表达。由于函数创建、字段增加与回填在同一显式事务里，这次失败不应留下半批规范化字段。先在DBeaver检查列是否存在、函数是否存在，再查看_prisma_migrations的logs；迁移历史中可能记录失败尝试，这不代表业务DDL已经提交。
 
 如果是预期之外的真实旧数据，先确认它的来源，而不是直接删除。只有隔离实验中明确人为添加的故障样本才按实验范围撤除。确认数据前提已修复、事务确已回滚后，才将失败尝试登记为rolled-back并再次deploy：
 
 ```bash
-npm run prisma:verify -- migrate resolve --rolled-back 20261104160000_expression_identity
-npm run prisma:verify -- migrate deploy
+npm run db:verify -- migrate resolve --rolled-back 20261104160000_expression_identity
+npm run db:verify -- migrate deploy
 ```
 
-resolve只影响迁移历史，不撤销字段、不修复数据，也不证明恢复完成。本章实测用旧版创建的重复表达加一条孤立故障表达触发审核失败；修复后重新部署，原七表旧字段逐项保持，重复组留下一个复用代表。若失败来自等锁超时，先定位持锁会话和事务，不要盲目调大超时并反复运行。
+上面两步用于 VERIFY。若失败的库是 DEV，两步均用 `npm run db` 指向同一个 DEV。resolve只影响迁移历史，不撤销字段、不修复数据，也不证明恢复完成。本章实测用旧版创建的重复表达加一条孤立故障表达触发审核失败；修复后重新部署，原七表旧字段逐项保持，重复组留下一个复用代表。若失败来自等锁超时，先定位持锁会话和事务，不要盲目调大超时并反复运行。
 
 在线路径也要看失败位置。完成集合01～17后，候选E仍为pending。复制13到一个单独保存的请求，把URL中的candidateD改为candidateE，Body填写一个新生成并固定保存的operationId；不要发送前自动换身份。打开03-expression-lock.sql，它使用E的 `Pause for a moment.`／“停一会儿”，在DBeaver会话A只执行BEGIN与取锁SELECT。这个脚本构造与应用JSON.stringify完全相同的字符串；JSON里多一个空格也会改变锁哈希，不能用“解析后相等”推断锁编号相同。
 
