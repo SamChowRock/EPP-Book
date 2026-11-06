@@ -437,9 +437,10 @@ try {
 }
 ```
 
-运行：
+新增 `main.ts` 后，重新编译这个实验再运行。前面的编译只包含当时已有的文件；主服务的开发监听也不会替这个独立实验生成产物。
 
 ```bash
+npm exec -- tsc -p examples/module-workflow/tsconfig.json
 node dist/examples/module-workflow/main.js
 ```
 

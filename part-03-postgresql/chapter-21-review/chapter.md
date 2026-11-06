@@ -232,24 +232,14 @@ C 的错误上限已变为 2000，而 B 的错误上限为 1000。对比端口�
 
 ### 为什么A能够启动，却不能读取
 
-完整对照使用第二十章运行产物。已提前保存的读者直接使用；没有保存时，在当前项目根目录执行下面的独立检出。`worktree`为同一个Git仓库建立另一份工作文件，`--detach`让它停在指定章节状态而不移动该章节分支。当前目录中的第二十一章改动继续保留。两个目标目录必须尚不存在；若名字已经占用，换一个新目录名并同步后续命令，不覆盖或删除原目录。
-
-先确认第二十章引用在哪里。`git branch --list part-03/chapter-20` 只列本地分支；沿章节一路编写的工作区通常已有它，可以直接执行：
+完整对照使用第二十章运行产物。已提前保存的读者直接使用；没有保存时，保留当前第二十一章项目，在其根目录执行下面的独立克隆。这会另建旧章节目录，不切换或修改当前项目，也不要求自己跟写的项目拥有 Git 仓库、章节分支或配套远程。源码目录 `../epp-ch20-reader` 和稍后建立的产物目录 `../epp-ch20-runtime` 必须尚不存在；若名字已被占用，换一组新名字并同步后续命令，不覆盖或删除原目录。
 
 ```bash
-git worktree add --detach ../epp-ch20-reader part-03/chapter-20
+git clone --single-branch --branch part-03/chapter-20 \
+  https://github.com/SamChowRock/epp-book-code.git ../epp-ch20-reader
 ```
 
-如果该列表为空，例如刚克隆后直接进入第二十一章，不能假设远程分支也会自动成为同名本地分支。使用下面这条替代路径，两条检出路径只选一条：
-
-```bash
-git fetch origin refs/heads/part-03/chapter-20:refs/remotes/origin/part-03/chapter-20
-git worktree add --detach ../epp-ch20-reader origin/part-03/chapter-20
-```
-
-fetch 中冒号左边是远程分支，右边是保存到本机的远程跟踪引用；显式指定两端，也覆盖只克隆了第二十一章的情况。这里的 `origin` 是克隆时常用的远程名称，使用其他名称时同步替换两处引用。fetch 失败就先解决远程、分支名或连接问题，不继续构建未知版本；两个命令都不切换当前目录里的章节。
-
-成功创建旧工作目录后，两条路径汇合到相同的构建步骤：
+确认克隆成功后再继续；失败时先解决地址、分支名或连接问题，不进入已有同名目录构建未知版本。`--branch` 指定第二十章，`--single-branch` 只取该章节所需的历史。无论当前项目是自己从空目录编写、普通克隆还是单分支克隆，都使用这条独立准备路径。
 
 ```bash
 cd ../epp-ch20-reader
@@ -330,13 +320,12 @@ B/C对照结束后，停B、反向撤回补丁，check并启动C。保留实验�
 | `migrate dev --create-only` | 为手写CHECK建立新迁移草稿 | Schema不变也可建草稿；仅开发使用，需要影子库 |
 | `DROP/ADD CONSTRAINT` | 在事务内替换长度CHECK | 删除约束不删除列；锁与扫描成本仍需评估 |
 | `migrate deploy/status/diff` | 分别应用历史、核对记录、比较支持的结构 | 不生成业务数据，也不独自证明API兼容 |
-| `git worktree add --detach` | 独立构建第二十章旧产物 | 不改变当前工作目录或旧章节分支；目录不运行迁移 |
-| `git fetch` 的显式 refspec | 在缺少本地旧分支时取得远端章节 | 指明远端源引用与本地远端跟踪引用；单分支克隆也适用，失败时先停止构建 |
+| `git clone --single-branch --branch` | 在独立目录取得第二十章代码，用于构建旧产物 | 不依赖原项目的Git配置；目标目录不可占用；克隆成功后再构建，旧目录不运行迁移 |
 | `git apply --check`／`-R` | 复现并撤销B阶段补丁 | 只改变代码；先停dev，检查失败先核对差异 |
 | `pm.variables.set`／`JSON.stringify` | 在Postman生成长度准确的JSON正文 | 每次请求前生成；不自动发其他请求或清理 |
 | 程序／结构／数据版本 | 决定实际兼容与恢复目标 | Git回退不会撤销已写入数据；长值存在后保留兼容读取 |
 
-官方入口：[Prisma v7 migrate dev](https://www.prisma.io/docs/cli/v7/migrate/dev)、[迁移自定义](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/customizing-migrations)、[PostgreSQL 18 ALTER TABLE](https://www.postgresql.org/docs/18/sql-altertable.html)、[字符串函数](https://www.postgresql.org/docs/18/functions-string.html)、[Git apply](https://git-scm.com/docs/git-apply)、[Git worktree](https://git-scm.com/docs/git-worktree)、[Git fetch](https://git-scm.com/docs/git-fetch)、[Postman请求前脚本](https://learning.postman.com/docs/tests-and-scripts/write-scripts/pre-request-scripts/)。
+官方入口：[Prisma v7 migrate dev](https://www.prisma.io/docs/cli/v7/migrate/dev)、[迁移自定义](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/customizing-migrations)、[PostgreSQL 18 ALTER TABLE](https://www.postgresql.org/docs/18/sql-altertable.html)、[字符串函数](https://www.postgresql.org/docs/18/functions-string.html)、[Git apply](https://git-scm.com/docs/git-apply)、[Git clone](https://git-scm.com/docs/git-clone)、[Postman请求前脚本](https://learning.postman.com/docs/tests-and-scripts/write-scripts/pre-request-scripts/)。
 
 本章完成代码分支：`part-03/chapter-21`。正式意图上限为2000；配套reader-only补丁只用于本章B阶段，结束时恢复最终源代码。
 

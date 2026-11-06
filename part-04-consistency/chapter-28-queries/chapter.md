@@ -311,7 +311,7 @@ npm run dev
 
 图28-1　请求13的响应末尾。items只包含一条来源，limit与hasMore明确说明这不是全部记录；向上滚动仍可查看该项的身份与表达摘要。
 
-15用B采纳响应中保存的learningRecord.id打开详情。source.revisionId应等于初版，source.originalText仍是 `I need a break.`；source.englishText保留B的大小写和空白，expression.text返回代表形式。16读取当前Capture却是 `Let us pause here.`。这不是接口彼此矛盾，而是一个读取当前内容，一个读取历史来源。
+15用B采纳响应中保存的learningRecord.id打开详情。source.revisionId应等于初版，source.originalText仍是 `I need a break.`；source.englishText保留B的大小写和空白，expression.text返回代表形式。集合分别与B保存时的候选文本、A采纳时返回的代表文本比较；如果原有代表恰好采用B的写法，两者相同也正确，不能要求它们必然不同。16读取当前Capture却是 `Let us pause here.`。这不是接口彼此矛盾，而是一个读取当前内容，一个读取历史来源。
 
 ![Postman详情仍保留初版输入与候选文本](images/postman-detail.jpg)
 

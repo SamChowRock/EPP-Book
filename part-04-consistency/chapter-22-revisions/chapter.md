@@ -609,7 +609,7 @@ Postman Import 本章 `requests/chapter-22.postman_collection.json`，确认集�
 
    ![Postman 缺失 chineseIntent 返回 400，issues 指向缺失字段](images/postman-reject-missing-intent.jpg)
 
-   图中只提供 originalText，`issues.path` 指向 chineseIntent。完整修订要求显式表达意图：没有意图应传 null，漏字段则拒绝。这与 PATCH 的“省略表示继承”是两种不同输入契约。
+   图中只提供 originalText，`issues.path` 指向 chineseIntent。完整修订要求显式表达意图：没有意图应传 null，漏字段则拒绝。旧 PATCH 只提交意图，原文、来源和 chunks 从上一版继承；意图本身仍必填，传 null 才表示清空。两种入口都不能用省略意图代替明确决定。
 
    失败请求之后重新发送“02 初始修订”，同一个 GET 现在返回全部当前历史。展开响应筛选功能，输入 JSONPath `$.items[*].revisionNo`，可以只看序号：
 
@@ -724,8 +724,8 @@ Prisma 对 JSON 字段区分 `DbNull` 与 `JsonNull`。本章使用 SQL NULL，�
 ## 附录：本章必要技术点速查
 
 | 名称 | 本章用途 | 必要注意点 |
-| pg_dump／pg_restore | 单库归档并恢复到独立空库 | 归档不含角色；源与目标先核对；恢复结果还需逐行、结构与迁移核验 |
 | --- | --- | --- |
+| pg_dump／pg_restore | 单库归档并恢复到独立空库 | 归档不含角色；源与目标先核对；恢复结果还需逐行、结构与迁移核验 |
 | Capture / CaptureRevision | 稳定身份与某版内容 | 记录创建时间和修订时间不混用 |
 | `(capture_id, revision_no)` 唯一约束 | 防止同记录序号重复 | 不是编辑基础版本校验，也不保证无空号 |
 | `INSERT ... SELECT` | 从已有行建立初始修订 | 保留旧值，不编造未知来源 |

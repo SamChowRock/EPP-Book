@@ -97,7 +97,9 @@ code --version
 
 在实践代码根目录执行 `code .`，打开包含 `package.json` 的那一层目录；也可以用 **File → Open Folder**。不要只打开一个源文件，否则项目内的调试配置可能不会加载。
 
-章节代码提供 `.vscode/launch.json` 后，先在集成终端执行 `nvm use` 和本章启动命令，再到 **Run and Debug** 选择 `EPP: attach to npm run dev`，连接 `127.0.0.1:9229`。从空项目跟做时，按[第 2 章](part-01-nodejs/chapter-02-minimal-service/chapter.md)建立启动脚本与调试配置，不需要提前复制后续章节的配置。
+从空项目跟做时，按[第 2 章](part-01-nodejs/chapter-02-minimal-service/chapter.md)建立启动脚本，并用 Chrome 的 `chrome://inspect` 连接调试。到[支线 5B](part-01-nodejs/chapter-05-typescript/side-02-debugging-workbench.md)再建立 VS Code 的 `.vscode/launch.json`，不需要提前复制后续章节的配置。
+
+章节代码提供该配置后，先在集成终端执行 `nvm use` 和本章启动命令，再到 **Run and Debug** 选择 `EPP: attach to npm run dev`，连接 `127.0.0.1:9229`。
 
 ### Postman
 
