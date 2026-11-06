@@ -350,15 +350,23 @@ export class CapturesController {
 
 ### 用独立应用看主线没有理由增加的机制
 
-完整请求顺序实验位于 `src/labs/request-pipeline.ts`，启动入口是 `src/labs/request-pipeline-server.ts`，不导入主线 AppModule。它不增加记录接口，也不复活第七章的简易 Nest；这里运行的就是当前依赖中的 Nest。
-
-先停止主线 dev，再执行：
+从第十一章继续跟写时，先取得本章的实验文件与请求集合。在当前项目根目录执行，资料目录使用一个尚不存在的名字：
 
 ```bash
-npm run dev:pipeline
+git clone --single-branch --branch part-02/chapter-12 \
+  https://github.com/SamChowRock/epp-book-code.git ../epp-chapter-12-materials
 ```
 
-实验使用 3006 端口，调试端口仍为 9229。VS Code 继续使用同一个 attach 配置。在 Postman 导入 `requests/pipeline.postman_collection.json`，逐条点击 Send。已有普通集合的 baseUrl 保持 3000；实验集合使用自己的 labUrl，避免来回改动业务请求。
+克隆成功后，仍在当前项目根目录复制：
+
+```bash
+test ! -e src/labs && cp -R ../epp-chapter-12-materials/src/labs src/
+cp -n ../epp-chapter-12-materials/requests/pipeline.postman_collection.json requests/
+```
+
+第一条仅在 `src/labs` 不存在时复制，第二条的 `-n` 保留同名文件。已有资料时复用并核对章节分支；已有实验时对照资料补齐，不覆盖自己的修改。克隆失败先处理原因，不继续复制。这里只取实验与集合，主线代码仍沿本章步骤编写。
+
+确认 `src/labs/request-pipeline.ts`、`src/labs/request-pipeline-server.ts` 和 `requests/pipeline.postman_collection.json` 都已存在。实验入口不导入主线 AppModule，但复用本章的 HttpError 与 ProblemFilter；应先完成前面的错误边界修改。它不增加记录接口，也不复活第七章的简易 Nest；这里运行的就是当前依赖中的 Nest。
 
 沿用第八章支线已经支持的开发入口参数；scripts/dev.mjs中的entry读取第一个参数，configFile读取第二个参数，缺省分别为主线输出入口和tsconfig.dev.json。这次实验位于src/labs，默认开发配置已经包含它，所以只传新的入口，不重复声明entry，也不改掉其他实验的配置选择。package.json新增：
 
@@ -378,6 +386,14 @@ npm run dev:pipeline
 ```
 
 把 build 命令调整为 `npm run clean && tsc -p tsconfig.build.json && node scripts/copy-assets.mjs`。typecheck 使用 tsconfig.json，开发监听使用继承它的 tsconfig.dev.json，保证实验也接受类型检查；生产构建先清理旧目录，再生成业务产物。构建后检查 dist/src 中没有 labs，而 server、app 和配置仍完整。exclude 控制项目发现的文件，不能阻止业务代码显式 import 一个实验文件，所以 AppModule 与业务模块也不能导入这组实验。
+
+文件、脚本和构建配置准备好后，先停止主线 dev，再执行：
+
+```bash
+npm run dev:pipeline
+```
+
+实验使用 3006 端口，调试端口仍为 9229。VS Code 继续使用同一个 attach 配置。在 Postman 导入 `requests/pipeline.postman_collection.json`，逐条点击 Send。已有普通集合的 baseUrl 保持 3000；实验集合使用自己的 labUrl，避免来回改动业务请求。
 
 普通 `npm run dev` 的默认入口不变。两个命令不要同时启动；即使业务端口不同，它们仍共享调试端口与 .dev。结束实验用 Ctrl+C，再运行主线 dev。这个实验没有独立生产部署目标；主线生产启动始终是 `npm start`。
 
@@ -551,6 +567,6 @@ npm test
 | response.finish／close | 观察传输侧完成与关闭 | 不证明调用方收到，不将所有 close 视为异常 |
 | node:test／assert | 保留一条跨 HTTP 边界的回归 | 独立应用、随机端口、显式收尾；先构建 dist，开发使用 .dev |
 
-官方查阅：[Nest 请求生命周期](https://docs.nestjs.com/faq/request-lifecycle)、[Middleware](https://docs.nestjs.com/middleware)、[Guard](https://docs.nestjs.com/guards)、[Pipe](https://docs.nestjs.com/pipes)、[Interceptor](https://docs.nestjs.com/interceptors)、[Filter](https://docs.nestjs.com/exception-filters)、[RxJS Observable](https://rxjs.dev/guide/observable)、[Node HTTP 响应事件](https://nodejs.org/docs/latest-v24.x/api/http.html#class-httpserverresponse)、[Node 测试入口](https://nodejs.org/docs/latest-v24.x/api/test.html)。代码以项目锁定的 Nest 11.2.5、RxJS 7.8.2 为准；框架内部文件用于核对行为，不作为应用依赖的私有 API。
+官方查阅：[Nest 请求生命周期](https://docs.nestjs.com/v11/faq/request-lifecycle)、[Middleware](https://docs.nestjs.com/v11/middleware)、[Guard](https://docs.nestjs.com/v11/guards)、[Pipe](https://docs.nestjs.com/v11/pipes)、[Interceptor](https://docs.nestjs.com/v11/interceptors)、[Filter](https://docs.nestjs.com/v11/exception-filters)、[RxJS Observable](https://rxjs.dev/guide/observable)、[Node HTTP 响应事件](https://nodejs.org/docs/latest-v24.x/api/http.html#class-httpserverresponse)、[Node 测试入口](https://nodejs.org/docs/latest-v24.x/api/test.html)。Nest 链接固定在 v11 文档，避免当前版本的新 API 混入本章；代码以项目锁定的 Nest 11.2.5、RxJS 7.8.2 为准；框架内部文件用于核对行为，不作为应用依赖的私有 API。
 
 [上一章：建立可信的输入与错误边界](../chapter-11-contracts/chapter.md) · [下一章：配置与生命周期](../chapter-13-configuration-lifecycle/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
