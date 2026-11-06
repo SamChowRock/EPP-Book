@@ -398,13 +398,16 @@
 - [32.5 给已有用户增加凭据，不搬动旧记录](part-05-identity/chapter-32-secrets/chapter.md#325-给已有用户增加凭据不搬动旧记录)
 - [附录：本章必要技术点速查](part-05-identity/chapter-32-secrets/chapter.md#附录本章必要技术点速查)
 
-### 第 33 章 Session 与 Cookie 登录状态从哪里来
+### [第 33 章 Session 与 Cookie 登录状态从哪里来](part-05-identity/chapter-33-sessions/chapter.md)
 
-- 33.1 基于上一章已经准备的用户和密码建立 Session 表、令牌摘要与 Cookie，完成第一次登录。
-- 33.2 Cookie 属性、过期与服务端撤销；从请求中获取当前用户，替换固定开发身份。
-- 33.3 会话列表、单设备撤销、退出与主动修改密码，解释相应数据变化。
-- 33.4 密码修改后的会话失效和客户端重新登录；密码重置流程在本篇后续接入同一撤销能力。
-- 33.5 登录前创建的记录继续归属于同一用户，不通过重新导入复制记录。
+阅读约125～150分钟；编码与跟做另加150～190分钟。
+
+- [33.1 密码通过以后，服务端保存什么](part-05-identity/chapter-33-sessions/chapter.md#331-密码通过以后服务端保存什么)
+- [33.2 用 Cookie 传递令牌，让请求带上正确身份](part-05-identity/chapter-33-sessions/chapter.md#332-用-cookie-传递令牌让请求带上正确身份)
+- [33.3 看见会话，再分别撤销和退出](part-05-identity/chapter-33-sessions/chapter.md#333-看见会话再分别撤销和退出)
+- [33.4 主动改密，为什么必须同时撤销全部会话](part-05-identity/chapter-33-sessions/chapter.md#334-主动改密为什么必须同时撤销全部会话)
+- [33.5 登录以后，原来的记录仍在哪里](part-05-identity/chapter-33-sessions/chapter.md#335-登录以后原来的记录仍在哪里)
+- [附录：本章必要技术点速查](part-05-identity/chapter-33-sessions/chapter.md#附录本章必要技术点速查)
 
 ### 第 34 章 鉴权与授权 登录了也不代表能操作
 

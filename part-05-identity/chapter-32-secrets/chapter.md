@@ -494,4 +494,4 @@ console.log("PASSWORD_RUNTIME_OK");'
 
 本章完成代码分支：`part-05/chapter-32`，起点：`part-04/chapter-31`。
 
-[上一章：第四篇回顾](../../part-04-consistency/chapter-31-review/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)
+[上一章：第四篇回顾](../../part-04-consistency/chapter-31-review/chapter.md) · [下一章：Session 与 Cookie](../chapter-33-sessions/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)
