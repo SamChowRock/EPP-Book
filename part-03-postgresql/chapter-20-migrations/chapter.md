@@ -6,7 +6,7 @@
 
 起点代码为 `part-03/chapter-19`，完成代码为 `part-03/chapter-20`。继续使用 Node.js 24.22.1、Prisma CLI／Client／adapter-pg 7.10.1、pg 8.16.3 和 PostgreSQL 18；本章不升级依赖。读者应已完成第十八章迁移基线和第十九章数据库接入，日常库 `epp_dev` 有真实旧记录。Prisma 官方站点的默认文档可能指向新主版本，本章命令以 **v7** 文档和固定版本的 `--help` 为准。
 
-**时间参考**：阅读约 125～145 分钟，编码与操作另加 65～90 分钟，均为估算；不含下载和支线。手写推进按 20.1→20.2→20.3，先完成数据库扩展再启动新代码；直接使用完成代码时，先按 20.2 的“已有迁移文件”路径应用迁移，再进行 20.3 的图形联调。不要对成品再生成同名迁移。
+**时间参考**：阅读约 135～155 分钟，编码与操作另加 75～100 分钟，均为估算；不含下载和支线。手写推进按 20.1→20.2→20.3，先完成数据库扩展再启动新代码；直接使用完成代码时，先按 20.2 的“已有迁移文件”路径应用迁移，再进行 20.3 的图形联调。不要对成品再生成同名迁移。
 
 ## 20.1 先决定旧数据的含义，再决定列怎么加
 
@@ -514,6 +514,65 @@ COMMIT;
 图中查询限定 `pg_temp.intent_lab` 的这一列，`attnotnull` 勾选说明最终列定义已经非空；不能把辅助 CHECK 创建成功当作同一个结果。清理临时表之前先完成这项核对。
 
 若以后真的采用该需求，以上步骤要转成有审查与部署顺序的追加迁移和数据回填任务，Schema 的 `String?` 也要相应改为 `String`，输入、清空动作和响应契约随之改变。不能只手工改数据库，然后让模型继续声称可空。生成器无法替你确定这些步骤该跨几个发布完成；在当前 nullable 功能尚未退出前，本章不把“未来必填”文件加入正式迁移目录。
+
+### PG18原生非空与Prisma过渡模型
+
+辅助CHECK并不是唯一方案。PostgreSQL 18支持把原生非空约束直接标为NOT VALID，同样先保护新写入，再处理历史行。它省去最后的SET NOT NULL和删除辅助CHECK。[PG18的ALTER TABLE说明](https://www.postgresql.org/docs/18/sql-altertable.html)中，这条语法是 `ADD CONSTRAINT ... NOT NULL 列名 NOT VALID`，不是给SET NOT NULL追加NOT VALID。
+
+在同一个DBeaver编辑器另建临时表，避免复用刚才已收紧的列。配套 `database/chapter-20/08-native-required-intent-lab.sql` 保存了完整分段步骤；先执行建表和添加防线：
+
+```sql
+CREATE TEMP TABLE intent_native_lab (id integer PRIMARY KEY, chinese_intent text);
+INSERT INTO intent_native_lab VALUES (1,NULL),(2,'用户已确认的意图');
+BEGIN;
+SET LOCAL lock_timeout='2s';
+ALTER TABLE intent_native_lab ADD CONSTRAINT intent_native_present
+  NOT NULL chinese_intent NOT VALID;
+COMMIT;
+
+SELECT a.attnotnull, c.contype, c.convalidated
+FROM pg_attribute a JOIN pg_constraint c
+  ON c.conrelid=a.attrelid AND a.attnum=ANY(c.conkey)
+WHERE a.attrelid='pg_temp.intent_native_lab'::regclass
+  AND a.attname='chinese_intent' AND c.contype='n';
+SELECT * FROM intent_native_lab ORDER BY id;
+```
+
+这里会同时看到 `attnotnull=true`、原生非空类型 `contype=n`、`convalidated=false`，以及仍为NULL的第一行。先前CHECK路线是在完成回填和验证之后才设置attnotnull；原生路线提前设置它，因此不能只看“非空”勾选就判断历史已处理。新插入NULL会报23502；不回填就VALIDATE也报23502。下面两段分别执行，每次失败后先ROLLBACK，再继续下一段：
+
+```sql
+BEGIN;
+INSERT INTO intent_native_lab VALUES (3,NULL);
+ROLLBACK;
+
+BEGIN;
+SET LOCAL lock_timeout='2s';
+SET LOCAL statement_timeout='10s';
+ALTER TABLE intent_native_lab VALIDATE CONSTRAINT intent_native_present;
+ROLLBACK;
+```
+
+有经确认的来源后，单独提交回填，再验证：
+
+```sql
+BEGIN;
+UPDATE intent_native_lab
+SET chinese_intent='这条实验记录经确认后补充的意图'
+WHERE id=1 AND chinese_intent IS NULL;
+COMMIT;
+
+BEGIN;
+SET LOCAL lock_timeout='2s';
+SET LOCAL statement_timeout='10s';
+ALTER TABLE intent_native_lab VALIDATE CONSTRAINT intent_native_present;
+COMMIT;
+```
+
+重跑目录查询，convalidated应为true；确认后 `DROP TABLE intent_native_lab`。不要删除 `intent_native_present`：它已经是正式非空约束，不是可以丢弃的辅助CHECK。原生与CHECK两条路径在添加防线时都需要ACCESS EXCLUSIVE锁，验证时都使用较弱的SHARE UPDATE EXCLUSIVE锁；少扫描、少步骤不等于无锁，仍应分段提交、限制等待并协调写入方。
+
+本节保留CHECK作为与Prisma衔接的演练主线，理由在过渡模型。Prisma 7.10.1对原生未验证非空列执行db pull会得到 `String`，即使历史NULL还在；向必填模型做diff也可能没有差异。生成类型为string，并不证明每行都有字符串：在本章生成器和pg适配器的读取链中，旧NULL仍可作为null返回，直接调用字符串方法会失败。反过来，坚持保留 `String?` 再盲目应用diff，又可能删除原生非空防线。
+
+辅助CHECK让回填期间的列和读取类型保持可空，验证完成后再一起切成必填，阶段含义更直观；但CHECK本身仍需显式检查数据库目录，diff为空也不能替代这项证明。若已经准备好手写迁移、可空过渡读取及目录核对，PG18原生路线完全可以采用，Prisma的迁移执行和历史重放能够执行这段SQL。选择应来自程序、结构与数据怎样协调，而不是认定新语法不能用，或看到步骤更短就直接替换。
 
 ## 20.5 漂移、迁移失败与回退：先找出哪一层不一致
 
