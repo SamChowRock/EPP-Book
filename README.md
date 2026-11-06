@@ -422,7 +422,7 @@
 
 ### [第 35 章 保护基于浏览器的服务入口](part-05-identity/chapter-35-browser-boundary/chapter.md)
 
-**时间参考（估算）**：阅读约115～140分钟；编码、浏览器联调与产物核对另加110～145分钟。
+**时间参考（估算）**：阅读约120～145分钟；编码、浏览器联调与产物核对另加110～145分钟。
 
 - [35.1 浏览器替谁携带Cookie，又允许谁读响应](part-05-identity/chapter-35-browser-boundary/chapter.md#351-浏览器替谁携带cookie又允许谁读响应)
 - [35.2 让写请求提供会话之外的证明](part-05-identity/chapter-35-browser-boundary/chapter.md#352-让写请求提供会话之外的证明)
