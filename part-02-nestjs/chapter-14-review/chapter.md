@@ -69,17 +69,25 @@ Nest 负责按声明组装对象、匹配路由、提取参数、调用管线并
 
 ### 给独立实现一个清楚的起点
 
-先停止正在运行的开发服务。在第十四章配套代码根目录执行：
+先停止正在运行的开发服务，保留自己跟写或克隆的原项目。沿第六章的方法，另建资料目录；这一步同时取得本章补丁和请求集合，不假定原项目已经有它们：
 
 ```bash
-git status --short
-review_root=$(pwd)
-git worktree add -b practice/chapter-14 ../epp-chapter-14-practice part-02/chapter-13
+git clone --single-branch --branch part-02/chapter-14 \
+  https://github.com/SamChowRock/epp-book-code.git ../epp-chapter-14-materials
 ```
 
-review_root 保存最初目录的位置，只在当前 shell 中保留；后续对照参考继续使用这个终端，另一个终端负责运行 dev。确认创建成功后再进入新目录。分支或目录已存在时，先核对它保存的工作，换一个新名字；不要强制覆盖，也不要把别人的练习清掉重来。
+克隆成功后继续；失败或目录已存在时先处理原因，不继续下一条。已有练习按下文恢复，不重新应用补丁。
 
-如果分两次完成练习，重开终端后先进入任一已有代码工作目录，用 `git worktree list` 找回最初的第十四章目录和自己的练习目录；回到前者重新执行 `review_root=$(pwd)`，再进入后者继续。不必再次执行 worktree add，已有修改仍在练习目录中。恢复时先核对当前目录、`git status --short` 和启动端口，避免把参考补丁应用到自己的未完成实现上。
+```bash
+cd ../epp-chapter-14-materials
+review_root=$(pwd)
+git fetch origin refs/heads/part-02/chapter-13:refs/remotes/origin/part-02/chapter-13
+git worktree add -b practice/chapter-14 ../epp-chapter-14-practice origin/part-02/chapter-13
+```
+
+显式 fetch 成功后才创建 worktree；`origin/part-02/chapter-13` 是本机保存的远程章节记录，不依赖本地同名分支。review_root 保存资料目录的位置，只在当前 shell 中保留；后续对照参考继续使用这个终端，另一个终端负责运行 dev。确认创建成功后再进入新目录。分支或目录已存在时，先核对它保存的工作，换一个新名字；不要强制覆盖，也不要把别人的练习清掉重来。
+
+如果分两次完成练习，重开终端后先进入本次保留的资料或练习目录，用 `git worktree list` 找回第十四章资料目录和自己的练习目录；回到前者重新执行 `review_root=$(pwd)`，再进入后者继续。不必再次执行 worktree add，已有修改仍在练习目录中。恢复时先核对当前目录、`git status --short` 和启动端口，避免把参考补丁应用到自己的未完成实现上。
 
 ```bash
 cd ../epp-chapter-14-practice
@@ -91,7 +99,7 @@ PORT=3008 LOG_LEVEL=debug npm run dev
 
 新目录使用第十三章基线，原目录的未提交文件不会被带过来。用 VS Code 打开这个练习目录再 attach，避免源码映射指向另一份文件。业务端口改成3008后，调试端口仍为9229，所以不能同时开着原目录的 dev。
 
-从最初的第十四章目录导入 `requests/review.postman_collection.json`；它不在第十三章基线目录中。集合已经保存普通输入、1200/1201单元、600/601个表情、纯空白、列表和详情八条请求，baseUrl 默认3008，不需要手敲长字符串或 curl。成功创建后，将响应 id 填入此集合的 captureId，详情请求才会读取刚创建的记录。
+从第十四章资料目录导入 `requests/review.postman_collection.json`；它不在第十三章基线目录中。集合已经保存普通输入、1200/1201单元、600/601个表情、纯空白、列表和详情八条请求，baseUrl 默认3008，不需要手敲长字符串或 curl。成功创建后，将响应 id 填入此集合的 captureId，详情请求才会读取刚创建的记录。
 
 先完成自己的第一版，再对照下面的推导。参考补丁的作用是帮助找出遗漏的边界，不是替代第一次独立判断。
 
@@ -232,7 +240,7 @@ for (const Store of [MemoryCaptureStore, ArrayCaptureStore]) {
 
 ```bash
 cd "$review_root"
-git worktree add -b practice/chapter-14-reference ../epp-chapter-14-reference part-02/chapter-13
+git worktree add -b practice/chapter-14-reference ../epp-chapter-14-reference origin/part-02/chapter-13
 ```
 
 创建成功后执行：

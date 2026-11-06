@@ -6,7 +6,7 @@
 
 先完成第 15～21 章，从 `part-03/chapter-21` 的最终状态继续，撤回第二十一章的 B 阶段补丁并停掉旧产物。沿用 Node 24.22.1、PostgreSQL 18、Prisma 7.10.1、DBeaver、Postman 和开发调试入口。日常库及旧记录保留，不能换一个空库跳过回填。
 
-时间参考：阅读约130～150分钟，跟做另加75～95分钟；按约10600个汉字、约220行代码／命令、三张机制图和十三张实际界面图估算，非读者实测，支线单列。可以先完成模型推导，另一次集中做停写、迁移和读取切换；这几个步骤之间不能启动旧程序继续编辑内容。
+时间参考：阅读约145～165分钟，跟做另加95～120分钟；按约12800个汉字、约255行代码／命令、三张机制图和十三张实际界面图估算，非读者实测，支线单列。可以先完成模型推导，另一次集中做停写、迁移和读取切换；这几个步骤之间不能启动旧程序继续编辑内容。
 
 ## 22.1 覆盖保存以后，哪些问题已经无法回答
 
@@ -145,6 +145,66 @@ FROM public.captures ORDER BY created_at, id;
 
 “冻结写入”也包括第二十一章为了对照而启动的 A/B/C 实例。停止当前 dev 并不意味着端口 3001 的旧产物也退出。DBeaver 中未提交的事务应在原编辑器明确提交或回滚；Disconnect 不是数据库停止，也不是完整的发布措施。
 
+### 先备份，再在另一个库恢复一次
+
+前面导出的查询结果便于逐字段比较，但没有表定义、约束和迁移历史，不能拿它重建一个完整的库。这里使用 PostgreSQL 自带的 `pg_dump`，把当前一个数据库的结构和数据保存为归档文件；`pg_restore` 读取这个归档，向指定的空库恢复。归档包括 `_prisma_migrations`，不包含数据库外的角色、密码、服务配置或程序。我们在同一学习实例使用已经建立的 epp_owner；跨实例恢复还需要另行准备角色与权限。
+
+先在仍为第二十一章结构的 VERIFY 完成一次恢复练习。按前文停止全部写入者、结束未提交事务；在 DBeaver 执行 `database/chapter-22/00-verify-samples.sql`，先单独核对连接查询，再执行事务，保存两条虚构样本的全部返回字段。固定 ID 已存在时先查询复用，不重复插入。若 VERIFY 已升级且没有旧备份，按本节末尾建立独立旧结构样本库，不清空现有库。
+
+在终端检查客户端：
+
+```bash
+pg_dump --version
+pg_restore --version
+```
+
+两者应为 18.x。找不到命令或版本不对时，回到[环境准备的 PostgreSQL 安装与 PATH](../../environment-setup.md#homebrew-与数据库程序)，同一个 bin 目录也提供这两个工具。数据库服务器已经运行，不表示客户端工具在当前 PATH 中。
+
+在 DBeaver 核对 VERIFY 的实际库名、端口和角色。本书默认库名是 `epp_migration_check`；若自己改过名字，替换下面源库名。不要把连接显示名称当作库名。
+
+```bash
+umask 077
+backup_dir=$(mktemp -d "$HOME/epp-backup-XXXXXX")
+pg_dump -h 127.0.0.1 -p 55432 -U epp_owner -W \
+  -d epp_migration_check --format=custom --file="$backup_dir/before.dump"
+```
+
+`-W` 会在终端提示输入数据库密码，不把密码写进命令历史。`--format=custom` 保存 pg_restore 可读的归档。只在 pg_dump 成功退出、没有未处理告警后继续；失败生成的文件不能当作备份。`umask 077` 让新文件只供本机当前账号访问，目录放在代码仓库外；归档仍含完整原文，需要按原数据保护。记下准确路径和源库、章节、备份时间，重开终端后先恢复 backup_dir 的值，不重新猜文件。
+
+在 DBeaver 切到第十八章使用的**管理连接**，目标为 postgres，开启自动提交，单独执行：
+
+```sql
+CREATE DATABASE epp_ch21_restore OWNER epp_owner;
+```
+
+这个库名必须尚不存在。已存在就先识别用途，为本次选一个新名字，不 DROP、不覆盖。创建后，按第十八章方式复制连接，数据库改为 epp_ch21_restore、角色仍为 epp_owner；在新连接执行身份查询并确认没有业务表。不要在它上面先运行迁移或 seed，恢复工具会建立归档中的对象。
+
+```bash
+pg_restore -h 127.0.0.1 -p 55432 -U epp_owner -W \
+  -d epp_ch21_restore --single-transaction --exit-on-error \
+  --no-owner --no-privileges "$backup_dir/before.dump"
+```
+
+`-d` 是恢复目标；这里没有 `--create`，不会按归档里的原库名另选目标。单事务让本次恢复整体成功或回滚，遇错立即停止；`--no-owner --no-privileges` 让对象由当前 epp_owner 建立，不搬运原库授权。这样适合本机同角色的小库练习，不等同还原生产访问控制。没有 `--clean`，因为我们不向已有业务库覆盖对象。
+
+恢复成功后，分别在源 VERIFY 和新连接执行配套 `database/chapter-22/04-backup-check.sql`。先看身份结果，再比较 users、captures 的完整行和 `_prisma_migrations` 的迁移名、校验值及完成状态；两条样本的 ID、空格、NULL／非空意图与 created_at 都应保持。约束结果应仍有主键、外键和 CHECK。恢复后约束表达式的括号排版可能变化，应核对判断条件与拒绝行为，不以显示字符串逐字相等为标准。只看到恢复命令退出 0，或只比较总行数，都不能证明关键内容完整。
+
+确认恢复正确后，把第 22 章项目 `.env.database-verify` 的 DATABASE_URL **仅数据库名改为 epp_ch21_restore**，保留原主机、角色及个人密码；API 的 `.env` 先不改，也不启动旧服务向恢复库写入。后文先在这个恢复库部署第 22 章迁移，DBeaver 同样选它。这就把“恢复了旧结构”继续验证到“旧数据能升级”。原 VERIFY 保留作为对照。修改连接后按下一段的 unset 清除继承变量，避免命令仍连旧目标。
+
+真正升级 DEV 前也按同样次序停止写入，以 DEV 为源重新备份，在另一个全新恢复库验证；VERIFY 的归档不能替代 DEV 的备份。pg_dump 取得的是一致快照，不会持续收集备份以后发生的写入；若升级后已经接收新记录，直接退回这份旧快照会丢掉那段新数据。此时维持停写并选择保留新数据的修复方案，不能把“能恢复归档”当成自动无损回退。长期备份、异机保存和按时间恢复在运维篇继续展开。
+
+**已经升级、又没有第二十一章归档时**，这轮只能重新建立虚构的旧结构实验，不能重现自己的历史数据。用管理连接在自动提交下执行 `CREATE DATABASE epp_ch21_replay OWNER epp_owner;`，名称已存在则另选。另取第二十一章代码：
+
+```bash
+git clone --single-branch --branch part-03/chapter-21 \
+  https://github.com/SamChowRock/epp-book-code.git ../epp-ch21-replay
+cd ../epp-ch21-replay
+nvm use
+npm ci
+```
+
+在这个目录按第十八章方法由 `database/chapter-18/database.env.example` 新建 `.env.database`，填写自己的密码，DATABASE_URL 只指向 epp_ch21_replay。清除终端旧变量后执行 `npm run db -- migrate deploy`，在 DBeaver 的新连接核对迁移已到第二十一章，再执行上面的两条虚构样本脚本。现在用 epp_ch21_replay 作为 pg_dump 源库，按同样步骤恢复到另一个新库；回到第 22 章代码目录，把 `.env.database-verify` 指向恢复库再继续。切换代码或克隆完成不会改变原来的 DEV／VERIFY。
+
 ### 为旧行生成的第 1 版，只能代表已知现状
 
 旧系统可能已经覆盖过十次意图，我们只能看到最后一次留下的值。因此迁移生成的第 1 版表示“从开始记录修订时观察到的内容”，不能称为“用户最初输入”。它的修订时间用迁移事务时间，Capture 的创建时间仍保留原值。来源未知、chunks 未知，不能填成手工输入和空数组来伪造过去的事实。
@@ -206,7 +266,7 @@ COMMIT;
 
 `IS DISTINCT FROM` 用于比较包含 NULL 的值：两边都 NULL 认为没有变化，一边 NULL 一边字符串认为不同。普通 `<>` 在有 NULL 时得到未知，会漏掉本来想报告的差异。DO 块在迁移内部发现差异就抛错，让整个事务不能成功提交；迁移工具的“完成”不能早于业务核对。
 
-在 DBeaver 打开独立 VERIFY 的 SQL 编辑器。先单独执行配套 `database/chapter-22/00-verify-samples.sql` 的第一条查询，确认库名，再在第二十一章结构上执行余下的事务。在 DBeaver 保存 INSERT 返回的两行（含 ID 和创建时间），供迁移后逐字段对照。第一条原文两端有空格、意图为 NULL，第二条意图为“出去散步”。脚本使用固定 ID；中断后先按这两个 ID 查 captures，已经提交的样本直接复用。若库已升级，用已有迁移前导出核对，或从第二十一章备份另建验证库重做。
+在 DBeaver 打开上面已恢复并核对过的独立库。后文称它为本轮 VERIFY；确认 `.env.database-verify` 与图形连接都指向它。两条旧样本已随归档恢复，不再重复插入；使用备份前保存的结果作迁移后逐字段比较。若中断后发现它已经升级，先核对迁移记录与旧行，不再回填；要重做则从原归档恢复到另一个新库。
 
 先只部署到 VERIFY。清除终端继承的连接变量，让命令读取本章的验证库配置。
 
@@ -664,6 +724,7 @@ Prisma 对 JSON 字段区分 `DbNull` 与 `JsonNull`。本章使用 SQL NULL，�
 ## 附录：本章必要技术点速查
 
 | 名称 | 本章用途 | 必要注意点 |
+| pg_dump／pg_restore | 单库归档并恢复到独立空库 | 归档不含角色；源与目标先核对；恢复结果还需逐行、结构与迁移核验 |
 | --- | --- | --- |
 | Capture / CaptureRevision | 稳定身份与某版内容 | 记录创建时间和修订时间不混用 |
 | `(capture_id, revision_no)` 唯一约束 | 防止同记录序号重复 | 不是编辑基础版本校验，也不保证无空号 |

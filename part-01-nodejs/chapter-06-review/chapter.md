@@ -98,13 +98,25 @@ curl -sS http://127.0.0.1:3001/captures
 
 ### 给实验一个不会影响主线的位置
 
-在配套代码仓库根目录执行下面的命令。`git worktree` 为同一个仓库建立另一份工作目录；新的个人分支从第五章快照开始，原目录的当前分支与未提交文件都留在原处。它不会自动带上你在原目录尚未提交的改动，所以先用 `git status --short` 看清已有工作，再进入明确的第五章基线。
+无论前五章是自己从空目录写成，还是从配套代码克隆，都先保留当前目录，另取一份本章资料。自己跟写的项目不需要已有 Git 提交或章节分支；普通克隆、`--single-branch` 克隆也不保证前章有本地分支。下面把这两个前提直接建立出来。
+
+在当前项目根目录记录返回位置，再克隆到一个尚不存在的资料目录；命令失败就停在这里处理原因，不继续 cd。若目录已存在，先按下文恢复已有练习，或者为新一轮选择另一组目录名。
 
 ```bash
-git status --short
 main_dir=$(pwd)
-git worktree add -b practice/chapter-06-source ../epp-chapter-06-source part-01/chapter-05
+git clone --single-branch --branch part-01/chapter-06 \
+  https://github.com/SamChowRock/epp-book-code.git ../epp-chapter-06-materials
 ```
+
+克隆成功后进入资料目录，明确取得第五章快照：
+
+```bash
+cd ../epp-chapter-06-materials
+git fetch origin refs/heads/part-01/chapter-05:refs/remotes/origin/part-01/chapter-05
+git worktree add -b practice/chapter-06-source ../epp-chapter-06-source origin/part-01/chapter-05
+```
+
+`origin/part-01/chapter-05` 是下载到本机的远程分支记录，不要求存在同名本地分支。fetch 中冒号左边指定远端章节，右边指定本机保存位置，因此只克隆一个分支也能补取前章。fetch 成功后才执行 worktree add；认证、网络或分支不存在时不能跳过。`git worktree` 为同一个仓库另建工作目录，`-b` 在明确的第五章快照上创建个人实验分支，原项目不会被切换或覆盖。
 
 只有最后一条命令成功后，才进入新目录：
 
@@ -114,7 +126,7 @@ nvm use
 npm ci
 ```
 
-`-b` 创建个人实验分支，末尾参数指定起点；这些名字不是要求新增一条全书主线。若分支或目录已存在，先判断它是否就是上次未完成的实验：在原仓库执行 `git worktree list`，按其中的路径与分支找到已有实验目录，进入后用 `git status --short` 和 `git diff -- src/server.ts` 回看进度；执行 `nvm use` 后继续修改，不重新创建目录或应用参考补丁。只有确实要另做一轮实验时，才选择另一组未使用的名字并同步修改 cd 路径。不要用强制参数、删除目录或重置分支来腾位置。原工作目录与实验目录各有自己的依赖和 dist，因此需要在实验目录安装与构建；同时运行时也要选择不同端口。
+`-b` 创建个人实验分支，末尾参数指定起点；这些名字不是要求新增一条全书主线。若分支或目录已存在，先判断它是否就是上次未完成的实验：在资料目录执行 `git worktree list`，按其中的路径与分支找到已有实验目录，进入后用 `git status --short` 和 `git diff -- src/server.ts` 回看进度；执行 `nvm use` 后继续修改，不重新创建目录或应用参考补丁。只有确实要另做一轮实验时，才选择另一组未使用的名字并同步修改 cd 路径。不要用强制参数、删除目录或重置分支来腾位置。原工作目录与实验目录各有自己的依赖和 dist，因此需要在实验目录安装与构建；同时运行时也要选择不同端口。
 
 进入实现时，先停止原目录的 dev 和上一轮 3001 产物服务，释放 Inspector 9229 与业务端口。用 VS Code 打开实验目录，在这里执行 `PORT=3001 npm run dev`，按 5B 连接调试器。这样可以沿保存、自动编译与重启、重新发送请求的流程完成自己的实现，再阅读下面的分析参考。
 
@@ -207,24 +219,24 @@ curl -sS http://127.0.0.1:3001/captures
 
 ### 完整参考与自己的成果怎样对照
 
-完成独立实现后，可以查看第六章分支 `part-01/chapter-06` 中的 `examples/chapter-06-source.patch`。它只包含针对第五章 `src/server.ts` 的三处改动，不是另一份复制的项目。也可以在配套仓库中读取：
+完成独立实现后，可以查看第六章分支 `part-01/chapter-06` 中的 `examples/chapter-06-source.patch`。它只包含针对第五章 `src/server.ts` 的三处改动，不是另一份复制的项目。也可以在资料或练习目录中读取：
 
 ```bash
-git show part-01/chapter-06:examples/chapter-06-source.patch
+git show origin/part-01/chapter-06:examples/chapter-06-source.patch
 ```
 
 补丁中以减号和加号开头的行表示删除与新增，其余上下文用于定位。将它与自己的 `git diff -- src/server.ts` 对照，检查每处差异是否服务于需求；不要因为排版或变量名不同就覆盖自己的实现，也不要对已有成果直接执行 git apply。书中的关键代码与推导仍是理解依据，补丁用于核对完整改动。
 
-如果需要直接运行参考结果，在原代码目录另外创建一份全新的工作目录：
+如果需要直接运行参考结果，在资料目录（不是自己原先跟写的项目）另外创建一份全新的工作目录：
 
 ```bash
-git worktree add -b practice/chapter-06-reference ../epp-chapter-06-reference part-01/chapter-05
+git worktree add -b practice/chapter-06-reference ../epp-chapter-06-reference origin/part-01/chapter-05
 ```
 
 确认创建成功后，再进入这个新目录；分支或目录重名时仍选择新的名字，不清理旧成果。在新的第五章工作目录根路径执行 `git status --short`，确认没有待保留改动，才应用补丁：
 
 ```bash
-git show part-01/chapter-06:examples/chapter-06-source.patch | git apply -
+git show origin/part-01/chapter-06:examples/chapter-06-source.patch | git apply -
 ```
 
 应用成功后，按前文执行 nvm use、npm ci、类型检查与构建，再启动并核对请求。若 Git 报补丁不适用，先确认起点确实是第五章、文件没有额外修改，不通过强制覆盖解决。第六章分支中的主服务本身仍是第五章版本；只有这份独立参考目录应用补丁后才具有 sourceLabel 行为。
@@ -235,10 +247,9 @@ git show part-01/chapter-06:examples/chapter-06-source.patch | git apply -
 
 ```bash
 cd "$main_dir"
-git status --short
 ```
 
-若换过终端，使用自己记录的原目录路径；不要猜路径后执行清理。这里不用 git reset、git clean 或强制切换，也不删除实验目录。继续第七章时，按第七章说明从 `part-01/chapter-05` 主线状态起步，不把个人实验分支合入其中；若原目录还保留自己的其他未完成工作，同样先保留，再在另一工作目录开始下一章。sourceLabel 的规则与字段只属于这次实验，后续正文不会假定它已经存在。
+若换过终端，使用自己记录的原目录路径；原项目已使用 Git 时再执行 `git status --short`，从空目录跟写且尚未初始化 Git 的项目无需这一步。不要猜路径后执行清理。这里不用 git reset、git clean 或强制切换，也不删除实验目录。继续第七章时，按第七章说明从 `part-01/chapter-05` 主线状态起步，不把个人实验分支合入其中；若原目录还保留自己的其他未完成工作，同样先保留，再在另一工作目录开始下一章。sourceLabel 的规则与字段只属于这次实验，后续正文不会假定它已经存在。
 
 ### 用结果回看能力边界
 
@@ -265,6 +276,7 @@ git status --short
 
 | 名称 | 本章用途 | 必要注意点 |
 | --- | --- | --- |
+| `git clone --single-branch`、显式 `git fetch` | 建立资料目录并补取前章快照 | 克隆不等于创建全部本地章节分支；失败后不继续下一条 |
 | `git show`、`git apply -` | 读取完整参考补丁；在另建的干净第五章目录应用 | 已有独立成果只对照，不直接应用补丁覆盖 |
 | `git worktree add -b`、`git worktree list` | 建立隔离实验，并按路径和分支恢复已有实验 | 起点不包含原目录尚未提交的改动；恢复时直接进入已有目录，不重新应用补丁 |
 | 可选属性、`in`、`trim()` | 区分未提供、提供非法值与规范化结果 | 静态可选属性不验证输入；按需求决定原值还是转换值进入存储 |
