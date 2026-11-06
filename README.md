@@ -431,13 +431,16 @@
 - [35.5 在真实浏览器里分清发送、携带和读取](part-05-identity/chapter-35-browser-boundary/chapter.md#355-在真实浏览器里分清发送携带和读取)
 - [附录：本章必要技术点速查](part-05-identity/chapter-35-browser-boundary/chapter.md#附录本章必要技术点速查)
 
-### 第 36 章 注册 验证与密码重置
+### [第 36 章 注册、验证与密码重置](part-05-identity/chapter-36-registration/chapter.md)
 
-- 36.1 从管理员准备账号扩展到用户自行注册，新增联系信息、注册意图和验证码状态；原用户及密码保持可用。
-- 36.2 邮箱／手机号规范化、有效期与一次性消费，完成注册后复用现有登录流程。
-- 36.3 建立密码重置意图，处理账号枚举并复用已有会话撤销。
-- 36.4 先同步发送到本地 SMTP 收件服务，实际完成注册邮件闭环，观察发送耗时和失败对请求的影响。
-- 36.5 短信复用投递接口，真实供应商接入条件与费用单独说明；第六篇直接承接本章邮件案例实现可靠异步发送，不依赖后面的可选登录分支。
+**时间参考（估算）**：阅读约150～180分钟；编码、迁移、邮件联调与产物核对另加160～205分钟。
+
+- [36.1 先有注册意图，再有真正的账号](part-05-identity/chapter-36-registration/chapter.md#361-先有注册意图再有真正的账号)
+- [36.2 地址、有效期与一次性消费，要落到同一个事实边界](part-05-identity/chapter-36-registration/chapter.md#362-地址有效期与一次性消费要落到同一个事实边界)
+- [36.3 重置密码，必须处理旧会话和旧重置意图](part-05-identity/chapter-36-registration/chapter.md#363-重置密码必须处理旧会话和旧重置意图)
+- [36.4 接上本地SMTP，观察请求到底等了什么](part-05-identity/chapter-36-registration/chapter.md#364-接上本地smtp观察请求到底等了什么)
+- [36.5 换成短信以前，先看哪些前提一起改变](part-05-identity/chapter-36-registration/chapter.md#365-换成短信以前先看哪些前提一起改变)
+- [附录：本章必要技术点速查](part-05-identity/chapter-36-registration/chapter.md#附录本章必要技术点速查)
 
 ### 第 37 章 小程序登录与独立会话
 

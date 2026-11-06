@@ -469,4 +469,4 @@ VS Code应停在该行，Call Stack显示Paused on breakpoint。选中最上面�
 
 本章完成代码分支：`part-05/chapter-35`，起点：`part-05/chapter-34`。
 
-[上一章：鉴权与授权](../chapter-34-authorization/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)
+[下一章：注册、验证与密码重置](../chapter-36-registration/chapter.md) · [上一章：鉴权与授权](../chapter-34-authorization/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)
