@@ -409,13 +409,16 @@
 - [33.5 登录以后，原来的记录仍在哪里](part-05-identity/chapter-33-sessions/chapter.md#335-登录以后原来的记录仍在哪里)
 - [附录：本章必要技术点速查](part-05-identity/chapter-33-sessions/chapter.md#附录本章必要技术点速查)
 
-### 第 34 章 鉴权与授权 登录了也不代表能操作
+### [第 34 章 鉴权与授权 登录了也不代表能操作](part-05-identity/chapter-34-authorization/chapter.md)
 
-- 34.1 沿当前 Session 获取用户身份，检查账号状态与每条资源的所有权。
-- 34.2 创建第二个本地账号，观察它无法读取或修改第一个账号的已有记录。
-- 34.3 为 Web 权限新增字段与迁移规则，明确旧用户和新用户的默认行为。
-- 34.4 用本地配置入口管理权限，说明开通／撤销如何在现有会话生效；独立管理 CLI 稍后实现。
-- 34.5 建立账号不可用时停止操作的约定；完整冻结和删除流程在综合篇落实。
+阅读约85～105分钟；编码与跟做另加90～120分钟。
+
+- [34.1 三个问题，分别在哪里回答](part-05-identity/chapter-34-authorization/chapter.md#341-三个问题分别在哪里回答)
+- [34.2 新字段的默认值，也是一项权限决定](part-05-identity/chapter-34-authorization/chapter.md#342-新字段的默认值也是一项权限决定)
+- [34.3 建立第二个本地账号，亲眼看见资源边界](part-05-identity/chapter-34-authorization/chapter.md#343-建立第二个本地账号亲眼看见资源边界)
+- [34.4 资格每次读取，改动才能影响现有会话](part-05-identity/chapter-34-authorization/chapter.md#344-资格每次读取改动才能影响现有会话)
+- [34.5 请求停止在哪里，必须有明确的先后关系](part-05-identity/chapter-34-authorization/chapter.md#345-请求停止在哪里必须有明确的先后关系)
+- [附录：本章必要技术点速查](part-05-identity/chapter-34-authorization/chapter.md#附录本章必要技术点速查)
 
 ### 第 35 章 保护基于浏览器的服务入口
 
