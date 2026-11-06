@@ -175,4 +175,4 @@ sequenceDiagram
 
 时间参考（估算）：阅读约45～60分钟；跟做另加40～60分钟。按两种相反的状态变化、一次响应丢失、三个预约场次、六张实拍对照和来源翻页估算；不含前章环境准备。
 
-[本章配套代码](https://github.com/SamChowRock/epp-book-code/tree/part-04/chapter-31) · [上一章：索引与执行计划](../chapter-30-indexes/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
+[本章配套代码](https://github.com/SamChowRock/epp-book-code/tree/part-04/chapter-31) · [上一章：索引与执行计划](../chapter-30-indexes/chapter.md) · [下一章：安全地保存密码与秘密](../../part-05-identity/chapter-32-secrets/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
