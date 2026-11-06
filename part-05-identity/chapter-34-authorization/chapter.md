@@ -378,4 +378,4 @@ FROM pg_stat_activity WHERE pid IN (0, 0) ORDER BY pid;
 
 本章完成代码分支：`part-05/chapter-34`，起点：`part-05/chapter-33`。
 
-[上一章：Session与Cookie](../chapter-33-sessions/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)
+[上一章：Session与Cookie](../chapter-33-sessions/chapter.md) · [下一章：浏览器入口保护](../chapter-35-browser-boundary/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)

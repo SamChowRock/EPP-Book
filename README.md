@@ -420,13 +420,16 @@
 - [34.5 请求停止在哪里，必须有明确的先后关系](part-05-identity/chapter-34-authorization/chapter.md#345-请求停止在哪里必须有明确的先后关系)
 - [附录：本章必要技术点速查](part-05-identity/chapter-34-authorization/chapter.md#附录本章必要技术点速查)
 
-### 第 35 章 保护基于浏览器的服务入口
+### [第 35 章 保护基于浏览器的服务入口](part-05-identity/chapter-35-browser-boundary/chapter.md)
 
-- 35.1 Origin、跨域、Cookie 与 CSRF 的关系。
-- 35.2 CSRF Token、敏感操作与浏览器请求边界。
-- 35.3 安全响应头、请求体上限、限流，以及密码计算等高成本操作的容量约束。
-- 35.4 反向代理转发来源和协议的最小知识，理解信任代理的条件；完整部署留到运维篇。
-- 35.5 检查浏览器实际携带的 Cookie 和失败响应，定位跨域与登录问题。
+**时间参考（估算）**：阅读约115～140分钟；编码、浏览器联调与产物核对另加110～145分钟。
+
+- [35.1 浏览器替谁携带Cookie，又允许谁读响应](part-05-identity/chapter-35-browser-boundary/chapter.md#351-浏览器替谁携带cookie又允许谁读响应)
+- [35.2 让写请求提供会话之外的证明](part-05-identity/chapter-35-browser-boundary/chapter.md#352-让写请求提供会话之外的证明)
+- [35.3 保护响应解释，也给请求成本设边界](part-05-identity/chapter-35-browser-boundary/chapter.md#353-保护响应解释也给请求成本设边界)
+- [35.4 谁转发了请求，决定转发头能不能信](part-05-identity/chapter-35-browser-boundary/chapter.md#354-谁转发了请求决定转发头能不能信)
+- [35.5 在真实浏览器里分清发送、携带和读取](part-05-identity/chapter-35-browser-boundary/chapter.md#355-在真实浏览器里分清发送携带和读取)
+- [附录：本章必要技术点速查](part-05-identity/chapter-35-browser-boundary/chapter.md#附录本章必要技术点速查)
 
 ### 第 36 章 注册 验证与密码重置
 
