@@ -208,7 +208,23 @@ CaptureSummary ... CapturesService ... index [0] ... SummaryModule
 
 再把存储登记也复制进去呢？启动会成功，但含义已经变了：SummaryModule 拥有自己的 MemoryCaptureStore 和自己的 Service。名字和类相同，不会把两份 Map 合并。这正是第九章“登记与对象身份”的问题加入模块维度后的结果。
 
-配套 `examples/module-visibility/main.ts` 把这些条件分别保存在运行模式中。它使用独立的 RecordsModule 和 ReaderModule，复用真实的 CapturesService 与 MemoryCaptureStore，不改主线配置。关键对照是消费者的 providers 是否额外包含这两份登记：
+接下来使用配套的独立实验。从第九章继续跟写时，项目里还没有 `examples/module-visibility`；先在当前项目根目录取得第十章资料，再只复制这个实验目录：
+
+```bash
+git clone --single-branch --branch part-02/chapter-10 \
+  https://github.com/SamChowRock/epp-book-code.git ../epp-chapter-10-materials
+```
+
+克隆成功后，仍留在当前项目根目录执行：
+
+```bash
+test ! -e examples/module-visibility && \
+  cp -R ../epp-chapter-10-materials/examples/module-visibility examples/
+```
+
+资料目录须尚不存在；如果已经取得过资料，直接复用，并核对它的章节分支。目标实验目录已存在时，第二条命令会跳过复制，保留已有修改；对照资料中的 `main.ts` 与 `tsconfig.json` 补齐即可。克隆失败先处理原因，不继续复制。不切换当前项目分支，也不复制资料中的 `src` 或 `package.json`。
+
+现在打开 `examples/module-visibility/main.ts`。它把这些条件分别保存在运行模式中，使用独立的 RecordsModule 和 ReaderModule，复用真实的 CapturesService 与 MemoryCaptureStore，不改主线配置。关键对照是消费者的 providers 是否额外包含这两份登记：
 
 ```ts
 const serviceProvider = {
