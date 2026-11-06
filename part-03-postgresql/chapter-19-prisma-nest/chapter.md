@@ -810,6 +810,25 @@ URL 与 `limit=1` 保持，恢复后返回已有记录。这里比较的是锁�
 
 首次将配套 `test/database.env.example` 复制为项目根目录 `.env.test`，将 `TEST_DATABASE_URL` 填为已应用本章迁移、含固定开发用户的独立校验库连接，可以沿用第十八章建立的 VERIFY；保持 `DB_QUERY_DEBUG=false`。已有配置文件只补字段，不覆盖；凭据仍不提交。测试不自动建库、迁移或清表，也不能仅给 DEV 换一个环境变量名就称为隔离。
 
+第十八章在 VERIFY 中验证约束后回滚了事务，users 与 captures 都应仍为空；迁移成功也不会自动插入开发用户。本章应用启动会检查固定用户 `10000000-0000-4000-8000-000000000001`，缺少它时以 `DEV_USER_MISSING` 拒绝启动，测试还没有机会发送请求。因此首次测试前，在 DBeaver 的 **VERIFY** SQL 编辑器先单独执行：
+
+```sql
+SELECT current_database(), current_user;
+```
+
+确认库名是独立校验库 `epp_migration_check`，且使用本章准备数据的所有者角色 `epp_owner`，再执行：
+
+```sql
+INSERT INTO public.users (id)
+VALUES ('10000000-0000-4000-8000-000000000001')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT id FROM public.users
+WHERE id = '10000000-0000-4000-8000-000000000001';
+```
+
+应查到这一行；若使用手动提交模式，提交后测试连接才能看见它。该语句可重复执行，只补缺失的固定用户，不复制 DEV 数据，不插入记录，也不清空已有校验数据。下次继续测试时先确认这一行仍存在即可。
+
 从前章手写时，先建立 `test/database.env.example`，内容如下，再按上述方式复制并填写本机密码；保留示例中的占位值：
 
 ```dotenv
