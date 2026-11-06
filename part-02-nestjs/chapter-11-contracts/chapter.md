@@ -28,7 +28,7 @@
 
 ```bash
 nvm use
-npm install --save-exact zod@4.6.6 @nestjs/swagger@11.4.7
+npm install --save-exact zod@4.6.6 @nestjs/swagger@11.4.8
 ```
 
 本章后面使用 @nestjs/swagger 提供文档页面；真正的输入检查由 Zod 完成。Nest 其他包仍固定 11.2.5，TypeScript 仍为 5.9.3。package.json 和 package-lock.json 一起保存；已有配套依赖清单时按 `npm ci` 安装即可。
@@ -716,6 +716,6 @@ curl -s http://127.0.0.1:3000/openapi.json
 | OpenAPI／SwaggerModule.setup | 描述接口并提供调用页面 | 文档不执行校验；Try it out 会产生真实业务操作 |
 | export-openapi.mjs | 从构建产物生成文档 | 构建后运行，不依赖监听端口 |
 
-官方查阅：[Zod Schema API](https://zod.dev/api)、[Zod JSON Schema 转换](https://zod.dev/json-schema)、[Nest 11 OpenAPI](https://docs.nestjs.com/v11/openapi/introduction)、[OpenAPI 3.0.3](https://spec.openapis.org/oas/v3.0.3.html)、[RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html)、[RFC 9110 HTTP 状态语义](https://www.rfc-editor.org/rfc/rfc9110.html)。本章代码固定 Zod 4.6.6、@nestjs/swagger 11.4.7；通用文档的新版本功能不自动成为当前项目行为。
+官方查阅：[Zod Schema API](https://zod.dev/api)、[Zod JSON Schema 转换](https://zod.dev/json-schema)、[Nest 11 OpenAPI](https://docs.nestjs.com/v11/openapi/introduction)、[OpenAPI 3.0.3](https://spec.openapis.org/oas/v3.0.3.html)、[RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html)、[RFC 9110 HTTP 状态语义](https://www.rfc-editor.org/rfc/rfc9110.html)。本章代码固定 Zod 4.6.6、@nestjs/swagger 11.4.8；通用文档的新版本功能不自动成为当前项目行为。
 
 [上一章：Module 建立清楚的业务边界](../chapter-10-modules/chapter.md) · [下一章：请求经过 Nest 时发生了什么](../chapter-12-request-pipeline/chapter.md) · [返回第二篇](../README.md) · [返回全书目录](../../README.md)
