@@ -580,3 +580,5 @@ RETURNING i.id;
 本章完成代码分支：`part-05/chapter-36`，起点：`part-05/chapter-35`。
 
 [上一章：保护浏览器入口](../chapter-35-browser-boundary/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)
+
+[下一章：小程序登录与独立会话（可选）](../chapter-37-mini-program/chapter.md)
