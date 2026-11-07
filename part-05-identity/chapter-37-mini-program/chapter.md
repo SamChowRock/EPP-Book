@@ -493,4 +493,4 @@ GROUP BY channel ORDER BY channel;
 
 平台API以[微信登录](https://developers.weixin.qq.com/miniprogram/dev/api/open-api/login/wx.login.html)、[服务端交换](https://developers.weixin.qq.com/miniprogram/dev/server/API/user-login/api_code2session.html)、[网络能力](https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html)官方说明为准；本章核对日期为2026-11-06。运行时使用Node24.22.1，参见[AbortSignal](https://nodejs.org/docs/latest-v24.x/api/globals.html#static-method-abortsignaltimeoutdelay)；数据库使用PostgreSQL18，参见[advisory locks](https://www.postgresql.org/docs/18/explicit-locking.html#ADVISORY-LOCKS)。
 
-[返回第五篇](../README.md) · [上一章：注册与恢复](../chapter-36-registration/chapter.md)
+[返回第五篇](../README.md) · [上一章：注册与恢复](../chapter-36-registration/chapter.md) · [下一章：OAuth 与 OIDC 外部登录](../chapter-38-oidc/chapter.md)

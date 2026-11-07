@@ -455,16 +455,19 @@
 - [37.5 用旧记录验证映射，用失败路径验证边界](part-05-identity/chapter-37-mini-program/chapter.md#375-用旧记录验证映射用失败路径验证边界)
 - [附录：本章必要技术点速查](part-05-identity/chapter-37-mini-program/chapter.md#附录本章必要技术点速查)
 
-### 第 38 章 先理解 OAuth，再接入 OIDC 外部登录
+### [第 38 章 先理解 OAuth，再接入 OIDC 外部登录](part-05-identity/chapter-38-oidc/chapter.md)
+
+**时间参考（估算）**：阅读约75～100分钟；实现、迁移与本地两站联调另加100～140分钟，供应商注册与部署另计。
 
 **可选登录分支**：外部平台接入按需完成；第 38.1～38.3 节的协议基础也是后续 MCP 授权的前置知识，不要求先完成 OIDC 平台接入。
 
-- 38.1 用户、客户端、授权服务器与资源服务器；授权码和令牌解决的问题。
-- 38.2 OAuth 授权与 OIDC 身份认证的关系，区分登录与访问许可。
-- 38.3 跳转、回调、state、nonce、PKCE 和 ID Token 校验。
-- 38.4 使用 openid-client，完成外部身份与本地账号映射。
-- 38.5 首次登录、必要的账号信息补全、账号关联和冲突处理；平台身份校验后建立本地会话，复用已有权限检查。
-- 38.6 追加外部身份映射并保留原账号与数据；先核对供应商允许的回调地址，若需要公网 HTTPS，则在完成第九篇后返回本章做真实回调联调。
+- [38.1 谁授权谁，授权码为什么还要换令牌](part-05-identity/chapter-38-oidc/chapter.md#381-谁授权谁授权码为什么还要换令牌)
+- [38.2 外部登录到底相信哪份证明](part-05-identity/chapter-38-oidc/chapter.md#382-外部登录到底相信哪份证明)
+- [38.3 跟着一次回调看 state、nonce 与 PKCE](part-05-identity/chapter-38-oidc/chapter.md#383-跟着一次回调看-statenonce-与-pkce)
+- [38.4 用 openid-client 完成兑换，先让旧数据原样留下](part-05-identity/chapter-38-oidc/chapter.md#384-用-openid-client-完成兑换先让旧数据原样留下)
+- [38.5 首次登录、关联和冲突，分别提交什么](part-05-identity/chapter-38-oidc/chapter.md#385-首次登录关联和冲突分别提交什么)
+- [38.6 用两个站点走一遍，再决定怎样接真实供应商](part-05-identity/chapter-38-oidc/chapter.md#386-用两个站点走一遍再决定怎样接真实供应商)
+- [附录：本章必要技术点速查](part-05-identity/chapter-38-oidc/chapter.md#附录本章必要技术点速查)
 
 ### 第 39 章 微信网站扫码登录
 
