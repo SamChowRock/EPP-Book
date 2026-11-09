@@ -469,14 +469,17 @@
 - [38.6 用两个站点走一遍，再决定怎样接真实供应商](part-05-identity/chapter-38-oidc/chapter.md#386-用两个站点走一遍再决定怎样接真实供应商)
 - [附录：本章必要技术点速查](part-05-identity/chapter-38-oidc/chapter.md#附录本章必要技术点速查)
 
-### 第 39 章 微信网站扫码登录
+### [第 39 章 微信网站扫码登录](part-05-identity/chapter-39-wechat-website/chapter.md)
 
-**可选登录分支**：承接 OAuth 协议基础，单独说明网站应用的接入条件。
+时间参考（估算）：阅读约 35～50 分钟，实现与本地联调另加约 70～100 分钟，平台申请和部署时间另计。
 
-- 39.1 网站扫码登录与小程序登录的区别。
-- 39.2 AppID、回调地址、授权结果与身份映射。
-- 39.3 将平台身份映射到本地账号，复用前面的关联校验和网站会话；结合 EPP 实现说明登录事务与安全检查。
-- 39.4 列明真实平台权限、应用配置和域名条件；本地模拟回调只用于理解流程，需要部署入口时完成第九篇后再联调。
+**可选登录分支**：承接第 38 章协议基础，沿用第 37 章的微信身份映射。
+
+- [39.1 手机确认以后，哪台设备取得会话](part-05-identity/chapter-39-wechat-website/chapter.md#391-手机确认以后哪台设备取得会话)
+- [39.2 用网站 AppID 发起授权，在服务端兑换](part-05-identity/chapter-39-wechat-website/chapter.md#392-用网站-appid-发起授权在服务端兑换)
+- [39.3 把微信身份接回原账号，再签发网站会话](part-05-identity/chapter-39-wechat-website/chapter.md#393-把微信身份接回原账号再签发网站会话)
+- [39.4 在本机走完回跳，再联调真实网站应用](part-05-identity/chapter-39-wechat-website/chapter.md#394-在本机走完回跳再联调真实网站应用)
+- [附录：本章必要技术点速查](part-05-identity/chapter-39-wechat-website/chapter.md#附录本章必要技术点速查)
 
 ### 第 40 章 用已登录的小程序扫码确认网站登录
 

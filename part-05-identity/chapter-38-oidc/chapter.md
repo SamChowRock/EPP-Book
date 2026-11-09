@@ -245,4 +245,4 @@ Postman 可导入本章集合观察开始入口的契约和无需凭据的失败
 
 可按问题回查：[OAuth 安全最佳实践 RFC 9700](https://www.rfc-editor.org/rfc/rfc9700.html)、[PKCE RFC 7636](https://www.rfc-editor.org/rfc/rfc7636.html)、[OIDC Core 的授权码流程和 ID Token 校验](https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth)、[openid-client 项目与 v6 API](https://github.com/panva/openid-client)。本章锁定 openid-client 6.8.9，不混用旧版的 Issuer、Client 或 callback API。
 
-[返回第五篇](../README.md) · [上一章：小程序登录与独立会话](../chapter-37-mini-program/chapter.md)
+[返回第五篇](../README.md) · [上一章：小程序登录与独立会话](../chapter-37-mini-program/chapter.md) · [下一章：微信网站扫码登录](../chapter-39-wechat-website/chapter.md)
