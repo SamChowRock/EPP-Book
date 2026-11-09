@@ -538,14 +538,17 @@
 - [43.4 在一封信发送到一半时关停](part-06-background/chapter-43-worker/chapter.md#434-在一封信发送到一半时关停)
 - [附录：本章必要技术点速查](part-06-background/chapter-43-worker/chapter.md#附录本章必要技术点速查)
 
-### 第 44 章 安全领取任务与识别过期执行者
+### [第 44 章 安全领取任务与识别过期执行者](part-06-background/chapter-44-claims/chapter.md)
 
-- 44.1 轮询、批次大小、串行与并发处理的成本。
-- 44.2 条件领取、锁定时间和崩溃后的任务处理。
-- 44.3 租约身份与条件写回解决什么问题，以及仍无法保证什么。
-- 44.4 普通 Outbox 与 EPP AI 调用的实现边界不同；不能把某一执行器的保证推广到全部任务。
-- 44.5 给任务领取设计合适索引，观察积压与领取效率。
-- 44.6 随领取策略增加锁定字段或索引，明确已有待发送、已发送任务的迁移取值，不把历史任务重新投递。
+阅读约 55～70 分钟，实现、迁移与双执行者实验另加 80～105 分钟（估算）。
+
+- [44.1 增加一个执行者以前先算哪笔账](part-06-background/chapter-44-claims/chapter.md#441-增加一个执行者以前先算哪笔账)
+- [44.2 让一次领取有独立的身份和期限](part-06-background/chapter-44-claims/chapter.md#442-让一次领取有独立的身份和期限)
+- [44.3 把准许发送和准许写回分开检查](part-06-background/chapter-44-claims/chapter.md#443-把准许发送和准许写回分开检查)
+- [44.4 让 A 在两处停下来](part-06-background/chapter-44-claims/chapter.md#444-让-a-在两处停下来)
+- [44.5 看懂领取索引和被锁的队头](part-06-background/chapter-44-claims/chapter.md#445-看懂领取索引和被锁的队头)
+- [44.6 在旧库上完成交接](part-06-background/chapter-44-claims/chapter.md#446-在旧库上完成交接)
+- [附录：本章必要技术点速查](part-06-background/chapter-44-claims/chapter.md#附录本章必要技术点速查)
 
 ### 第 45 章 失败 重试与未知结果
 
