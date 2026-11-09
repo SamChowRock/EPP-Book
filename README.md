@@ -528,12 +528,15 @@
 - [42.4 让另一个进程寄出一封仍然有效的信](part-06-background/chapter-42-outbox/chapter.md#424-让另一个进程寄出一封仍然有效的信)
 - [附录：本章必要技术点速查](part-06-background/chapter-42-outbox/chapter.md#附录本章必要技术点速查)
 
-### 第 43 章 为什么需要独立 Worker
+### [第 43 章 为什么需要独立 Worker](part-06-background/chapter-43-worker/chapter.md)
 
-- 43.1 已有 Outbox 数据和一次性发送函数，需要在请求结束后持续处理任务。
-- 43.2 用 Nest 独立应用上下文启动 Worker，复用配置、数据库和投递能力。
-- 43.3 API 返回已受理，客户端查询当前事实；两个进程共享数据库而不共享内存。
-- 43.4 先以单 Worker 跑通实际邮件链，再进入多执行者领取与失败恢复；候选生成在 AI 篇独立接入。
+阅读约 65～80 分钟，实现、迁移、双进程调试及联调另加 95～125 分钟（估算）。
+
+- [43.1 谁来发现下一条待办](part-06-background/chapter-43-worker/chapter.md#431-谁来发现下一条待办)
+- [43.2 用 Nest 建一个没有 HTTP 监听的应用](part-06-background/chapter-43-worker/chapter.md#432-用-nest-建一个没有-http-监听的应用)
+- [43.3 用同一个账号分清受理、寄达与生效](part-06-background/chapter-43-worker/chapter.md#433-用同一个账号分清受理寄达与生效)
+- [43.4 在一封信发送到一半时关停](part-06-background/chapter-43-worker/chapter.md#434-在一封信发送到一半时关停)
+- [附录：本章必要技术点速查](part-06-background/chapter-43-worker/chapter.md#附录本章必要技术点速查)
 
 ### 第 44 章 安全领取任务与识别过期执行者
 

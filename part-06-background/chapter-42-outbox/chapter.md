@@ -328,4 +328,4 @@ ON CONFLICT (id) DO NOTHING;
 
 语句的锁定范围与跳过已锁行可查 [PostgreSQL 18 SELECT](https://www.postgresql.org/docs/18/sql-select.html#SQL-FOR-UPDATE-SHARE)，冲突更新与返回值可查 [PostgreSQL 18 INSERT](https://www.postgresql.org/docs/18/sql-insert.html)。本章完成代码对应 `part-06/chapter-42`，从第 36 章的密码路线派生。
 
-[第五篇回顾](../../part-05-identity/chapter-41-review/chapter.md) · [第六篇导读](../README.md)
+[第五篇回顾](../../part-05-identity/chapter-41-review/chapter.md) · [第六篇导读](../README.md) · [下一章：为什么需要独立 Worker](../chapter-43-worker/chapter.md)
