@@ -172,4 +172,4 @@ WHERE i.email = 'alpha41@example.test' AND i.purpose = 'reset';
 
 会话与请求保护可回查[MDN 对 Set-Cookie 的说明](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Set-Cookie)，邮件接收责任与最终应答见[SMTP RFC 5321 第 4.2.5 节](https://www.rfc-editor.org/rfc/rfc5321#section-4.2.5)。本章完成状态沿用 `part-05/chapter-36`；可选平台实验沿用对应章的完成分支。
 
-[核心路线前一章：注册、验证与密码重置](../chapter-36-registration/chapter.md) · [可选路线前一章：小程序扫码确认网站登录](../chapter-40-mini-confirm/chapter.md) · [第五篇导读](../README.md)
+[核心路线前一章：注册、验证与密码重置](../chapter-36-registration/chapter.md) · [可选路线前一章：小程序扫码确认网站登录](../chapter-40-mini-confirm/chapter.md) · [第五篇导读](../README.md) · [下一章：Transactional Outbox](../../part-06-background/chapter-42-outbox/chapter.md)
