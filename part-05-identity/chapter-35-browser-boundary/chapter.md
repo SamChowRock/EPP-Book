@@ -195,7 +195,7 @@ if (operation === path.post || operation === path.patch || operation === path.de
 
 写操作403说明补ORIGIN_REJECTED、REQUEST_HEADER_REQUIRED与CSRF_REJECTED，保留账号资格错误；GET /auth/csrf不声明账号资格拒绝，因为受限账号也能取Token。429响应补Retry-After的可选说明，只对频率限制承诺该头。不要删除原401、存储失败和响应头定义。check通过后重新打开Swagger，才能看到更新契约。
 
-33、34章集合在当前分支也已补写请求头。切换Cookie身份之后都需要重跑02；更早章节的集合保持对应版本的说明，在当前版本复用写请求时，同样补两个头。不要批量运行带改密或配置前置条件的整套集合。Swagger也新增这两个header参数：先执行登录、再GET /auth/csrf，把当前Token仅填入本地的写请求参数，别把它填进Cookie或截图；生产默认仍不开放文档。
+第 35 章分支附带的第 33、34 章集合也已补入请求头和“取得当前会话的 CSRF Token”。先选择一个未同步的本地 Environment，每次登录成功或从甲切换到乙后，发送当前集合里这个取 Token 请求，确认 200 后再做写入。第 33 章集合的 02 读取当前身份，第 34 章集合的 02 读取素材；只有第 35 章集合的 02 才负责取 Token。复用更早章节的请求时，核对两个请求头以及目标 API 的 baseUrl。不要批量运行带改密或配置前置条件的整套集合。Swagger也新增这两个header参数：先执行登录、再GET /auth/csrf，把当前Token仅填入本地的写请求参数，别把它填进Cookie或截图；生产默认仍不开放文档。
 
 ## 35.3 保护响应解释，也给请求成本设边界
 

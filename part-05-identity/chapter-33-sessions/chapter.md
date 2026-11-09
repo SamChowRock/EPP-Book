@@ -123,7 +123,7 @@ export const LoginSchema = z.object({
   label: z.string().min(1).max(60).refine(isPostgresText).regex(/\S/).default('Current login'),
 }).strict();
 export const ChangePasswordSchema = z.object({ currentPassword: PasswordInput, newPassword: PasswordInput }).strict();
-export const SessionIdentitySchema = z.object({ userId: z.uuid(), sessionId: z.uuid() });
+export const SessionIdentitySchema = z.object({ userId: UserIdSchema, sessionId: z.uuid() });
 export const SessionListSchema = z.object({ items: z.array(z.object({
   id: z.uuid(), label: z.string(), createdAt: z.iso.datetime(), expiresAt: z.iso.datetime(), current: z.boolean(),
 })) });
@@ -131,7 +131,7 @@ export type LoginInput = z.infer<typeof LoginSchema>;
 export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 ```
 
-UUID使用已有小写规范格式。HTTP层先约束输入类型与长度，设置新密码仍调用第32章完整规范化和长度规则。登录失败不区分“没有这个用户”和“密码不正确”，避免把接口做成账号探测器。格式错误可以400；凭据不匹配统一401。
+userId 沿用数据库已有的小写 UUID 文本格式，登录输入、登录结果和 `/auth/me` 都复用 UserIdSchema。旧用户 ID 即使不带生成器使用的版本位，仍要能原样读回。若只在输出上改用更窄的 `z.uuid()`，可能出现会话已提交、响应校验才报 500 的情况。新签发的 sessionId 由 `randomUUID()` 生成，继续用相应的输出校验。HTTP层先约束输入类型与长度，设置新密码仍调用第32章完整规范化和长度规则。登录失败不区分“没有这个用户”和“密码不正确”，避免把接口做成账号探测器。格式错误可以400；凭据不匹配统一401。
 
 新增 `src/session.service.ts`，第一阶段先写下面的构造、密码计算入口、login与authenticate，类最后补上右花括号；列表与改密方法稍后再加：
 
@@ -606,6 +606,35 @@ RETURNING只应一行。再次GET /auth/me返回401，而SQL仍能看到这条�
 
 最直接的三步是更新密码、删会话、清Cookie。但前两步若分开提交，中间失败就会留下“密码改了、旧会话还在”的状态。把它们放进一个数据库事务；Cookie只能在提交后清理，响应丢失不改变数据库事实。
 
+先看用户准备换成什么。`123456789123456789` 有18个字符，长度合格，却已经收录在公开的常见密码表中。攻击者只要把排名靠前的候选逐个拿来试，便可能在触发限流前猜中。因此收到新密码时，先用整串候选查本地拒绝列表，再花力气生成 Argon2 摘要。用户输旧密码时仍走第32章的验证函数，即使旧密码今天被列入表中，用户也能凭它登录并换掉它。
+
+从第 33 章配套分支复制 `src/common-passwords.json` 到跟写工程的同一位置。里面的常见密码来自 Django 5.2 随附的固定版本。上游根据 Pwned Passwords v6 的高频泄露样本整理，配套文件逐行保留 Django 版的19,640项，并附上游地址、原压缩包的 SHA-256 与授权说明。把 `"resolveJsonModule": true` 加入 `tsconfig.json` 的 `compilerOptions`，让编译器把 JSON 和引用它的模块一起输出。这样开发和生产都能本地查表，候选密码不会被发给第三方。更新数据时，核对上游版本和摘要，重新构建，并用一个新收录的候选验证拒绝路径。固定列表只覆盖当时收录的值。[泄露样本的来源](https://gist.github.com/roycewilliams/226886fd01572964e1431ac8afc999ce) · [Django 密码验证器](https://docs.djangoproject.com/en/5.2/topics/auth/passwords/#included-validators)
+
+在 `src/password.ts` 引入表并替换 `hashPassword`，保留既有的 `passwordText`、Argon2 参数和 `verifyPassword`：
+
+```ts
+import commonPasswords from './common-passwords.json' with { type: 'json' };
+
+const blocked = new Set([...commonPasswords.passwords,
+  'password123456789', 'passwordpassword', 'correct horse battery staple', 'epp-book-password', 'epp-development-password',
+]);
+
+type PasswordContext = { userId?: string | null; email?: string };
+
+export async function hashPassword(value: unknown, context: PasswordContext = {}): Promise<string> {
+  const text = passwordText(value);
+  const key = text.trim().toLowerCase();
+  const identifiers = [context.userId, context.email, context.email?.split('@')[0]];
+  if (!key || /^(.)\1*$/su.test(key) || blocked.has(key)
+    || identifiers.some(id => id && key === id.toLowerCase())) {
+    throw new Error('PASSWORD_BLOCKLISTED');
+  }
+  return hash(text, options);
+}
+```
+
+`key` 仅用于筛查。大小写变化、在常用词两端补空格、用同一个字符填满长度，都很容易猜。像 `password123456789` 这样的17字符组合在这版上游表里仍会漏过，因此另加五个容易猜的组合或公开示例，并和当前已知的用户标识整串比较。长短语里恰好出现账号名仍可使用，最后传给 Argon2 的 `text` 保留 NFC 规范化后的原有大小写和空格。本章只有 UUID，改密时传当前用户 ID，后续有邮箱时也传已知地址。本地初始化入口 `initializeDevelopmentPassword` 同样改用 `hashPassword(password, { userId: DEVELOPMENT_USER_ID })`，在 `scripts/password.mjs` 的错误白名单中加入 `PASSWORD_BLOCKLISTED`，便于使用者换一组密码。
+
 还有一个并发细节：中间件检查会话有效后，Argon2会花时间，事务还可能等锁。在真正改密时，当前会话可能已被另一请求撤销或已经过期。不能把请求刚进门时的结论永远当真。加入 `SessionService.changePassword`，完整方法如下：
 
 ```ts
@@ -616,8 +645,11 @@ RETURNING只应一行。再次GET /auth/me返回401，而SQL仍能看到这条�
       }));
       if (!credential || !await verifyPassword(credential.passwordHash, input.currentPassword)) throw unauthorized();
       let passwordHash: string;
-      try { passwordHash = await hashPassword(input.newPassword); }
+      try { passwordHash = await hashPassword(input.newPassword, { userId: identity.userId }); }
       catch (error) {
+        if (error instanceof Error && error.message === 'PASSWORD_BLOCKLISTED') {
+          throw new HttpError(400, 'Choose a different password: this one is common or easy to guess', 'PASSWORD_BLOCKLISTED');
+        }
         if (error instanceof Error && error.message === 'PASSWORD_INPUT_INVALID') {
           throw new HttpError(400, 'New password does not meet the input policy', 'PASSWORD_INPUT_INVALID');
         }
@@ -679,7 +711,7 @@ flowchart TD
   }
 ```
 
-HTTP白名单、日志路由与OpenAPI补POST /auth/password，严格JSON包含currentPassword和newPassword。同样拒绝额外字段与查询参数。新密码使用第32章规范化和长度策略，过短返回400；当前仍不是完整的泄露密码库筛查，公开注册与恢复会继续补策略。
+HTTP白名单、日志路由与OpenAPI补POST /auth/password，严格JSON包含currentPassword和newPassword。同样拒绝额外字段与查询参数。新密码过短返回400与 `PASSWORD_INPUT_INVALID`。改用上面的18位公开数字样本，应收到400与 `PASSWORD_BLOCKLISTED`。用原 Cookie 再读 `/auth/me` 仍应成功，因为这次请求尚未进入更新凭据与撤销会话的事务。
 
 运行check，Postman重新登录并让另一个独立jar也登录同一用户。先用错旧密码改密，预期401，原会话仍有效；再给不符合长度的新密码，预期400，凭据不应改变。最后填本地保存的新长密码，单独发送本章集合最后一个请求，预期204。不要运行整个集合把改密夹在反复创建会话中。
 
@@ -777,7 +809,7 @@ VERIFY通过以后，按[第22章的备份与独立恢复步骤](../../part-04-c
 
 - [Postman请求前脚本](https://learning.postman.com/docs/tests-and-scripts/write-scripts/pre-request-scripts)：在发送前准备局部JSON正文，避免把密码当作JSON语法片段。
 
-时间参考（估算）：阅读约125～150分钟；编码与跟做另加150～190分钟。按约8300字中文讲解、四百余行核心代码、两张机制图、四阶段接线、两个独立客户端、过期与改密竞争及产物验证估算；不含前章环境安装，不把等待或重复排错叠入阅读时间。
+时间参考（估算）：阅读约130～155分钟；编码与跟做另加155～195分钟。按约8300字中文讲解、四百余行核心代码、两张机制图、四阶段接线、两个独立客户端、过期与改密竞争及产物验证估算；不含前章环境安装，不把等待或重复排错叠入阅读时间。
 
 本章完成代码分支：`part-05/chapter-33`，起点：`part-05/chapter-32`。
 

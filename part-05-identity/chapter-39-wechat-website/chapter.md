@@ -2,7 +2,7 @@
 
 一位读者已经用密码在电脑上存过一条素材。现在他想在同一台电脑上点击“微信登录”，拿手机扫一下，就能继续编辑那条素材。该怎样判断接入成功？手机显示“已确认”只完成了其中一步。回到电脑，EPP 还要认出原来的本地用户，用新的网站会话读回关联前的那条记录。这个结果决定了我们怎样设计按钮、回调和数据库事务。
 
-本章是可选的网站登录分支。协议推理承接[第 38 章的授权码流程](../chapter-38-oidc/chapter.md)，实现从[第 38 章配套代码](https://github.com/SamChowRock/epp-book-code/tree/part-05/chapter-38)继续。沿用已经迁移好的 VERIFY 库、网站 Cookie 和第 37 章的微信身份表。不需要先注册真实网站应用就能完成本机实验。阅读约 35～50 分钟，实现与本地联调另加约 70～100 分钟，平台申请和部署时间另计。
+本章是可选的网站登录分支。协议推理承接[第 38 章的授权码流程](../chapter-38-oidc/chapter.md)，实现从[第 38 章配套代码](https://github.com/SamChowRock/epp-public/tree/part-05/chapter-38)继续。沿用已经迁移好的 VERIFY 库、网站 Cookie 和第 37 章的微信身份表。不需要先注册真实网站应用就能完成本机实验。阅读约 35～50 分钟，实现与本地联调另加约 70～100 分钟，平台申请和部署时间另计。
 
 ## 39.1 手机确认以后，哪台设备取得会话
 
@@ -77,6 +77,8 @@ url.search = new URLSearchParams({
 }).toString();
 ```
 
+留意这个兑换请求没有每笔事务自己的 verifier。若甲从同一网站应用的另一笔授权取得乙尚未兑换的 code，并让自己的浏览器回到 EPP 时保留甲的 state、临时 Cookie，只换成乙的 code，本地事务依然匹配。在本章的模拟平台中，兑换会返回乙的身份，原 Cookie 证明不了这个 code 来自甲那笔授权。第 38 章的 S256 则让提供方将 code 与当初的 challenge 绑定，甲的 verifier 无法兑换乙的 code。网站实现按文档给出的参数工作，不能通过自行追加一个参数推定平台已执行绑定。[授权码注入与逐笔绑定](https://www.rfc-editor.org/rfc/rfc9700.html#section-4.5)；[39A 的可复现实验](side-01-qr-consent.md)
+
 收到 HTTP 200 还要检查 JSON。平台可以在正常 HTTP 响应里返回 `errcode`；40029 或 40163 对应这次码无法使用，EPP 返回 401 并要求开新一轮。其余平台故障、超时、格式异常走 503。网站成功路径要求规范的 `openid`、非空 `access_token`，以及包含所申请网站登录权限的 `scope`。响应体累计超过 8192 字节就中止，每个适配器最多同时兑换两次，四秒超时，禁止跟随重定向。外部失败只向上返回本地错误，避免应用错误日志记录带 secret 的 URL；出站代理和监控还要另行设置脱敏。
 
 这里的证据来自固定微信端点对本网站凭据和授权码的直接回答。第 38 章从签名 ID Token 核对 issuer、audience、nonce 的办法依赖供应商提供那种令牌；这个网站接口返回的是开放平台约定的数据。EPP 只取调用时使用的 AppID 和返回的 OpenID，不保存微信 access token、refresh token，不为查昵称再调用用户资料接口。以后若产品要持续代表用户调用微信 API，才需另外处理授权范围、可恢复的令牌存储、刷新竞争和撤权。微信在兑换时给的令牌不能拿来读 EPP 素材。[微信开放平台网站应用登录说明](https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html)
@@ -108,14 +110,20 @@ if (proof) {
   const other = await tx.wechatIdentity.findUnique({ where: { appId_userId: { appId, userId } } });
   if (other && other.openId !== openId) return { error: 'IDENTITY_CONFLICT' };
 }
-if (!mapping) await tx.wechatIdentity.create({ data: { appId, openId, userId } });
-if (!(channel === 'web' ? account.webEnabled : account.miniEnabled))
-  return { userId, pending: true as const };
+const enabled = channel === 'web' ? account.webEnabled : account.miniEnabled;
+let full = false;
+if (enabled) {
+  await tx.$executeRaw`DELETE FROM public.sessions WHERE user_id = ${userId}::uuid AND expires_at <= clock_timestamp()`;
+  full = await tx.session.count({ where: { userId } }) >= 20;
+}
+if (!mapping && (channel === 'web' || !full)) await tx.wechatIdentity.create({ data: { appId, openId, userId } });
+if (!enabled) return { userId, pending: true as const };
+if (full) return { error: 'SESSION_LIMIT' };
 ```
 
 这段位于停用判断之后。比如 U 开始关联后刚重置了密码，锁内比较会拒绝那份旧证明，不能因为在扫码前输对过就让它永久有效。活跃用户的映射可以先于入口资格存在。一个新用户扫完码，数据库可以有用户和映射，但有效 Web 会话数为零。另一个只开通网站的旧用户则可以通过网站进入，即使 `mini_enabled=false`。微信确认的是身份，开通入口的决定仍由第 34 章的 EPP 账号规则作出。
 
-有资格时，清除这个用户的过期会话，检查现存会话上限，再把新随机令牌的摘要、`channel='web'` 和八小时期限写入 `sessions`。达到 20 个会话时返回 429；按当前事务顺序，此前刚建立的关联仍可保留，拒绝的是继续签发。释放旧设备的会话后，普通登录可以复用这条关联。若读者想把配额不足也定义成“连关联一起失败”，就得在落映射前判断，或令事务整体回滚，不能只改页面提示。
+有资格时，清除这个用户的过期会话，检查现存会话上限，再把新随机令牌的摘要、`channel='web'` 和八小时期限写入 `sessions`。达到 20 个会话时返回 429；按当前事务顺序，此前刚建立的关联仍可保留，拒绝的是继续签发。释放旧设备的会话后，普通登录可以复用这条关联。网站沿用第38章“保存关联、独立申请会话”的约定；小程序继续第37章的约定，已有资格又满额时不能新增登录方式。两者都允许尚未开通的账号留下已证明的映射。
 
 回调控制器把数据库处理结果落实到浏览器：
 
@@ -129,7 +137,7 @@ res.redirect(303, result.token ? '/auth/wechat-web#signed-in' : '/auth/wechat-we
 
 ## 39.4 在本机走完回跳，再联调真实网站应用
 
-从已经完成第 38 章的独立 VERIFY 接着做。用 DBeaver 在目标连接运行 `SELECT current_database();`，确认有 `wechat_identities`、`sessions.channel` 和 `users.web_enabled`；本章没有新的迁移。若从零恢复练习环境，先按前章恢复非空备份，或先使用第 35 章分支完成至账号资格的迁移，再用第 38 章分支升级。直接在空库一次套用第 38 章全部目录，注册迁移可能先于密码表执行而报错；对已经报错的实验库应先核对迁移历史，第 20 章讲过失败登记与恢复，不要在日常库重置数据。
+从已经完成第 38 章的独立 VERIFY 接着做。用 DBeaver 在目标连接运行 `SELECT current_database();`，确认有 `wechat_identities`、`sessions.channel` 和 `users.web_enabled`；本章没有新的迁移。若从零恢复练习环境，可按前章恢复非空备份。若另建专用空库，在本章分支运行 `npm ci`，配置 `.env.database-verify`，执行 `unset DATABASE_URL SHADOW_DATABASE_URL`，再运行 `node --env-file=.env.database-verify scripts/deploy-verify.mjs bootstrap epp_ch39_verify`（末尾换成建库时选定的实际库名）和 `npm run db:verify -- migrate status`。它先部署第 35 章基线，再按本章目录升级。非空前章副本要检查待部署项，可将 bootstrap 换成 deploy；对已经报错的实验库应先核对迁移历史，第 20 章讲过失败登记与恢复，不要在日常库重置数据。
 
 在配套代码目录，沿用 Node 24.22.1。让本地忽略的 `.env.test` 里的 `TEST_DATABASE_URL` 指向上述 VERIFY。如果终端里之前导出过同名变量，先清除覆盖。下面启动两个只监听本机的站点，EPP 在 3390，模拟授权页使用另一主机名和临时端口。这个实验替换了微信授权页和兑换应答；其余路由、Cookie、真实 PostgreSQL 事务和读取素材的接口都走本章代码。
 
@@ -137,11 +145,12 @@ res.redirect(303, result.token ? '/auth/wechat-web#signed-in' : '/auth/wechat-we
 nvm use
 npm ci
 npm run check
-unset TEST_DATABASE_URL
-node --env-file=.env.test --inspect=127.0.0.1:9490 examples/wechat-web-lab.mjs
+unset DATABASE_URL TEST_DATABASE_URL
+verify_db='epp_ch39_verify'  # 改成创建或恢复时选定的实际库名
+node --env-file=.env.test --inspect=127.0.0.1:9490 examples/wechat-web-lab.mjs "$verify_db"
 ```
 
-保持终端运行。实验已经通过密码登录为本轮虚构用户写入一条素材并退出，会打印该用户 ID、实验密码和素材 ID。先在浏览器打开 `http://127.0.0.1:3390/auth/wechat-web`，展开“关联已有账号”，填入本轮用户 ID 和密码。
+实验进程把 TEST_DATABASE_URL 映射到实际应用连接，再查 current_database()；缺少独立给定的期望库名或两者不符即在写入前退出。保持终端运行。实验已经通过密码登录为本轮虚构用户写入一条素材并退出，会打印该用户 ID、实验密码和素材 ID。先在浏览器打开 `http://127.0.0.1:3390/auth/wechat-web`，展开“关联已有账号”，填入本轮用户 ID 和密码。
 
 ![网站登录的普通入口与关联入口](images/start.jpg)
 
@@ -176,7 +185,7 @@ node --env-file=.env.test --inspect=127.0.0.1:9490 examples/wechat-web-lab.mjs
 
 ## 知识支线
 
-[39A 扫了转发来的二维码，会登录哪台电脑](side-01-qr-consent.md)（约 8～12 分钟）。改变扫码的人和授权的动作，判断浏览器绑定能证明什么，以及误关联后需要恢复哪些状态。
+[39A 扫了转发来的二维码，会登录哪台电脑](side-01-qr-consent.md)（阅读约 12～17 分钟，可选复现另约 5～10 分钟）。改变扫码的人、回调中的授权码及授权的动作，判断浏览器绑定能证明什么，以及误关联后需要恢复哪些状态。
 
 ## 附录：本章必要技术点速查
 

@@ -84,16 +84,20 @@ CREATE TABLE public.oidc_identities (
 nvm use
 npm install --save-exact openid-client@6.8.9
 # 确认 .env.database-verify 指向独立副本
-npm run db:verify -- migrate deploy
+unset DATABASE_URL SHADOW_DATABASE_URL
+verify_db='epp_ch38_verify'  # 改成创建或恢复时选定的实际库名
+node --env-file=.env.database-verify scripts/deploy-verify.mjs deploy "$verify_db"
 npm run db:verify -- migrate status
 npm run check
 ```
+
+只有空库时，用本章完整分支执行 `node --env-file=.env.database-verify scripts/deploy-verify.mjs bootstrap "$verify_db"` 代替上面的 deploy 行。它先建立第 35 章所需的密码、会话和资格结构，再应用当前分支的剩余迁移；完成后用 status 核对。旧记录逐值对照仍使用非空副本。
 
 在 DBeaver 刷新 public 下的表；新表此时应为空，按原 ID 查询的旧素材应逐项一致。只加这张表时，前章代码仍可通过密码读取旧记录。这里是第一个可运行的停点；切换 Git 分支本身不会升级或回退数据库。使用本章完整快照时直接 `npm ci` 安装锁定版本，不再重新选择依赖。
 
 为什么需要库？发一个跳转用拼 URL 就能做到；困难的是得到响应后**哪些情况下必须拒绝**。手写 base64 解码尤其容易把“能看见内容”当成“内容已经可信”。我们让 openid-client 处理发现、兑换、协议声明与签名验证，自己保留三项它不知道的规则：信任哪个 issuer、哪一个浏览器发起了本次事务、哪个本地账号有资格进入。
 
-在 `src/config.ts` 中要求 `OIDC_ISSUER`、`OIDC_CLIENT_ID`、`OIDC_CLIENT_SECRET` 三项同时配置或同时留空；缺省时密码入口正常，尝试外部登录才报告未配置。issuer 由运营方登记，拒绝带账号密码、查询或片段的地址；不能从用户输入、Host 请求头或还没验证的 JWT 拿它去联网。回调取 `APP_ORIGIN + '/auth/oidc/callback'`，不要按传入的转发头临时拼一个。这既关系到回调地址匹配，也关系到客户端密钥最终会送给谁。
+在 `src/config.ts` 中要求 `OIDC_ISSUER`、`OIDC_CLIENT_ID`、`OIDC_CLIENT_SECRET` 三项都要提供非空值。禁用 OIDC 时删除或注释这三个键，并确认启动进程没有继承它们；`OIDC_CLIENT_SECRET=` 会传入空字符串，启动校验失败。三项都缺省时密码入口正常，尝试外部登录才报告未配置。issuer 由运营方登记，拒绝带账号密码、查询或片段的地址；不能从用户输入、Host 请求头或还没验证的 JWT 拿它去联网。回调取 `APP_ORIGIN + '/auth/oidc/callback'`，不要按传入的转发头临时拼一个。这既关系到回调地址匹配，也关系到客户端密钥最终会送给谁。
 
 `src/oidc-flow.ts` 首次使用时发现元数据，缓存成功的 Configuration；失败不永久缓存。下面是正式 HTTPS 路径的关键选项，完整实现还核对发现文档的 issuer 一致、授权／令牌／JWKS 地址合法，并限制外呼不跟随重定向、每次五秒、响应最多256 KiB：
 
@@ -183,14 +187,16 @@ res.redirect(303, result.token ? '/auth/oidc#signed-in'
 
 ```bash
 npm run build
-node --env-file=.env.test --inspect=127.0.0.1:9480 examples/oidc-lab.mjs
+unset DATABASE_URL TEST_DATABASE_URL
+verify_db='epp_ch38_verify'  # 改成创建或恢复时选定的实际库名
+node --env-file=.env.test --inspect=127.0.0.1:9480 examples/oidc-lab.mjs "$verify_db"
 ```
 
-实验先用虚构原账号通过密码登录，创建一条素材，再退出这个密码会话。保持终端运行，记下本轮的 userId、虚构密码与 captureId。打开 `http://127.0.0.1:3380/auth/oidc`，第一次展开**关联已有账号**，填刚才的本地凭据。浏览器导航到 localhost 上的实验提供方；尽管仍在同一台电脑上，localhost 和 127.0.0.1 在这里是不同站点。不要中途把 EPP 地址换成 localhost，否则起始 Cookie 与登记回调不再对应。
+迁移 CLI 用 DATABASE_URL，实验进程用 TEST_DATABASE_URL，二者可能指向不同库。上述命令清掉 shell 覆盖后，脚本将实验 URL 映射到应用连接，实际查询 current_database()，和独立填写的预期库名一致才建样本。实验先用虚构原账号通过密码登录，创建一条素材，再退出这个密码会话。保持终端运行，记下本轮的 userId、虚构密码与 captureId。打开 `http://127.0.0.1:3380/auth/oidc`，第一次展开**关联已有账号**，填刚才的本地凭据。浏览器导航到 localhost 上的实验提供方；尽管仍在同一台电脑上，localhost 和 127.0.0.1 在这里是不同站点。不要中途把 EPP 地址换成 localhost，否则起始 Cookie 与登记回调不再对应。
 
 ![本地身份提供方要求确认外部身份](images/provider-consent.jpg)
 
-图38-1：现在是提供方在问是否允许 EPP 确认这个虚构身份。这里不需要、也不应该再输入 EPP 的密码。点取消不会创建登录会话；要再试，从 EPP 开始页重新发起。
+图38-1：现在是提供方在问是否允许 EPP 确认这个虚构身份。配套授权页提供 A、B 两个稳定的实验身份，本轮先选 A，以后普通登录仍选 A。这里不需要、也不应该再输入 EPP 的密码。点取消不会创建登录会话；要再试，从 EPP 开始页重新发起。
 
 ![回到EPP后从本地会话读出原用户](images/local-session.jpg)
 
@@ -210,11 +216,11 @@ node --env-file=.env.test --inspect=127.0.0.1:9480 examples/oidc-lab.mjs
 
 点击继续。回调返回 303 后，用新会话请求 `/auth/me`，读回的仍是原 userId；读取原 captureId 也返回 200，响应里的素材 ID 与关联前一致。在 DBeaver 重跑同一条查询，映射和素材仍各一条，有效 Web 会话从一条变成两条。移除本轮断点，避免下次登录又停在这里。
 
-若走的是首次普通登录，页面只显示待开通 ID；这时应该看到一条映射、零条 Web 会话。管理员可依[第34章入口资格](../chapter-34-authorization/chapter.md)在独立 VERIFY 对**这个 ID**核对后开通，再重新发起登录。已得到一个新账号后，不能靠再点关联把它直接搬给旧账号；要观察原账号路径，就按 Return 清理这一轮，再从新一轮的“关联已有账号”开始。
+在另一个独立浏览器配置或无痕窗口打开同一个 EPP 开始页，选普通登录，在提供方选 B。这个窗口没有 A 的业务 Cookie，B 从未关联，页面只显示待开通 ID；这时应该看到一条映射、零条 Web 会话。管理员可依[第34章入口资格](../chapter-34-authorization/chapter.md)在独立 VERIFY 对**这个 ID**核对后开通，再重新发起登录。已得到一个新账号后，不能靠再点关联把它直接搬给旧账号；同一轮再次选 B 普通登录，应回到同一个 B 的 ID。若误用 A 做了首次普通登录，再按 Return 清理并重新开始原账号关联实验。
 
 ![首次登录保存外部映射后，EPP 显示待开通状态](images/pending-account.jpg)
 
-图38-5：换一轮新的虚构身份，第一次只选普通登录。提供方已经认证成功，EPP 也有了稳定的本地 ID，但此时映射数为1、素材数为0、有效 Web 会话数为0。不要把这页当作签发了业务会话，也不要照图抄 ID 去开通别人的账号。
+图38-5：使用尚未映射的实验身份，第一次只选普通登录。提供方已经认证成功，EPP 也有了稳定的本地 ID，但此时映射数为1、素材数为0、有效 Web 会话数为0。不要把这页当作签发了业务会话，也不要照图抄 ID 去开通别人的账号。
 
 Postman 可导入本章集合观察开始入口的契约和无需凭据的失败；不要把一个客户端的回调地址复制到另一浏览器期待登录成功。
 
@@ -224,7 +230,7 @@ Postman 可导入本章集合观察开始入口的契约和无需凭据的失败
 
 **接真实供应商时，第一步是核对它允许登记什么。** 在其管理界面创建面向服务端的 Web 客户端，选定租户或固定 issuer，核对发现文档是否支持本章的认证、授权和签名方式。逐字符登记 `APP_ORIGIN/auth/oidc/callback`：协议、主机、端口和路径都要相同，localhost 与 127.0.0.1 不是两个可互换的写法。不用通配符，也不从查询参数接受任意登录后跳转地址。供应商不接受本机回调，就先完成第九篇的公网 HTTPS、代理、域名和日志脱敏，再回来；不要为一次联调把 client secret 搬到浏览器。生产 OIDC 配置要求 EPP 本身也是 HTTPS。
 
-用供应商的测试账号依次验证取消、首次待开通、已有账号关联、回到旧素材及停用后的拒绝。用 DBeaver 看账号与映射，用同一浏览器验证会话。EPP 退出只撤销自己的 Web 会话；若下次跳转时提供方仍记得用户，它可能不再要求输密码，这不是 EPP 的旧 Cookie 复活。若产品承诺全站单点退出或组织侧停用后立即收回 EPP 访问，须另外设计通知、会话寿命与撤销，不能从这次成功回调推出。
+准备同一 issuer 和同一客户端下可重复选择的两个测试账号。用未映射的 A 验证取消，再用 A 首次普通登录，记下待开通 ID；重登 A 应读到同一个 ID。保留 B 的未关联状态，在独立浏览器中先证明有旧素材的 EPP 密码账号，再在提供方明确选择 B；回到同一浏览器按原 captureId 读旧素材。下一次普通登录仍选 B，应返回原账号。最后对该测试用户调整入口资格再重试。若提供方自动复用 A 的登录，先在提供方切换账号或使用另一独立浏览器配置；只换 EPP 标签页不足以更换外部主体。用 DBeaver 看账号与映射，用同一浏览器验证会话。EPP 退出只撤销自己的 Web 会话；若下次跳转时提供方仍记得用户，它可能不再要求输密码，这不是 EPP 的旧 Cookie 复活。若产品承诺全站单点退出或组织侧停用后立即收回 EPP 访问，须另外设计通知、会话寿命与撤销，不能从这次成功回调推出。
 
 本章完成代码分支为 `part-05/chapter-38`。下一章换成微信网站扫码登录时，先问它提供的是哪一种身份凭证，再决定哪些回调与账号关联规则可以复用。
 

@@ -10,6 +10,27 @@
 
 关联比普通登录影响更久。假如甲选择关联，输入的是甲自己的 EPP 密码，乙的微信身份尚未建立映射，则两项证明可能使乙的微信与甲的本地账号关联。稍后乙自己普通扫码，可能看见甲的账号。这解释了为什么页面要明确告诉用户正在**关联已有账号**，为什么发现冲突要停在 409，以及为什么用户自己没有发起的网站登录不能代扫。已经存在的冲突映射由唯一约束保护，尚未绑定的身份没有那道冲突可供检测。
 
+## 保留浏览器和 state，只换授权码
+
+还有一种失败甚至不用转发二维码。设乙在自己的浏览器完成授权，回调还没有抵达 EPP，其未用的 code 已被甲取得，例如能读取完整跳转 URL 的代理日志在兑换前泄露。甲在自己的浏览器也发起同一网站应用的登录，然后用甲的 state 和 Cookie 提交乙的 code。甲无需知道乙的 Cookie 或网站 secret，兑换由持有 secret 的 EPP 完成。攻击需要有效且未使用、可在同一客户端兑换的 code，还要抢在乙之前提交；只知道一个已兑换的旧码不够。
+
+在已构建的第39章配套工程和已迁移的独立 VERIFY 中执行：
+
+```bash
+unset DATABASE_URL TEST_DATABASE_URL
+verify_db='epp_ch39_verify'  # 换成建库或恢复时独立选定的实际库名
+NODE_ENV=test node --env-file=.env.test --input-type=module -e '
+await import("./test/database-env.mjs");
+const { withVerifiedDatabase } = await import("./scripts/verify-database.mjs");
+await withVerifiedDatabase(process.argv[1]);
+await import("./test/wechat-web.test.mjs");
+' "$verify_db"
+```
+
+打开 `test/wechat-web.test.mjs` 中的 `fromA`、`fromB`。A 已关联开通的原用户，B 属于另一个本地账号。两笔普通登录各有自己的 Cookie，两次模拟授权都停在 303 尚未跟随的位置。先把 A 的整条回调交给 B 的浏览器，返回 400。现在只把 A 的 code 填进 B 的回调地址，仍用 B 的 Cookie 发送。这次返回 303 和新会话；在 B 的浏览器用它查 `/auth/me` 得到的是 A 的原用户 ID，再按原 captureId 读素材竟然返回 200，内容和关联前相同。再送原 B 回调是 400（B 的本地事务已领走），再送原 A 回调是 401（A 的 code 已被消费）。实验直接取得两端的跳转结果以设立泄露条件，只验证这套本地协议模型的边界。
+
+在 S256 流程里，提供方签发 B 的 code 时已经记住 B 的 challenge，兑换时会将 A 的 verifier 散列后比较，拒绝错配。网站适配器只向固定端点出示应用凭据和 code；随机 state、临时 Cookie 和单次领取仍各自有用，但没有承担这项逐笔兑换检查。对授权页、回调和代理日志隐藏查询参数，限制跳转、使用 HTTPS 并及时消费，可以减少获得活码的机会；若业务必须在授权结果泄露后仍能拒绝替换，就需选择有可验证逐笔绑定的协议或另行设计足够独立的身份证明。即使采用 PKCE，转发**原来那笔**二维码由他人扫码时 challenge 仍一致，前节的确认风险仍然存在。[RFC 9700 第 4.5 节](https://www.rfc-editor.org/rfc/rfc9700.html#section-4.5)
+
 ## 按权限大小决定还要确认什么
 
 个人素材站点可以在发起页提示“只扫自己刚在电脑上打开的页面”，让用户在会话列表查看新设备、撤销可疑网站会话。撤销会话只终止那份令牌。如果错误的长期身份映射仍在，普通登录还可以再发新会话。处理误关联要分别查这次发给哪个本地用户的会话、哪条映射是这次新建的，以及该账号还有没有可用的恢复方式。核对双方证明后依账号恢复流程处理，避免删除用户和旧素材。[第 37 章支线中的解绑与恢复](../chapter-37-mini-program/side-01-account-linking.md)
@@ -23,9 +44,10 @@
 | 条件变化 | 服务端能观察什么 | 怎样处置 |
 | --- | --- | --- |
 | 回调链接换浏览器 | state 可相同，临时 Cookie 缺失 | 兑换前拒绝，新浏览器重新开始 |
+| 在同应用两笔事务间替换未用 code | 浏览器与 state 匹配，兑换返回另一主体 | 核对是否存在逐笔绑定，防止回调参数泄露 |
 | 二维码转发给另一个人扫描 | 原浏览器和 state 仍匹配 | 提示确认对象，限制会话权限，提供撤销与恢复 |
 | 登录升级为具体业务批准 | 登录证明缺少动作和目标 | 绑定一次操作、完整参数与期限，执行时复查权限 |
 
-接口回查见[微信开放平台网站登录](https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html)。阅读约 8～12 分钟。
+接口回查见[微信开放平台网站登录](https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html)。阅读约 12～17 分钟；已有运行环境时，复现并核对授权码替换另约 5～10 分钟。
 
 [返回第 39 章](chapter.md)

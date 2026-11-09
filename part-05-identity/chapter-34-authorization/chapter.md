@@ -113,7 +113,7 @@ import { hashPassword, verifyPassword } from './password.js';
 import { DEVELOPMENT_USER_ID } from './database-config.js';
 
 export async function initializePassword(db: PrismaClient, password: unknown, userId = DEVELOPMENT_USER_ID): Promise<void> {
-  const passwordHash = await hashPassword(password);
+  const passwordHash = await hashPassword(password, { userId });
   await db.passwordCredential.create({
     data: { userId, passwordHash }, select: { userId: true },
   });
@@ -139,7 +139,7 @@ if (![3, 4].includes(process.argv.length) || !UserIdSchema.safeParse(userId).suc
 }
 ```
 
-下面两处调用变为 `initializePassword(db.client, password, userId)` 与 `verifyPasswordCredential(db.client, password, userId)`；字节上限、UTF-8解码、隐藏输入和错误输出保持第32章约定。当前测试对原函数的import同步改名。改完先check生成dist，再使用CLI，避免把旧产物的参数错误当作密码问题。
+下面两处调用变为 `initializePassword(db.client, password, userId)` 与 `verifyPasswordCredential(db.client, password, userId)`；字节上限、UTF-8解码和隐藏输入沿用第32章，`init` 使用第33章的新密码筛查；选了常见密码或本次指定的用户 ID 会得到 `PASSWORD_BLOCKLISTED`。`verify` 仍用原规则验证旧凭据。当前测试对原函数的import同步改名。改完先check生成dist，再使用CLI，避免把旧产物的参数错误当作密码问题。
 
 此处有两个连接变量容易混淆：HTTP测试要求TEST_DATABASE_URL，密码工具读DATABASE_URL。先在当前终端清除残留覆盖，然后显式取出VERIFY连接，整个过程不打印连接字符串：
 

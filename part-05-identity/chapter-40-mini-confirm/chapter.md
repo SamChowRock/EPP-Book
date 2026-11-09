@@ -62,12 +62,13 @@ Scene 用随机 UUID，临时 Cookie 用 `issueToken()` 单独生成，表里只
 nvm use
 unset DATABASE_URL SHADOW_DATABASE_URL TEST_DATABASE_URL
 npm ci
-npm run db:verify -- migrate deploy
+verify_db='epp_ch40_verify'  # 改成创建或恢复时选定的实际库名
+node --env-file=.env.database-verify scripts/deploy-verify.mjs deploy "$verify_db"
 npm run db:verify -- migrate status
 npm run check
 ```
 
-应只多出空的票据表和索引。没有旧请求需要补造票据，也不更新旧素材、微信映射或会话。按原来的 ID 再查一次。此处可以停下来，服务仍可使用旧入口。空库起步时先按前文依赖建立第 35 章结构，再升级到第 37 章；若手头只有其他可选分支的库，优先恢复第 37 章备份，在独立库练习，不把切换 Git 分支等同于回滚数据库。
+应只多出空的票据表和索引。没有旧请求需要补造票据，也不更新旧素材、微信映射或会话。按原来的 ID 再查一次。此处可以停下来，服务仍可使用旧入口。若另建空库并将上述变量指向它，使用本章分支的 `node --env-file=.env.database-verify scripts/deploy-verify.mjs bootstrap "$verify_db"` 代替 deploy 行。它先建立第 35 章基线，再部署本分支的注册、小程序身份和票据迁移，最后运行 status；若手头只有其他可选分支的库，优先恢复第 37 章备份，在独立库练习，不把切换 Git 分支等同于回滚数据库。
 
 ## 40.3 两端如何走到同一次消费
 
@@ -143,12 +144,13 @@ await tx.$executeRaw`INSERT INTO public.sessions(id,user_id,token_digest,label,c
 本机先用浏览器做电脑端，用 Postman 发出与小程序相同的 HTTP 请求。沿用第 37 章实验，它只替换最早取得微信身份的过程，会在独立 VERIFY 中创建两个虚构用户、两份有效 mini 会话，以及第一个用户早就保存的素材。API 走本章的实际控制器与数据库。停止占用 3370 或 9470 的其他练习，在配套代码根目录运行：
 
 ```bash
-unset PORT TEST_DATABASE_URL
+unset PORT DATABASE_URL TEST_DATABASE_URL
 npm run check
-node --env-file=.env.test --inspect=127.0.0.1:9470 examples/mini-login-local.mjs
+verify_db='epp_ch40_verify'  # 改成创建或恢复时选定的实际库名
+node --env-file=.env.test --inspect=127.0.0.1:9470 examples/mini-login-local.mjs "$verify_db"
 ```
 
-这个脚本会打印本轮 userId、otherUserId 和 captureId，生成仅用于本机的 Postman 环境文件。保持终端运行。在浏览器打开 `http://127.0.0.1:3370/auth/scan`。在 Postman 的本地非同步工作区导入 `.mini-local.postman_environment.json` 并选中，同时导入 `requests/chapter-40.postman_collection.json`。环境里已有两份 mini 令牌，勿复制到浏览器、截图或共享工作区。
+实验进程把 TEST_DATABASE_URL 映射到实际应用连接，再查 current_database()；缺少独立给定的期望库名或两者不符即在写入前退出。这个脚本会打印本轮 userId、otherUserId 和 captureId，生成仅用于本机的 Postman 环境文件。保持终端运行。在浏览器打开 `http://127.0.0.1:3370/auth/scan`。在 Postman 的本地非同步工作区导入 `.mini-local.postman_environment.json` 并选中，同时导入 `requests/chapter-40.postman_collection.json`。环境里已有两份 mini 令牌，勿复制到浏览器、截图或共享工作区。
 
 ![浏览器在登录申请开始前的状态](images/start.jpg)
 
@@ -203,4 +205,4 @@ const scene = attempt.data.scene;
 
 可回查[小程序扫码 API](https://developers.weixin.qq.com/miniprogram/dev/api/device/scan/wx.scanCode.html)、[小程序确认框](https://developers.weixin.qq.com/miniprogram/dev/api/ui/interaction/wx.showModal.html)、[二维码编码库 1.5.4](https://github.com/soldair/node-qrcode/tree/v1.5.4)和[PostgreSQL 18 行锁](https://www.postgresql.org/docs/18/explicit-locking.html#LOCKING-ROWS)。配套完成分支为 `part-05/chapter-40`。
 
-[返回第五篇](../README.md) · [前一章：微信网站扫码登录](../chapter-39-wechat-website/chapter.md)
+[返回第五篇](../README.md) · [前一章：微信网站扫码登录](../chapter-39-wechat-website/chapter.md) · [下一章：第五篇回顾](../chapter-41-review/chapter.md)

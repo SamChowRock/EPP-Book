@@ -101,10 +101,14 @@ CREATE TABLE public.wechat_identities (
 ```bash
 nvm use
 npm ci
-npm run db:verify -- migrate deploy
+unset DATABASE_URL SHADOW_DATABASE_URL
+verify_db='epp_ch37_verify'  # 改成创建或恢复时选定的实际库名
+node --env-file=.env.database-verify scripts/deploy-verify.mjs deploy "$verify_db"
 npm run db:verify -- migrate status
 npm run check
 ```
+
+只有空库时，用本章完整分支执行 `node --env-file=.env.database-verify scripts/deploy-verify.mjs bootstrap "$verify_db"` 代替上面的 deploy 行。它先建立第 35 章所需的密码、会话和资格结构，再应用当前分支的剩余迁移；完成后用 status 核对。旧记录逐值对照仍使用非空副本。
 
 DBeaver刷新结构，查看users的新增开关和sessions的channel；按刚才保存的ID再查一次原记录。结果应该是旧值保持、新字段具有上述默认值、映射表为空。`prisma generate`只生成客户端，不执行迁移；切换分支也不会把数据库退回上一章。当前只加了结构，旧密码登录和Cookie仍可工作，这里可以先停下。
 
@@ -170,20 +174,22 @@ if (proof) {
   });
   if (other && other.openId !== openId) return { error: 'IDENTITY_CONFLICT' };
 }
-if (!mapping) await tx.wechatIdentity.create({ data: { appId, openId, userId } });
-if (!account.miniEnabled) return { userId, pending: true as const };
 ```
 
 锁顺序固定为平台身份锁、用户行；密码变化也先锁用户行，所以重新读取凭据时不能与改密交错。不同微信尝试关联同一账号时，用户锁让第二个请求看到第一个请求已保存的关联，再按“一AppID一个微信”的约束拒绝。
 
-继续在同一事务里清理该用户过期会话、检查两类合计不超过20，再插入mini会话。随机令牌和UUID在事务外生成，数据库只接收摘要；期限仍用数据库时钟：
+有 mini 资格的原账号把关联和签发当作一次操作。设它已有 20 个未过期的 Web 会话，本次用一个从未映射的微信来关联。如果先写映射，再把配额错误作为正常事务结果返回，Prisma 会提交新映射，读者明明看到 429，却给账号增加了新的登录方式。因此持有用户锁后先清理过期会话、检查两类合计条数；满额直接返回，原先的映射保持，新映射数为零。这时释放一个会话、拿新 code **重新关联**才会建立关系。没有 mini 资格时则无需申请会话名额，保存经过验证的映射、返回待开通 ID。随机令牌和UUID在事务外生成，数据库只接收摘要；期限仍用数据库时钟：
 
 ```ts
-await tx.$executeRaw`
-  DELETE FROM public.sessions
-  WHERE user_id = ${userId}::uuid AND expires_at <= clock_timestamp()
-`;
-if (await tx.session.count({ where: { userId } }) >= 20) return { error: 'SESSION_LIMIT' };
+if (account.miniEnabled) {
+  await tx.$executeRaw`
+    DELETE FROM public.sessions
+    WHERE user_id = ${userId}::uuid AND expires_at <= clock_timestamp()
+  `;
+  if (await tx.session.count({ where: { userId } }) >= 20) return { error: 'SESSION_LIMIT' };
+}
+if (!mapping) await tx.wechatIdentity.create({ data: { appId, openId, userId } });
+if (!account.miniEnabled) return { userId, pending: true as const };
 await tx.$executeRaw`
   INSERT INTO public.sessions(id, user_id, token_digest, label, channel, expires_at)
   VALUES (${sessionId}::uuid, ${userId}::uuid, ${tokenDigest(token)}, ${input.label},
@@ -318,14 +324,14 @@ export const MiniLinkSchema = MiniLoginSchema.extend({
   password: z.string().min(1).max(256).refine(value => value.isWellFormed()),
 });
 export const MiniLoginResultSchema = z.union([
-  z.object({ userId: z.uuid(), miniEnabled: z.literal(false) }),
+  z.object({ userId: UserIdSchema, miniEnabled: z.literal(false) }),
   SessionIdentitySchema.extend({
     token: z.string().regex(/^[A-Za-z0-9_-]{43}$/), expiresIn: z.literal(28800),
   }),
 ]);
 ```
 
-到这里再把两条公共路径加入边界并启用。先运行 `npm run check`，配置已迁移VERIFY后 `npm run dev`。不填微信配置，用本章Postman的01发送格式合法code，应是503／MINI_NOT_CONFIGURED；发送 `openid` 等额外字段应是400。它证明入口和配置边界已接通，不证明平台身份交换成功。
+到这里再把两条公共路径加入边界并启用。先运行 `npm run check`，沿[第 36 章的开发启动命令](../chapter-36-registration/chapter.md)用 `.env.test` 映射到已迁移的 VERIFY，传入本轮 `"$verify_db"`，令监听端口与 Postman 的 baseUrl 一致，并把 APP_ORIGIN 设为该服务的源。不填微信配置，用本章Postman的01发送格式合法code，应是503／MINI_NOT_CONFIGURED；发送 `openid` 等额外字段应是400。它证明入口和配置边界已接通，不证明平台身份交换成功。
 
 ### 工具、AppID和地址分别准备
 
@@ -394,12 +400,14 @@ WXML放已有账号ID和密码输入框、关联／登录／读取／退出四�
 
 ```bash
 npm run build
-node --env-file=.env.test --inspect=127.0.0.1:9470 examples/mini-login-local.mjs
+unset DATABASE_URL TEST_DATABASE_URL
+verify_db='epp_ch37_verify'  # 改成创建或恢复时选定的实际库名
+node --env-file=.env.test --inspect=127.0.0.1:9470 examples/mini-login-local.mjs "$verify_db"
 ```
 
-脚本在3370启动原业务应用，为本轮创建两个虚构用户。先经Web登录创建一条素材，再通过MiniService关联同一用户，另为第二账号建立独立mini会话。原用户用Bearer读该素材200，第二账号读同一ID404。测试内容的“旧”是指在关联之前创建，不要求全库只有这一条，也不改变前章已有数据。
+Node 加载 env 文件时保留 shell 已导出的同名变量。清除覆盖后，实验进程把 TEST_DATABASE_URL 映射成应用实际使用的 DATABASE_URL，连接后查询 current_database()，与命令末尾从建库记录独立填入的预期库名比较；缺少参数或不一致会在创建样本前退出。DBeaver 中显示正确的库只能证明那个窗口的连接。脚本在3370启动原业务应用，为本轮创建两个虚构用户。先经Web登录创建一条素材，再通过MiniService关联同一用户，另为第二账号建立独立mini会话。原用户用Bearer读该素材200，第二账号读同一ID404。测试内容的“旧”是指在关联之前创建，不要求全库只有这一条，也不改变前章已有数据。
 
-终端输出本轮两个userId和captureId，以及200／404对照；不会输出密码或令牌。它把短期令牌写到已忽略、权限0600的 `.mini-local.postman_environment.json`，随后暂停供界面观察。把本章请求集合与此Environment导入Postman本地、未同步模式，选择该环境，核对baseUrl；不要共享或导出填过的秘密。直接从03开始，01／02是实际wx.login之后的真实交换请求。
+终端输出本轮两个userId和captureId，以及200／404对照；不会输出密码或令牌。它把原 Web 和 mini 会话的短期令牌及本轮虚构密码写到已忽略、权限0600的 `.mini-local.postman_environment.json`，随后暂停供界面观察。把本章请求集合与此Environment导入Postman本地、未同步模式，选择该环境，核对baseUrl；不要共享或导出填过的秘密。直接从03开始，01／02是实际wx.login之后的真实交换请求。
 
 在04点击Send，比较返回ID、原文、创建时间与关联前记录。只看到列表有一行不够，必须读同一个ID并对原值。每条mini请求都禁用Cookie jar，避免前章保存在同一主机的Cookie被一起送出；出现AUTH_AMBIGUOUS先检查传输，不要删除账号数据。
 
@@ -451,7 +459,9 @@ GROUP BY channel ORDER BY channel;
 
 接着只对本轮原账号执行 `03-restrict-mini.sql`。BEGIN和UPDATE先执行，确认RETURNING只有目标行，再单独COMMIT；不符合预期就ROLLBACK。旧mini令牌再读身份应403，Web资格没有跟着改变。用 `02-grant-mini.sql` 恢复该开关，旧会话在期限内仍可能恢复可用：关闭资格是授权变化，撤销会话才是删除凭据。本章没有把两者偷换成同一动作。
 
-最后发08退出204，09复用旧令牌应401；这才证明撤销后的请求不能继续使用。保持原会话有效时在Web主动改密，或走第36章密码重置，也应使两类旧令牌失效；新code随后能否再次登录，取决于映射和当前资格，而不是旧会话是否删除。
+恢复资格后先重发03，应为200。现在选一种撤销范围，**做改密实验时先别点08**。在选中的本地 Environment 内，`password` 是脚本给本轮用户设置的虚构密码，`webToken` 是创建素材时的原 Web 会话。发07a，单独用原 Cookie 取 CSRF（200），集合把结果存入本地变量；07b 用同一 Cookie、CSRF 和当前密码调用 `POST /auth/password`，应为204。随后07c显式重放原 Web Cookie、07d重放原 mini Bearer 访问 `/auth/me`，两个请求都应为401。显式重放能排除“客户端清掉 Cookie，所以根本没带旧令牌”的另一种解释。重跑 DBeaver 的按通道查询，原用户已无会话。脚本给这两个用户建了密码凭据，没有建立已验证邮箱；走第36章邮件重置须另备已验证邮箱且能取得重置凭据的测试账号。
+
+要对照单会话退出，在全新一轮脚本里重新导入环境并选择本轮变量。跳过07a～07d，直接发08退出（204），09复用旧 mini 令牌（401），再发07a，原 Web 会话仍能取 CSRF（200）。新 code 能否再次登录取决于映射和当前资格。
 
 回到脚本终端按Return，清理本轮两个虚构用户及其素材、映射、凭据和会话，删除临时Environment文件并关闭API。Postman导入的变量是独立副本，随后清空；磁盘文件删除不会替你清掉客户端。DBeaver结束所有事务并断开，VS Code移除断点并断开Attach。若强制终止留下实验数据，按本轮两个UUID核对再处理，不能清空整张users或sessions表。
 

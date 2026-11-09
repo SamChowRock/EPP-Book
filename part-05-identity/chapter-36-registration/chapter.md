@@ -2,7 +2,7 @@
 
 第35章已经把浏览器来源、Cookie、CSRF和请求成本接进服务入口。不过，到目前为止，账号仍由维护者准备，忘记密码也只能回到本地工具。现在要把这两件事交还给用户：他提供邮箱，证明自己能收到发往这个地址的消息，再建立账号或更换密码。
 
-**时间参考（估算）**：阅读约150～180分钟；编码、迁移、邮件联调与产物核对另加160～205分钟。依据约1万汉字、近200行代码与命令、两张机制图及迁移／注册／恢复／故障四段实践估算，首次安装Mailpit和依赖下载另计；36A支线单列。
+**时间参考（估算）**：阅读约155～185分钟；编码、迁移、邮件联调与产物核对另加165～210分钟。依据约1万汉字、近200行代码与命令、两张机制图及迁移／注册／恢复／故障四段实践估算，首次安装Mailpit和依赖下载另计；36A支线单列。
 
 起点是第35章完成代码 `part-05/chapter-35`。原用户ID、密码、会话和记录都继续保留。新增的是已验证邮箱、短期验证意图和四个公开接口；注册与重置之后仍走原来的密码登录，不自动创建会话，也不自动授予Web使用资格。
 
@@ -95,19 +95,37 @@ CHECK (
 
 按第22章的备份与独立恢复流程准备一个有旧素材、修订、学习记录和密码的VERIFY。停该库写入，在DBeaver先执行 `SELECT current_database(), current_user;`；保存原账号ID、其素材详情，以及密码凭据是否存在。不要导出密码摘要作截图，也不要把DEV连接改名后当成隔离库。
 
-核对 `.env.database-verify` 指向这份副本，在项目根目录执行：
+核对 `.env.database-verify` 指向这份副本，并从创建或恢复记录独立取出预期库名。从第 36 章配套分支的 `scripts/` 复制 `deploy-verify.mjs` 和 `verify-database.mjs` 到跟写工程的同一目录。在项目根目录执行：
 
 ```bash
 nvm use
 unset DATABASE_URL SHADOW_DATABASE_URL DB_QUERY_DEBUG
 npm run db:verify -- migrate status
-npm run db:verify -- migrate deploy
+verify_db='epp_ch36_verify'  # 改成创建或恢复时选定的实际库名
+node --env-file=.env.database-verify scripts/deploy-verify.mjs deploy "$verify_db"
 npm run db:verify -- migrate status
 npm run prisma:generate
 npm run check
 ```
 
 DBeaver刷新 `public` 的表列表，应多出两个表；原凭据仍在，`version=1`，旧用户没有被补一份虚构邮箱。按素材ID重读同一条旧记录，比较归属、原文、修订与学习来源，不能只看总行数相等。
+
+#### 从当前分支初始化一份全新的库
+
+在 DBeaver 连接维护库，用“创建数据库”新建一份本章专用、由项目角色拥有的库，把库名记下来。若验收的是旧数据升级，保留上面恢复的非空副本，另建这份空库。在项目根按第 18 章的格式准备本地忽略的 `.env.database-verify`，让其中的 `DATABASE_URL` 使用新库、相应角色及 `public` schema。安装本章锁定依赖后运行：
+
+```bash
+nvm use
+npm ci
+unset DATABASE_URL SHADOW_DATABASE_URL
+verify_db='epp_ch36_fresh'  # 改成刚命名的新库
+node --env-file=.env.database-verify scripts/deploy-verify.mjs bootstrap "$verify_db"
+npm run db:verify -- migrate status
+```
+
+为什么有两次 deploy 的输出？Prisma 按目录名排序，`20261106003600_registration_recovery` 要修改的密码表却到 `20261106090000_password_credentials` 才创建。已应用的目录名和 SQL 校验和保存在历史表里，直接重命名会让既有库的历史断开。脚本先用实际迁移连接执行 `SELECT current_database()`，与末尾独立给出的库名逐字比对，不一致即退出。给隔离副本起区别于日常库的名字；当两个实例里有同名库时，还要独立核对目标主机、端口和角色。空库模式还检查 public 中是否已有关系、类型或函数，然后把截至第 35 章的 13 项迁移原名、原字节复制到临时目录，在同一目标部署。第二次使用当前分支完整目录，Prisma 跳过历史中已完成的项，按序应用注册及本分支后续迁移。最后应看到迁移状态已是最新。无需切换分支，分段初始化适用于后续各登录分支。
+
+非空副本使用上面的 `deploy` 模式。它检查第 35 章基线历史，再执行普通 `prisma migrate deploy`；明确选定的日常库或交付库也用同一脚本，改用该目标的配置文件（或已注入的进程环境）和独立记录的库名。shell 已导出的变量优先于 Node 加载的 env 文件，库名参数应取自建库或恢复计划，不能从 URL 截取。若部署曾失败，先查 `migrate status`、实际表和历史，再按第 20 章恢复；不要改写旧 SQL、清空历史或在半成品库上重跑空库引导。空库没有旧用户，检验旧凭据或素材仍需恢复非空副本。继续下面的练习前，将配置和预期库名切回该副本。
 
 在 `DatabaseService.onModuleInit` 原来的凭据检查中加入 `version:true`，并检查 `verifiedEmail.findMany({take:1})` 与 `verificationIntent.findMany({take:1})`。这样漏迁移会在启动阶段暴露，避免旧登录碰巧能用、第一次注册才报“关系不存在”。此刻可以暂停，下一次从迁移状态和旧记录开始，不重建数据库、不重置旧密码。
 
@@ -190,7 +208,15 @@ return tx.$queryRaw<{ id: string }[]>`
 
 确认端先对令牌做格式和摘要检查，再读取对应意图，确定用途。然后在已有的密码工作名额中计算新密码摘要。将 `SessionService.passwordWork` 从私有方法改成可复用方法，登录、主动改密和本章两个确认接口共享**同一实例的两个名额**，避免每增加一条路由就把Argon2总并发翻倍。其计数、`ApplicationState.track` 和 `finally` 释放保持原样。
 
-密码计算在事务前完成，减少持锁时间。`hashPassword` 仍执行第32章的NFC规范化、15～128个码点策略；把 `PASSWORD_INPUT_INVALID` 转成400，其余计算故障继续向上报告。不能在邮件令牌检查通过后绕过原来的密码策略。
+确认注册时可以用邮箱证明收件能力，却不宜把这个公开地址再选作密码。确认重置时原密码已丢失，也要用同一套新密码规则。两个入口都从上一行查询出的意图取得账号上下文：
+
+```ts
+passwordHash = await hashPassword(input.newPassword, { userId: observed.userId, email: observed.email });
+```
+
+调用保留第32章的 NFC 和长度要求，并复用第33章的本地常见密码表、重复字符和完整账号标识比对。注册时用户 ID 尚未分配，已知邮箱和 @ 前的部分可以参与比对。主动改密也要接入新出现的邮箱：在 `SessionService.changePassword` 读取凭据的 `select` 中加入 `user: { select: { verifiedEmail: { select: { email: true } } } }`，调用时传入 `{ userId: identity.userId, email: credential.user.verifiedEmail?.email }`。只有 UUID 的旧用户仍能改密。
+
+三个入口都将 `PASSWORD_INPUT_INVALID` 和 `PASSWORD_BLOCKLISTED` 分别映射为同名错误码及 HTTP 400，后者提示更换容易猜中的密码；计算故障继续向上报告。可以向注册或重置确认提交一个仍有效的令牌，把至少15字符的本次邮箱作为新密码：应收到 `PASSWORD_BLOCKLISTED`。换一个独立长密码，原令牌在过期前仍可确认，因为拒绝发生在消费事务之前。密码计算也在事务前完成，减少持锁时间。
 
 方法的外层是 `return this.sessions.passwordWork(async () => { ... })`。回调内依次生成摘要，用 `database.run('readVerification', ...)` 按 `tokenDigest` 唯一键读出 `observed`，拒绝不存在或用途不符的记录，再计算 `passwordHash`，最后执行下面的消费事务。事务结果为空时才在事务外抛出 `HttpError(400, 'Verification is invalid or expired; request a new message', 'VERIFICATION_INVALID')`，成功则返回结果。这样名额从读取意图一直覆盖到事务结束，任何失败都经过原有的 `finally` 释放。
 
@@ -431,14 +457,17 @@ async resetConfirm(@Body(new SchemaPipe(RecoveryConfirmSchema)) input: RecoveryC
 
 ```bash
 unset DATABASE_URL TEST_DATABASE_URL APP_ORIGIN PORT LOCAL_SMTP_PORT DB_QUERY_DEBUG
+verify_db='epp_ch36_verify'  # 换成恢复了旧数据的 VERIFY 名称，与 DBeaver 核对
 NODE_ENV=development node --env-file=.env.test --input-type=module -e '
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+const { withVerifiedDatabase } = await import("./scripts/verify-database.mjs");
+await withVerifiedDatabase(process.argv[1]);
 process.env.PORT = "3360";
 process.env.APP_ORIGIN = "http://127.0.0.1:3360";
 process.env.LOCAL_SMTP_PORT = "1025";
 process.env.DB_QUERY_DEBUG = "false";
 await import("./scripts/dev.mjs");
-'
+' "$verify_db"
 ```
 
 这仍使用原来的自动编译／重启和127.0.0.1 Inspector，不把 `npm start` 当成开发入口。另开终端构建不会覆盖 `.dev`。若改了 `.env` 或进程配置，主动重启开发命令，再确认启动日志中的端口；保存源码后的自动重启不等于重新读取父进程的所有配置。
@@ -581,4 +610,4 @@ RETURNING i.id;
 
 [上一章：保护浏览器入口](../chapter-35-browser-boundary/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)
 
-[下一章：小程序登录与独立会话（可选）](../chapter-37-mini-program/chapter.md)
+[下一章：小程序登录与独立会话（可选）](../chapter-37-mini-program/chapter.md) · [核心路线直接进入第 41 章回顾](../chapter-41-review/chapter.md)
