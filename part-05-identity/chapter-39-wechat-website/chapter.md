@@ -191,4 +191,4 @@ node --env-file=.env.test --inspect=127.0.0.1:9490 examples/wechat-web-lab.mjs
 
 平台参数见[微信网站应用登录文档](https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html)，Cookie 在跨站导航中的行为见[MDN Set-Cookie](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Reference/Headers/Set-Cookie)，锁的作用域见[PostgreSQL 18 显式锁](https://www.postgresql.org/docs/18/explicit-locking.html#ADVISORY-LOCKS)。本章配套代码分支为 `part-05/chapter-39`。
 
-[返回第五篇](../README.md) · [上一章：OIDC 外部登录](../chapter-38-oidc/chapter.md)
+[返回第五篇](../README.md) · [上一章：OIDC 外部登录](../chapter-38-oidc/chapter.md) · [下一章：用已登录的小程序扫码确认网站登录](../chapter-40-mini-confirm/chapter.md)
