@@ -277,7 +277,9 @@ export function createOneNotification(database: DatabaseService) {
 
 ## 46.4 用两次确认走完收件箱
 
-**先把任务留在队里。** 继续运行本章 API；启动回环 Mailpit，.env.worker 的 LOCAL_SMTP_PORT 对准本机 SMTP。在 Worker 终端从项目根运行下列命令，先仅寄邮件：
+**先把任务留在队里。** 如果沿用第 45 章的恢复副本，先在 DBeaver 执行 `SELECT paused_by FROM public.verification_mail_control WHERE id=1`。结果应有一行且为 NULL。若仍指向旧事故，01 可能照样返回 202，邮件角色却不会寄出这封信。按[第 45.5 节](../chapter-45-retries/chapter.md#455-对端读完正文以后如何放行和清理)核对旧事故；无法裁定时保留该库，按 46.1 另建空 VERIFY 并把三个环境文件指向新库，再开始本轮注册。
+
+继续运行本章 API；启动回环 Mailpit，.env.worker 的 LOCAL_SMTP_PORT 对准本机 SMTP。在 Worker 终端从项目根运行下列命令，先仅寄邮件：
 
 ```bash
 unset DATABASE_URL DB_POOL_MAX DB_QUERY_DEBUG LOCAL_SMTP_PORT LOG_LEVEL
