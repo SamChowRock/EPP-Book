@@ -311,4 +311,4 @@ npm run dev:worker -- epp_ch47_verify notifications
 | LEFT JOIN LATERAL、有界排序 | 在一次查询中核对活会话、首页与有无下一页 | 区分没有资格与空收件箱，按用户过滤并沿现有排序读取 |
 | API_PORT、LAB_PORT | 指定本机实验入口的转发目标和监听端口 | 默认 3000／3100，正文使用 3360／3100；实验入口单独运行 |
 
-本章完成代码对应 `part-06/chapter-47`。[上一章](../chapter-46-notifications/chapter.md) · [第六篇导读](../README.md) · [全书目录](../../README.md)
+本章完成代码对应 `part-06/chapter-47`。[上一章](../chapter-46-notifications/chapter.md) · [下一章：第六篇回顾](../chapter-48-review/chapter.md) · [第六篇导读](../README.md) · [全书目录](../../README.md)
