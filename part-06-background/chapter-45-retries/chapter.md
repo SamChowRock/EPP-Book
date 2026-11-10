@@ -280,7 +280,7 @@ RETURNING id, status, retain_from;
 
 日常开发仍分别启动 API 与 Worker。要在 VS Code 看分类分支，可附加前章的 Worker 9230，在 classifyMailFailure 中看 command、originalCode、responseCode，勿展开邮件正文。暂停超过30秒会改变租约，导致 lost-after-send，排错后应移除断点，用新申请跑一次正常时序。交付目录复制 dist、package.json、package-lock.json 与 .npmrc，执行 `npm ci --omit=dev`，API 用 `npm start`，Worker 在独立注入角色配置后用 `npm run start:worker -- epp_ch45_verify`；故障端留在练习目录。结束后关闭本轮进程，清除 Postman 本地验证令牌。
 
-本章完整代码在配套分支 `part-06/chapter-45`。下一章把目的地换成 EPP 自己的数据库。到那时，创建通知与记录“已处理”的动作可以放回一个事务，重复投递的边界会随之改变。
+本章完整代码在配套分支 `part-06/chapter-45`。邮件通道能追到收信端是否接受。用户稍后用信里的证明完成注册或重置，[下一章](../chapter-46-notifications/chapter.md)才从这次成功确认产生站内通知。
 
 [支线 45A　接收方提供幂等键以后，超时能重试多久？](side-01-idempotency-window.md)
 
