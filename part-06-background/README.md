@@ -46,4 +46,4 @@
 
 [支线 47A　如果离线期间的每一步都要重放](chapter-47-sse/side-01-replay.md) 阅读另加 12～16 分钟，双会话实验另加 8～12 分钟。
 
-[第五篇导读](../part-05-identity/README.md) · [全书目录](../README.md)
+[第五篇导读](../part-05-identity/README.md) · [第七篇导读](../part-07-profiles/README.md) · [全书目录](../README.md)

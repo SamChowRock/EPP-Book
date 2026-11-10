@@ -134,4 +134,4 @@ npm run dev:worker -- "$verify_db" notifications
 | 站内任务与可见页面不一致 | 同一 event_id 的任务和通知、cleared_at、当前账号的列表 | 恢复站内投递或重新查询；已清除的事件保持隐藏 |
 | 文件已写而引用未发布 | 尝试身份、对象键、当前引用版本 | 判定本次写入是否还能发布，清理前核对归属 |
 
-[上一章](../chapter-47-sse/chapter.md) · [第六篇导读](../README.md) · [全书目录](../../README.md)
+[上一章](../chapter-47-sse/chapter.md) · [第六篇导读](../README.md) · [第七篇导读](../../part-07-profiles/README.md) · [下一章：用户资料的业务约束与隐私](../../part-07-profiles/chapter-49-profile/chapter.md) · [全书目录](../../README.md)
