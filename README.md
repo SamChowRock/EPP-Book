@@ -520,7 +520,7 @@
 
 ### [第 42 章 Transactional Outbox：业务和消息如何一起提交](part-06-background/chapter-42-outbox/chapter.md)
 
-阅读约 55～70 分钟，实现、迁移与本机联调另加 80～110 分钟（估算）。
+阅读约 60～75 分钟，实现、迁移与本机联调另加 85～115 分钟（估算）。
 
 - [42.1 在旧请求中找出两次写入之间的空隙](part-06-background/chapter-42-outbox/chapter.md#421-在旧请求中找出两次写入之间的空隙)
 - [42.2 给每一轮寄信留下一行](part-06-background/chapter-42-outbox/chapter.md#422-给每一轮寄信留下一行)
@@ -530,7 +530,7 @@
 
 ### [第 43 章 为什么需要独立 Worker](part-06-background/chapter-43-worker/chapter.md)
 
-阅读约 65～80 分钟，实现、迁移、双进程调试及联调另加 95～125 分钟（估算）。
+阅读约 70～85 分钟，实现、迁移、双进程调试及联调另加 100～130 分钟（估算）。
 
 - [43.1 谁来发现下一条待办](part-06-background/chapter-43-worker/chapter.md#431-谁来发现下一条待办)
 - [43.2 用 Nest 建一个没有 HTTP 监听的应用](part-06-background/chapter-43-worker/chapter.md#432-用-nest-建一个没有-http-监听的应用)
@@ -552,7 +552,7 @@
 
 ### [第 45 章 失败、重试与未知结果](part-06-background/chapter-45-retries/chapter.md)
 
-阅读约 40～55 分钟，实现、升级与故障实验另加 65～90 分钟（估算）。
+阅读约 45～60 分钟，实现、升级与故障实验另加 75～105 分钟（估算）。
 
 - [45.1 在哪一步失败才足以决定再寄](part-06-background/chapter-45-retries/chapter.md#451-在哪一步失败才足以决定再寄)
 - [45.2 让重试预算和下次执行时间跨过重启](part-06-background/chapter-45-retries/chapter.md#452-让重试预算和下次执行时间跨过重启)
@@ -574,7 +574,7 @@
 
 ### [第 47 章 用 SSE 传递实时更新](part-06-background/chapter-47-sse/chapter.md)
 
-阅读约 45～60 分钟，实现、浏览器联调与断线实验另加 65～90 分钟（估算）。
+阅读约 50～65 分钟，实现、浏览器联调与断线实验另加 65～90 分钟（估算）。
 
 - [47.1 从一张停在旧数据的页面开始](part-06-background/chapter-47-sse/chapter.md#471-从一张停在旧数据的页面开始)
 - [47.2 一个响应怎样传来多次提示](part-06-background/chapter-47-sse/chapter.md#472-一个响应怎样传来多次提示)
@@ -585,15 +585,15 @@
 
 ### [第 48 章 第六篇回顾：从一封验证邮件追到站内收件箱](part-06-background/chapter-48-review/chapter.md)
 
-先完成第 42～47 章。阅读约 25～35 分钟，本机操作另加 40～60 分钟。
+先完成第 42～47 章。阅读约 30～40 分钟，沿用上章账号操作另加 25～40 分钟，从新账号完整复现约 40～60 分钟。
 
-- [48.1 从一个邮箱找到两次不同的提交](part-06-background/chapter-48-review/chapter.md#481-从一个邮箱找到两次不同的提交)
-- [48.2 两次进程退出，各能接手什么](part-06-background/chapter-48-review/chapter.md#482-两次进程退出各能接手什么)
+- [48.1 先决定查什么](part-06-background/chapter-48-review/chapter.md#481-先决定查什么)
+- [48.2 在两处中断执行，复核邮件事故](part-06-background/chapter-48-review/chapter.md#482-在两处中断执行复核邮件事故)
 - [48.3 有一封信停在 attempting，用户还能改密吗](part-06-background/chapter-48-review/chapter.md#483-有一封信停在-attempting用户还能改密吗)
 - [48.4 把目的地换成头像文件](part-06-background/chapter-48-review/chapter.md#484-把目的地换成头像文件)
 - [附录：本章必要技术点速查](part-06-background/chapter-48-review/chapter.md#附录本章必要技术点速查)
 
-第六篇主线第 42～48 章合计阅读约 335～435 分钟，操作另加 500～680 分钟。六条支线阅读另加 58～81 分钟，47A 的双会话实验另加 8～12 分钟。以上按成稿和本机操作步骤估算。
+第六篇主线第 42～48 章合计阅读约 360～460 分钟，连续沿用练习账号时操作另加 505～685 分钟。六条支线阅读另加 58～81 分钟，47A 的双会话实验另加 8～12 分钟。以上按成稿和本机操作步骤估算。
 
 ## 第七篇 用户资料与文件：数据库之外的数据
 
