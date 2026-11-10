@@ -4,7 +4,7 @@
 
 从[第 36 章的注册与找回密码实现](../../part-05-identity/chapter-36-registration/chapter.md)继续，代码起点为密码路线。[第 36 章配套分支](https://github.com/SamChowRock/epp-public/tree/part-05/chapter-36)
 
-读过[第 41 章的同步发送实验](../../part-05-identity/chapter-41-review/chapter.md#415-邮件请求返回以后谁接着做)即可接这里。我们要让用户在原来的页面填同一个邮箱，继续用原来的确认接口，却能在 API 已经关闭时用另一个进程寄出那封信。阅读约 55～70 分钟，跟做另加 80～110 分钟。
+读过[第 41 章的同步发送实验](../../part-05-identity/chapter-41-review/chapter.md#415-邮件请求返回以后谁接着做)即可接这里。我们要让用户在原来的页面填同一个邮箱，继续用原来的确认接口，却能在 API 已经关闭时用另一个进程寄出那封信。阅读约 60～75 分钟，跟做另加 85～115 分钟。
 
 ## 42.1 在旧请求中找出两次写入之间的空隙
 
@@ -300,7 +300,32 @@ NODE_ENV=development LOCAL_SMTP_PORT=1025 node --env-file=.env.database-verify \
 
 调试寄信时，先构建，再把一次性命令的 node 参数增加 `--enable-source-maps --inspect-brk=127.0.0.1:9229`，保持 API 停止以释放调试端口。在 VS Code 用原有 Attach，断在 `await delivery.send(...)` 前，只观察 job.id 与数据库状态，不展开 token。停在这里时，另一个连接已能读到 attempting；如果让进程退出，这一行会保持 attempting，再跑同一 ID 得到 empty。若继续运行则可能变成 accepted。调试耗时会占用有效期，观察正常投递要去掉断点，用新申请复核。
 
-开发完成后运行 `npm run check`。若要运行全章回归，沿用已包含前章虚构样本的独立测试库。若是刚 bootstrap 的空练习库，注册链本身可以直接使用；前章素材回归还要有固定练习用户。仅在新建的测试库核对库名后执行下句。已有该 ID 时先检查它的状态和用途，不要重置其密码或开通真实账号。
+**让原来的注册与找回回归接上发件箱。** 开发完成后运行 `npm run check`。如果沿第 36 章手写过来，打开 `test/recovery.test.mjs`，看 `fixture` 里的 `issue`：旧代码在 `await recovery.request(...)` 返回时就从 `messages.at(-1)` 取 token。本章这时只提交了 pending，收信数组还是空的。用例仍要拿到令牌才能验证注册、重放和密码重置，取令牌的位置要移到发送之后。
+
+让 `RecoveryService` 只接收 database、sessions 和应用状态。把收集邮件的测试对象传给从 `../dist/src/verification-outbox.js` 导入的 `sendOne`，在同一个 fixture 中用 `dispatch(id)` 调用 `sendOne(database, transport, id)`。这样 `issue` 可以为这次申请处理指定的一条消息：
+
+```js
+async function issue(purpose, email) {
+  await recovery.request(purpose, email);
+  const job = await db.verificationOutbox.findFirstOrThrow({
+    where: { purpose, recipient: email, status: 'pending' },
+  });
+  assert.equal(await dispatch(job.id), 'accepted');
+  return messages.at(-1).token;
+}
+```
+
+这里每个用例生成自己的地址，调用这个辅助函数时该用途、地址只有一条 pending。专门验证换代的用例要保留新旧两个 ID 分别处理。冷却用例还要数该地址的任务，重复申请后仍只有一条。原先让 SMTP 挂起以占满请求名额的用例也要拆开：让发送对象抛错，按 ID 得到 unknown、再处理得到 empty；另发两个尚未完成的申请，检查第三个申请因名额用尽被拒。最后在 `t.after` 中按本轮收件地址删除发件箱行，再按既有顺序清理意图、账号等数据并关闭应用。
+
+沿用前章原版测试时，可将[第 42 章测试改动](recovery-42.patch)的原始文本保存为项目根目录的 `recovery-42.patch`，然后在该目录执行：
+
+```bash
+git apply --check recovery-42.patch && git apply recovery-42.patch
+```
+
+补丁只改 `test/recovery.test.mjs`，包括上面的衔接和换代、过期、并发处理同一消息的用例。如果已使用本章配套测试，直接运行即可。若检查未通过，打开补丁按函数对照本地改动，保留自己增加的用例。
+
+需要跑全章回归时，先停止连接测试库的 API 和寄信程序，沿用已迁移到本章且包含前章虚构样本的独立测试库。若是刚 bootstrap 的空练习库，注册链本身可以直接使用；前章素材回归还要有固定练习用户。仅在新建的测试库核对库名后执行下句。已有该 ID 时先检查它的状态和用途，不要重置其密码或开通真实账号。
 
 ```sql
 INSERT INTO public.users(id, web_enabled)
