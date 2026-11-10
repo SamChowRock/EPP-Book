@@ -2,7 +2,7 @@
 
 重置密码成功后，用户用新密码登录，打开站内收件箱，只看见原来那条注册通知。过了一会儿，通知 Worker 把“密码已重置”写进数据库。另开一个窗口查询，已经有两条；原来的页面还停在一条。现在拔掉网络，再插回来。谁来告诉这个页面应该重新查一次？如果那句提醒恰好也丢了呢？
 
-从[第 46 章](../chapter-46-notifications/chapter.md)配套分支 `part-06/chapter-46` 继续。上章把确认事务、后台任务和收件箱分开，提供了可以反复读取的首页。本章给打开的页面增加单向更新提示，并用断线、重连和撤销会话检验它。阅读约 45～60 分钟，搭建、双进程联调和故障实验另加 65～90 分钟。
+从[第 46 章](../chapter-46-notifications/chapter.md)配套分支 `part-06/chapter-46` 继续。上章把确认事务、后台任务和收件箱分开，提供了可以反复读取的首页。本章给打开的页面增加单向更新提示，并用断线、重连和撤销会话检验它。阅读约 50～65 分钟，搭建、双进程联调和故障实验另加 65～90 分钟。
 
 ## 47.1 从一张停在旧数据的页面开始
 
@@ -10,11 +10,11 @@
 
 最省事的做法是页面每隔几秒 GET 一次。只有少数读者、允许较长延迟时，停在这里完全合理。我们现在想让空闲页面保留一条下行连接，只在打开、重新连上或观察到变化时取完整列表。浏览器已有 EventSource，可以在普通 HTTP 响应里逐段接收服务器发送事件（Server-Sent Events，SSE）。标记已读和清除仍走第 46 章已有的写接口，沿用它们的会话和 CSRF 检查。以后若双方都要在同一连接上高频发送消息，再比较 WebSocket。本章的代价是占用较长时间的连接，服务端也要想办法知道 Worker 写了什么。
 
-**先在已有系统里留下可对照的现场。** 使用第 46 章的独立 VERIFY 或它的恢复副本，下文以 `epp_ch47_verify` 为例。先确认 DBeaver 的 `SELECT current_database()`、API 实际生效的 DATABASE_URL 和两个 Worker 的 DATABASE_URL 指向同一个练习库。保留已有记录，分支切换不需要迁移、回填或换密码。从空库起步，按[第 46 章的准备步骤](../chapter-46-notifications/chapter.md#461-收件箱的一行代表什么)在独立库引导到该章结构。不要重新引导非空库。下面的“一条”和“两条”用本轮新建的虚构账号复现。
+**先在已有系统里留下可对照的现场。** 使用第 46 章的独立 VERIFY 或它的恢复副本，下文以 `epp_ch47_verify` 为例。先确认 DBeaver 的 `SELECT current_database()`、API 实际生效的 DATABASE_URL 和两个 Worker 的 DATABASE_URL 指向同一个练习库。保留已有记录，分支切换不需要迁移、回填或换密码。从空库起步，按[第 46 章的准备步骤](../chapter-46-notifications/chapter.md#461-收件箱的一行代表什么)在独立库引导到该章结构。不要重新引导非空库。如果沿用原库名，把后面命令末尾的示例库名换成建库时记下的实际名称。
 
-1. 按[第 46.4 节](../chapter-46-notifications/chapter.md#464-用两次确认走完收件箱)使用 Mailpit、Postman 和两个角色。先做注册 01、02，按本轮 UUID 与邮箱开通 Web，05 登录。让通知 Worker 处理 registered，发 13 选中它，15 取当前会话的 CSRF，16 标记已读。用 18 回查，记下该条目的 ID 和首次阅读时间。
-2. **停通知 Worker，保留寄信能力。** 用 06 申请重置，从本轮信里取令牌发 07，用 08 确认旧会话已撤销，再用 10 和新密码登录。两种角色如果轮用同一个开发终端，先退出通知 watcher，再按前章方法启动邮件角色；无需同时占用两个 9230。此时用 18 查到的仍是已读的 registered。在第 46.4 节的 DBeaver 查询里按本轮 userId 筛选，password-reset 是 pending，还没有对应通知。在这个位置停下，后文要让它恰好在浏览器离线期间被消费。
-3. 停掉旧 API 和旧 watcher，在配套项目根使用 Node 24.22.1，切到本章分支 `part-06/chapter-47` 后运行 `npm ci` 与 `npm run check`。跟写者可以保留自己的第 46 章练习副本。保留 password-reset 为 pending，直到 47.4 节明确断开浏览器连接才启动通知 Worker。重做实验请使用新的虚构账号；对真实的历史通知继续用原 ID 核对。
+1. **从上一章收尾接着做。** 保留已开通的虚构账号、Mailpit、Postman 本地环境和独立库。用第 46 章 API 与集合登录，若 46.4 的登录仍有效可直接单发 18。记录首页各条的 ID 和 readAt、是否还有下一页；若首页为空，就把零条作为基线。按上章清除过旧的重置通知时，通常还看得到 registered；它原来的阅读状态可以保留。只有从空库独立跟做、尚无可登录账号时，才按[第 46.4 节](../chapter-46-notifications/chapter.md#464-用两次确认走完收件箱)用 01、02 注册、按 UUID 与邮箱开通并用 05 登录，启动通知 Worker 投递 registered。想复现图中的已读状态，可发 13、15、16，再用 18 记录基线。
+2. **先判定手里是否已有可投递的一条。** 停通知 Worker，在 DBeaver 运行 `SELECT id, expires_at, expires_at > clock_timestamp() AS valid FROM public.notification_jobs WHERE user_id = '本轮账号UUID'::uuid AND kind = 'password-reset' AND status = 'pending' ORDER BY created_at, id`，替换占位 UUID。若恰有一条有效待办，知道该轮重置后的密码，且其余能投递的工作都已核清，记下该 ID，直接进入步骤 3。要取得清楚的单事件对照，若已有多条有效待办，先在本机练习库投递完这些已知工作，再停通知角色、用 18 重取基线。需要产生新任务时，启动邮件角色，Postman 的 newPassword 设为不同的新密码；发 06 申请重置，从本轮信取令牌发 07，用 08 确认原会话已撤销，再用 10 登录。18 应仍显示原基线。用刚才的 SQL 核对新增 ID 和期限，通知角色暂不启动。
+3. 停掉旧 API 和旧 watcher，在配套项目根使用 Node 24.22.1，切到本章分支 `part-06/chapter-47` 后运行 `npm ci` 与 `npm run check`。跟写者可以保留自己的第 46 章练习副本。暂时让这条工作保持 pending，直到 47.4 节断开浏览器连接。跨天回来时检查 expires_at；已经过期就再用步骤 2 产生一条有效待办，记下新的 ID。
 
 即使到这里完全不用 SSE，发 18 也能交代账号当前看得见什么。接下来增加的每个推送都可以用它独立核对。
 
@@ -211,7 +211,7 @@ process.env.DB_QUERY_DEBUG = "false";
 await import("./scripts/dev.mjs");' epp_ch47_verify
 ```
 
-在第二个终端进入同一项目根目录，运行 `API_PORT=3360 node examples/inbox-stream/server.mjs`，打开 `http://127.0.0.1:3100/`。这个本机 Node 入口提供页面，对登录、身份、收件箱和事件流把原请求转给 3360，再把收到的字节逐段传回来。页面没有跨源 fetch，也没有开放生产 API 的静态实验路由。不要把地址栏里的 127.0.0.1 换成 localhost 后继续使用原 APP_ORIGIN。跟写的读者可从本章配套分支取 `examples/inbox-stream/` 和 `requests/chapter-47.postman_collection.json` 作为实验材料。配套目录 `examples/inbox-stream/` 含入口和页面。Postman 选择 Import，导入 `requests/chapter-47.postman_collection.json`；选回本地未同步环境，将 baseUrl 指向 `http://127.0.0.1:3360`。01～18 沿用前章编号，19 专门打开事件流。18 取本页用的二十条，13 的页长为一，用来选定随后要操作的首条。
+在第二个终端进入同一项目根目录，运行 `API_PORT=3360 node examples/inbox-stream/server.mjs --fault-console`，打开 `http://127.0.0.1:3100/`。这个本机 Node 入口提供页面，对登录、身份、收件箱和事件流把原请求转给 3360，再把收到的字节逐段传回来。页面没有跨源 fetch，也没有开放生产 API 的静态实验路由。不要把地址栏里的 127.0.0.1 换成 localhost 后继续使用原 APP_ORIGIN。跟写的读者可从本章配套分支取 `examples/inbox-stream/` 和 `requests/chapter-47.postman_collection.json` 作为实验材料。配套目录 `examples/inbox-stream/` 含入口和页面。Postman 选择 Import，导入 `requests/chapter-47.postman_collection.json`；选回本地未同步环境，将 baseUrl 指向 `http://127.0.0.1:3360`。01～18 沿用前章编号，19 专门打开事件流。新导入的集合有自己的一份 Variables。沿用旧账号时，把上章 02 留下的 UUID 填入第 47 章集合变量 userId 的本地值；12 会用它核对返回的身份。如果没有记下 UUID，在 DBeaver 用已核实的虚构邮箱查询 `SELECT user_id FROM public.verified_emails WHERE email='本轮练习邮箱'`。确认只找到该账号再填写，别用同名环境变量代替集合变量。18 取本页用的二十条，13 的页长为一，用来选定随后要操作的首条。
 
 页面登录表单用已开通的本轮邮箱和**重置后的密码**调用原来的 /auth/login。Postman 的 Cookie 与浏览器的 Cookie 分属两个客户端，即使登录同一个账号，两边会话也不同。在 `examples/inbox-stream/app.js` 中建立连接时有两个值得一起看的回调（省去界面文字）：
 
@@ -229,11 +229,12 @@ stream.addEventListener('inbox', () => {
 });
 ```
 
-open 每次连接成功都查首页，自动重连也走这里；命名事件同样从最新处重新查。服务端初始提示与 open 可能接连抵达。若直接并行发两次 GET，较慢的旧响应可能把新画面盖回去。firstPage 内用 active 记录正在进行的查询，期间再来提示只设 rerun；当前查询结束后最多立刻再查一轮。取回的 items 整页替换。这样重复提示不会重复追加行。断开时 close 事件源并 abort 在途查询，旧连接即使还有排队的回调，也不能再改这张页面。查询前后检查 /auth/me 的会话身份，401、403 或账号切换时清空原列表并要求重新登录。整个过程中页面不需要读取 Cookie 值。
+open 每次连接成功都查首页，自动重连也走这里；命名事件同样从最新处重新查。服务端初始提示与 open 可能接连抵达。若直接并行发两次 GET，较慢的旧响应可能把新画面盖回去。firstPage 内用 active 记录正在进行的查询，期间再来提示只设 rerun；当前查询成功后最多立刻再查一轮。取回的 items 整页替换。这样重复提示不会重复追加行。断开时 close 事件源并 abort 在途查询，旧连接即使还有排队的回调，也不能再改这张页面。查询前后检查 /auth/me 的会话身份，401、403 或账号切换时清空原列表并要求重新登录。整个过程中页面不需要读取 Cookie 值。
 
 看一下处理速度不同时的顺序。在 `app.js` 的 firstPage 开头，如果已有查询在途，只登记一次“还得再查”。下面两段分别位于函数开头和 finally 块中：
 
 ```js
+if (retryTimer !== undefined) return;
 if (active) { rerun = true; return; }
 const controller = new AbortController();
 active = controller;
@@ -248,7 +249,22 @@ if (active === controller) {
 
 设请求 A 发出后页面又收到两次 inbox。A 返回时页面先应用它的结果，然后只启动一个请求 B，来取 A 在途期间可能提交的变化。反过来，若 A 返回前用户断开并改用另一个账号，disconnect 已取消请求并清空相应引用；A 的回调检查 active 已经换了，也就不会把上一个账号的结果画回来。点击“切换登录”只让实验页放下当前连接并回到表单；需要撤销服务器会话时仍要调用原有的退出或会话撤销接口。
 
-**让一条真实通知错过连接。** 保持通知 Worker 停止。登录后先等页面显示一条“注册成功 · 已读”，再点“断开连接”。此按钮会调用 close，刻意保留上次结果。如果邮件角色仍在开发终端运行，先按 Ctrl-C，等 watcher 释放 9230 和输出目录。现在才启动通知角色：
+还有一个容易忽略的先后顺序。服务器发现变化、发出最后一次 inbox 后就记住了新的首页。如果浏览器那次 GET 恰好返回 503，数据库接下来又没有变化，连接可以一直有心跳，页面却一直显示旧状态。需要重试的是那次查询。firstPage 在网络失败、408、429 或 5xx 时用当前 stream 安排下面的定时器。多条提示和手动查询在等待期间都合并到同一次重试：
+
+```js
+const delay = retryDelay;
+retryDelay = Math.min(delay * 2, 8000);
+// 这里在页面记录失败原因和本轮等待秒数。
+retryTimer = setTimeout(() => {
+  if (stream !== source) return;
+  retryTimer = undefined;
+  void firstPage();
+}, delay);
+```
+
+第一次等一秒，连续失败依次等两秒、四秒，之后每次最多等八秒。成功刷新后把 retryDelay 恢复到一秒。主动断开会清掉定时器并取消在途请求；切换账号或收到 401、403 还会清掉旧数据。重试重新校验会话，旧连接的响应和计时器都不能替新账号修改页面。
+
+**让一条真实通知错过连接。** 保持通知 Worker 停止。登录后先等页面显示与 18 一致的基线（图中是一条已读注册通知），再点“断开连接”。此按钮会调用 close，刻意保留上次结果。如果邮件角色仍在开发终端运行，先按 Ctrl-C，等 watcher 释放 9230 和输出目录。现在才启动通知角色：
 
 
 ```bash
@@ -256,23 +272,25 @@ unset DATABASE_URL DB_QUERY_DEBUG DB_POOL_MAX LOCAL_SMTP_PORT LOG_LEVEL
 npm run dev:worker -- epp_ch47_verify notifications
 ```
 
-先等本轮 password-reset 的任务变为 done。保持浏览器断开，在 Postman 发 18，检查新增的 ID 和 kind。用这个独立查询判定消息已经入箱；页面上的旧结果本身无法告诉你 Worker 是否成功。
+先等 47.1 记下的 password-reset 任务 ID 变为 done。保持浏览器断开，在 Postman 发 18，检查新增的 ID 和 kind。用这个独立查询判定消息已经入箱；页面上的旧结果本身无法告诉你 Worker 是否成功。
 
 ![断开后的浏览器保留已读注册通知](images/inbox-offline.jpg)
 
 图 47-1　页面停在上次查询的一条记录。断开只改变这张页面的连接，Worker 仍可提交，另一个已登录客户端仍可查到新增通知。
 
-点击“重新连接”。这次是代码显式创建**新的** EventSource。首次 inbox 提示依然只有 refresh，页面却能显示两条，因为它另发了一次 GET。点“查询首页”重复读取，两条通知各出现一次；如果旧库有更多数据，页面只展示最新二十条。对照 ID 时打开 Network，点普通的 /notifications?limit=20 请求看 Response，与 Postman 18 的 items 对照；实验页只渲染种类、状态和时间。
+点击“重新连接”。沿用历史数据时按刚才的 ID 核对新入箱的首条，其余各行按自己的基线比较。图中这次是代码显式创建**新的** EventSource。首次 inbox 提示依然只有 refresh，页面却能显示两条，因为它另发了一次 GET。点“查询首页”重复读取，两条通知各出现一次；如果旧库有更多数据，页面只展示最新二十条。对照 ID 时打开 Network，点普通的 /notifications?limit=20 请求看 Response，与 Postman 18 的 items 对照；实验页只渲染种类、状态和时间。
 
 ![重新连接后首页同时显示密码重置成功和注册成功](images/inbox-reconnected.jpg)
 
 图 47-2　较新的“密码重置成功”处于未读，旧注册通知仍是已读。页面观察记录把流上的 open、inbox 与实际读取的行数分开显示。
 
-现在让页面保持连接。在 Postman 依次单发 13 选中最新 password-reset、15 取 **Postman 当前会话**的 CSRF、16 标记已读。等首行变化触发提示，再用 18 核对 readAt。要重做这一轮需另一条未读首行，对同一行再发一次 16 会保留首次时间。
+**让最后一次提示遇到一次 503。** 保持这个实验页已连接，等初始查询都结束，确认最新的 password-reset 仍为未读。若它已经被读过，按 47.1 再产生一条新的未读首行。重新设置密码会撤销旧会话，浏览器和 Postman 都要用该轮密码重新登录。只留这一个实验页；Postman 继续直连 3360。在运行 3100 入口的终端输入 `503` 并回车，看到“503 已就绪”。这个开关只会拦下一次经该入口的首页 GET，事件流仍通。此时别点“查询首页”。
 
-![在线页面回查后将首行显示为已读](images/inbox-live-read.jpg)
+在 Postman 单发 13 选中当前未读的首行，15 取 **Postman 当前会话**的 CSRF，16 标记已读。只做这一次修改。看浏览器下方的顺序：inbox、查询失败（HTTP 503）、稍后 GET 200。两次查询之间没有新的 inbox 或 open，也没有人点刷新；同一行现在显示已读。再发 18 核对 readAt。若提前消耗了一次 503，要重新准备未读目标，已经标过的条目重复发 16 会保留首次时间。
 
-图 47-3　首行仍是同一条通知，阅读状态已变化。下方记录先出现 inbox，再出现 GET 的结果。只收到提示不会自动标记任何通知已读。
+![最后一次提示后的查询暂时失败，页面自动回查并显示已读](images/inbox-live-read.jpg)
+
+图 47-3　另一次 Chrome 实验，末尾三条记录来自同一条仍在线的流。15:28:04 的提示触发查询，入口返回 503；一秒后的 GET 返回当前两条通知，首行的阅读状态随之更新。
 
 再试一次**浏览器自动重连**：保留页面、API 和账号，只在运行 3100 实验入口的终端按 Ctrl-C，然后用相同命令启动它。页面脚本已经加载，原响应随入口退出而断开。观察原 EventSource 先报 error，入口恢复后出现新的 open 和首页查询；这次没有点击“重新连接”。短暂中断时，页面对 /auth/me 或 /notifications 的查询本身也可能失败，等重新连接后用 18 核对最终内容。接着只撤销浏览器这一处登录。在 Network 的 /auth/me 响应中找到浏览器自己的 sessionId；保留同账号 Postman 登录，发 15 更新它自己的 CSRF。在 Postman 新建 DELETE /auth/sessions/{浏览器的 sessionId}，带 X-EPP-Request: 1 与 X-CSRF-Token（使用 15 保存的 csrfToken），Body 选 none。204 后保持页面不动，下一次服务端复核会结束流，浏览器回查得到 401，清空内容并回到登录。Postman 发 18 应仍是 200。不要把会话标识放进截图。
 
