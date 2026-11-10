@@ -550,13 +550,16 @@
 - [44.6 在旧库上完成交接](part-06-background/chapter-44-claims/chapter.md#446-在旧库上完成交接)
 - [附录：本章必要技术点速查](part-06-background/chapter-44-claims/chapter.md#附录本章必要技术点速查)
 
-### 第 45 章 失败 重试与未知结果
+### [第 45 章 失败、重试与未知结果](part-06-background/chapter-45-retries/chapter.md)
 
-- 45.1 可重试失败、永久失败与外部结果未知。
-- 45.2 退避、最大次数与死信状态；重复投递和外部副作用。
-- 45.3 至少一次执行下的幂等边界，不能用重试掩盖未知结果。
-- 45.4 进程停止、恢复、任务积压与过期运行数据的保留／清理策略。
-- 45.5 人工核对与恢复入口；AI 费用和供应商对账在 AI 篇展开。
+阅读约 40～55 分钟，实现、升级与故障实验另加 65～90 分钟（估算）。
+
+- [45.1 在哪一步失败才足以决定再寄](part-06-background/chapter-45-retries/chapter.md#451-在哪一步失败才足以决定再寄)
+- [45.2 让重试预算和下次执行时间跨过重启](part-06-background/chapter-45-retries/chapter.md#452-让重试预算和下次执行时间跨过重启)
+- [45.3 第二次执行凭什么还能使用这次申请](part-06-background/chapter-45-retries/chapter.md#453-第二次执行凭什么还能使用这次申请)
+- [45.4 在本机分别制造暂时拒绝、死信和积压](part-06-background/chapter-45-retries/chapter.md#454-在本机分别制造暂时拒绝死信和积压)
+- [45.5 对端读完正文以后如何放行和清理](part-06-background/chapter-45-retries/chapter.md#455-对端读完正文以后如何放行和清理)
+- [附录：本章必要技术点速查](part-06-background/chapter-45-retries/chapter.md#附录本章必要技术点速查)
 
 ### 第 46 章 先让通知成为可查询的数据
 
