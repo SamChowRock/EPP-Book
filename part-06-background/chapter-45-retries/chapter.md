@@ -2,7 +2,7 @@
 
 [第44章](../chapter-44-claims/chapter.md)让两个进程交接同一封信。只要 A 可能已经调用过 SMTP，B 就保留现场。现在把 Mailpit 晚启动六秒。第44章的 Worker 会因第一封信停发，即使几秒后邮箱恢复，第二封仍要等人放行。换一个故障，让 Mailpit 收下第一封信，再切断返回给 A 的连接。此时若一律重寄，用户可能收到两封内容不同的验证邮件。两次实验在应用里都走进同一个 catch，恢复动作却要做出不同选择。
 
-从第44章配套分支 `part-06/chapter-44` 起步，沿用原有注册／重置请求、单收件人和单 SMTP 通道。本章改变 Worker 在失败后允许做的事。先让一条确定可以重做的工作跨重启继续，再让同一个判断经受地址拒收、业务换代和应答丢失。阅读约 40～55 分钟；动手实现、升级和故障实验另加 65～90 分钟。
+从第44章配套分支 `part-06/chapter-44` 起步，沿用原有注册／重置请求、单收件人和单 SMTP 通道。本章改变 Worker 在失败后允许做的事。先让一条确定可以重做的工作跨重启继续，再让同一个判断经受地址拒收、业务换代和应答丢失。阅读约 45～60 分钟；动手实现、升级和故障实验另加 75～105 分钟。
 
 ## 45.1 在哪一步失败才足以决定再寄
 
@@ -24,23 +24,30 @@ export function classifyMailFailure(error: unknown) {
   };
   if (smtp.command === 'CONN' && smtp.code === 'ESOCKET' &&
       smtp.originalCode === 'ECONNREFUSED' && smtp.syscall === 'connect') return 'connect-refused';
-  if (smtp.code === 'EENVELOPE' && smtp.command === 'RCPT TO') {
-    switch (smtp.responseCode) {
-      case 450: case 451: case 452: return 'recipient-deferred';
-      case 550: case 551: case 553: return 'recipient-refused';
-    }
+  // The delivery adapter sends to exactly one envelope recipient.
+  const reply = smtp.responseCode;
+  if (smtp.code === 'EENVELOPE' && smtp.command === 'RCPT TO' &&
+      typeof reply === 'number' && Number.isInteger(reply)) {
+    if (reply >= 400 && reply < 500) return 'recipient-deferred';
+    if (reply >= 500 && reply < 600) return 'recipient-refused';
   }
   return 'unconfirmed';
 }
 ```
 
-特别留意 `CONN`。库也可能用它描述已经建立的连接意外关闭，单独判断这个字符串会把第三种故障送去重试。这里还要求底层系统码和失败的系统调用相符。对未覆盖的负应答也采用保守停发。例如发送方认证失败时，需要维护者修通道。若以后一次发送给三个收件人，第一个被拒、另外两个被接受，按整封信重试会重复投给后两人。那时应按收件人记录证据，重新设计任务粒度。此处可在旧工程加入独立分类函数，运行 `npm run typecheck`，旧发送流程尚未接入。
+特别留意 `CONN`。库也可能用它描述已经建立的连接意外关闭，单独判断这个字符串会把第三种故障送去重试。这里还要求底层系统码和失败的系统调用相符。在当前发送器中，一封信只有一个信封收件人。Nodemailer 把这次收件人命令的明确负应答包装为 EENVELOPE，command 为 RCPT TO，responseCode 是数值。即使换了某个少见的 4xx 或 5xx，唯一收件人仍被拒，邮件正文没有交付。启用 SMTP 命令流水线的中继可能已收到 DATA **命令**，这与客户端送出邮件**正文**是两步。对于其他 SMTP 错误，如果这些字段不足以判断对端是否接受过正文，就保留现场。
+
+接下来才决定是否值得按原参数再试。4xx 表示暂缓，本章允许有限次退避；5xx 表示此次请求被明确拒绝，结束本条。比如 552 5.2.2 指邮箱超限，终结本轮自动寄送并不等于认定地址不存在。recipient-refused 记录的是收件人命令遭拒；应答原因也可能来自共享中继的策略或配置。单个地址失败时允许后继前进；如果不同地址接连在同一阶段以相同原因失败，或供应商明确通告共享服务故障，应暂停发送者并核对通道。若接入了认证而共享凭据被拒，应先修凭据。
+
+若以后一次发送给三个收件人，第一个被拒、另外两个被接受，按整封信重试会重复投给后两人。那时要按收件人保存成功与拒绝：旧中继还可能用 552 表示一笔接受的收件人太多，按临时失败拆分余下的地址重试。本章每笔只发往一个地址；把这一分支用于群发前，必须重新判断 552 的含义。[RFC 5321 §4.5.3.1.10](https://www.rfc-editor.org/rfc/rfc5321#section-4.5.3.1.10)
+
+此处可在旧工程加入独立分类函数，运行 `npm run typecheck`，旧发送流程尚未接入。
 
 ## 45.2 让重试预算和下次执行时间跨过重启
 
 只在内存里数三次，再由进程 sleep 五秒，服务一重启，次数和等待都会归零。这种把相邻尝试逐轮拉开的安排叫退避。第44章已经按数据库的 `available_at` 领取到期工作，也会跳过未到期的租约。复用那条查询，把下一次可领取的时刻写回原消息。等待时间按倍数增长叫指数退避，分散同批任务的随机偏移叫抖动。第1次明确暂时失败，等5秒再加不足2秒的随机量；第2次等10秒再加同样范围的随机量；第3次用尽预算，转 `dead`。这三次包括第一次发送。随机量让一批同时失败的行不必在同一瞬间重新到期。这里的秒数用于短效验证邮件和本机实验，生产通道还要结合供应商节流、用户剩余等待时间与允许的总流量取值。
 
-死信在这里就是停止自动领取、仍能按 ID 查原因的一行。它和 unknown 都不会被领取。dead 有明确的拒绝依据，可以让后继通过；unknown 还占着前章那条通道。把二者都转进一个可批量“重跑”的列表，会丢掉最重要的恢复条件。
+死信在这里就是停止自动领取、仍能按 ID 查原因的一行。它和 unknown 都不会被领取。dead 有明确的未交付依据，可以让后继通过。新发生的 unknown 会占着前章那条通道，直到有人核对并处置。把二者都转进一个可批量“重跑”的列表，会丢掉最重要的恢复条件。
 
 停止旧 API 写入和所有发送者，包括 dev:worker 的 watcher。将已有验证库备份、恢复到独立的 epp_ch45_verify，方法沿用[第44章的非空升级](../chapter-44-claims/chapter.md#446-在旧库上完成交接)。在 DBeaver 运行配套 `database/chapter-45/01-observe.sql` 的前三条，记下若干不同状态的旧 ID、时间、租约及 paused_by。新建迁移 `prisma/migrations/20261110010000_mail_retries/migration.sql`：
 
@@ -223,13 +230,17 @@ npm run dev:worker -- epp_ch45_verify
 
 图 45-3　同一实验库的三个收件人。address45 第一次就被明确拒收；从第44章库升级来的 reader43 在第二次成功；budget45 连续三次暂缓后耗尽预算。在 DBeaver 只选这三个地址，按 attempts 排序。reader43 和图 45-1 的 retry45 来自不同轮次。
 
+接着只换收件人，看看一个邮箱超限会不会拖住另一个人。关掉 reject 故障端，运行 `node database/chapter-45/smtp-lab.mjs quota 1045`。等 ready 后，先用 `a@quota.example.test`、再用 `b@example.test` 各发一次 01。两次都应返回 202；若遇到 AUTH_RATE_LIMIT 的 429，等响应头 Retry-After 指定的秒数，只补发未成功的那一笔。重做实验时换两个地址的 @ 前缀，保留各自域名。用 DBeaver 的第四条观察查询按 mailbox 列的 a、b（重做时用本轮前缀）分别记下 A、B 的消息 UUID。让 API 和故障端保持运行，持续 Worker 保持停止。
+
+先运行 `once "A的消息UUID"`（替换引号内文字）。故障端应打印 `RCPT 552 for quota.example.test`，到这里没有收到正文结束符；库中 A 为 dead、attempts=1、recipient-refused，B 仍 pending。用第三条查询检查控制行，paused_by 为空。保持进程和端口原样，再运行 `once "B的消息UUID"`。故障端这次收到正文结束符并回复 250，B 成为 accepted、attempts=1；A 保持 dead、一次。这个故障端只应答并丢弃正文，结果到 SMTP 接受为止。若 B 也被拒，先查两个域名和故障端模式；两次都指向 quota 域或仍运行 reject 模式，改变的条件就不对。Ctrl-C 结束 quota 端。
+
 当一百条邮件同时遇到通道故障，每条三次仍可能产生三百次尝试。关掉发送者，API 仍可返回 202，新增的工作会继续排队。在 DBeaver 执行观察文件最后一条：ready 统计已经到期的 pending，waiting 包含尚在退避或租约仍有效的 pending，oldest_ready 是最早的可取时刻。这个快照不判断控制行是否开放，应该连同 paused_by 和两次采样的变化一起读。ready 持续增长而通道空闲，去看 Worker 是否运行、实际库名及单位时间完成量；通道被占用则先查事故。共享服务长时间故障时先人工停掉这条通道的全部执行者，在恢复前让待办留在库里；规模再大时还需要跨消息的总速率预算和探测恢复。只缩短轮询或增加 Worker 无法消除远端拒收。
 
 ## 45.5 对端读完正文以后如何放行和清理
 
 将故障端改为 `node database/chapter-45/smtp-lab.mjs drop 1045`。用另一个虚构地址发 01，再按实际 ID 执行 once。这次服务端会读到正文结束符并打印一行提示，随后主动断开，不打印正文，也不给最终应答。再换地址发 01，留下另一行 pending。运行持续 Worker，观察 worker.result 的 paused 以及退出；开发 watcher 即使仍在等待源码变化也要停止。DBeaver 中第一行 unknown、attempts=1、holds_channel 为真，后继 pending、attempts=0。隔一分钟再开 Worker 仍会停在同一个 ID。真实 SMTP 若已收下信却没能回写数据库，也可能留下 attempting；超过租期后同样不能直接重寄。
 
-![应答丢失后、人工放行前的 Prisma Studio 实拍](images/held-channel.jpg)
+![应答丢失后、人工放行前的 DBeaver 实拍](images/held-channel.jpg)
 
 图 45-4　应答丢失后、人工放行前的 DBeaver 实拍。gui45 的 holds_channel 被勾选，next45 的没有勾选，尝试次数仍为零。两行共享同一通道，第二行的勾选框只描述这一行与控制记录的关系。
 
@@ -246,7 +257,7 @@ WHERE current_database()='epp_ch45_verify' AND c.id=1 AND c.paused_by=o.id
 RETURNING o.id,o.status;
 ```
 
-核对 RETURNING 恰好一行后提交。零行表示条件已变化，重查控制行，不要去掉条件再试。启动 Worker，后继应转为 accepted，原行保持 unknown 或 attempting；若后继申请在停发中已到期，它会安全地变成 obsolete。此前使用的 claim 有自己的身份，即使原执行者迟到，也不能替下一条释放通道。中途离开时先记录故障 ID 与端口状态，回来从查询开始，不从重新发信开始。
+核对 RETURNING 恰好一行后提交。零行表示条件已变化，重查控制行，不要去掉条件再试。这次只批准用一条后继核对恢复，保持 Worker 和 watcher 已停。控制行放开后，任何运行中的发送者都能取到期工作，SQL 本身不限定放行一条。仅对后继的 UUID 运行 once，复查两个 ID。后继应为 accepted、一次，原 unknown 仍为一次；若后继申请在停发中已到期，它会安全地变成 obsolete。恢复后的 Mailpit 按两个本轮地址分别筛选，只有有效后继应新增一封；这项核对只覆盖恢复后的投递。对原事故 ID 再执行 once 应返回 empty。到此才决定是否恢复持续 Worker。若共享中继故障仍在、无法界定波及哪些地址，继续保持发送者停止；不要为了逐封试探而批量清空占用。此前使用的 claim 有自己的身份，即使原执行者迟到，也不能替下一条释放通道。中途离开时先记录故障 ID 与端口状态，回来从查询开始，不从重新发信开始。
 
 ![放行后原消息仍未知，后继已被 SMTP 接受](images/resumed-channel.jpg)
 
