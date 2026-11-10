@@ -561,12 +561,16 @@
 - [45.5 对端读完正文以后如何放行和清理](part-06-background/chapter-45-retries/chapter.md#455-对端读完正文以后如何放行和清理)
 - [附录：本章必要技术点速查](part-06-background/chapter-45-retries/chapter.md#附录本章必要技术点速查)
 
-### 第 46 章 先让通知成为可查询的数据
+### [第 46 章 先让通知成为可查询的数据](part-06-background/chapter-46-notifications/chapter.md)
 
-- 46.1 为注册完成等已有业务增加站内通知：先定义 Notification 表、未读和清除的含义。
-- 46.2 追加迁移并提供可分页查询；历史用户从空通知列表开始。
-- 46.3 新增 notification.create 投递类型，在同一业务事务中创建意图，复用 Worker 处理。
-- 46.4 对重复投递、过期和接收者状态变化作处理；此时客户端先通过查询获取通知。
+阅读约 50～65 分钟，实现、升级、双角色联调和重放实验另加 75～100 分钟（估算）。
+
+- [46.1 收件箱的一行代表什么](part-06-background/chapter-46-notifications/chapter.md#461-收件箱的一行代表什么)
+- [46.2 让当前账号能翻页、标记和清除](part-06-background/chapter-46-notifications/chapter.md#462-让当前账号能翻页标记和清除)
+- [46.3 在一次业务提交后，由另一个事务生成通知](part-06-background/chapter-46-notifications/chapter.md#463-在一次业务提交后由另一个事务生成通知)
+- [46.4 用两次确认走完收件箱](part-06-background/chapter-46-notifications/chapter.md#464-用两次确认走完收件箱)
+- [46.5 重放一次已清除事件，再改变收件条件](part-06-background/chapter-46-notifications/chapter.md#465-重放一次已清除事件再改变收件条件)
+- [附录：本章必要技术点速查](part-06-background/chapter-46-notifications/chapter.md#附录本章必要技术点速查)
 
 ### 第 47 章 用 SSE 传递实时更新
 
