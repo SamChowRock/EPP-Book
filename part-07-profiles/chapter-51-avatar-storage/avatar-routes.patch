@@ -1,0 +1,299 @@
+diff --git a/src/auth.module.ts b/src/auth.module.ts
+index 42f668d..1f91c1b 100644
+--- a/src/auth.module.ts
++++ b/src/auth.module.ts
+@@ -1,3 +1,5 @@
++import { AvatarObjects } from './avatar-objects.js';
++import { AvatarPublication } from './avatar-publication.js';
+ import { AvatarController } from './avatar.controller.js';
+ import { ProfileController } from './profile.controller.js';
+ import { ProfileService } from './profile.service.js';
+@@ -16,7 +18,7 @@ import type { AuthenticatedRequest } from './auth-context.js';
+ @Module({
+   imports: [DatabaseModule], controllers: [AuthController, RecoveryController, ProfileController, AvatarController],
+   providers: [
+-    ProfileService,
++    AvatarObjects, AvatarPublication, ProfileService,
+     { provide: RecoveryService, useFactory: (db: DatabaseService, sessions: SessionService,
+       state: ApplicationState) =>
+       new RecoveryService(db, sessions, state),
+diff --git a/src/avatar-upload.ts b/src/avatar-upload.ts
+index 58703ea..6c2429d 100644
+--- a/src/avatar-upload.ts
++++ b/src/avatar-upload.ts
+@@ -56,12 +56,13 @@ async function receive(request: IncomingMessage, filename: string, drain?: Abort
+   }
+ }
+
++type ReceiveFile = <T>(processFile: (filename: string, format: 'png' | 'jpeg') => Promise<T>) => Promise<T>;
++
+ export async function withAvatarUpload<T>(
+   request: IncomingMessage,
+-  processFile: (filename: string, format: 'png' | 'jpeg') => Promise<T>,
+-  sendResult: (result: T) => Promise<void>,
++  work: (receiveFile: ReceiveFile) => Promise<T>,
+   drain?: AbortSignal,
+-): Promise<void> {
++): Promise<T> {
+   const type = request.headers['content-type']?.toLowerCase();
+   if ((type !== 'image/jpeg' && type !== 'image/png')
+     || (request.headers['content-encoding'] ?? 'identity').toLowerCase() !== 'identity') {
+@@ -71,16 +72,16 @@ export async function withAvatarUpload<T>(
+   if (activeUploads >= 2) throw new HttpError(429, 'Avatar processor is busy', 'AVATAR_BUSY');
+   activeUploads++;
+   try {
+-    let result: T;
+-    const directory = await privateDirectory();
+-    try {
+-      const filename = join(directory, 'input');
+-      await receive(request, filename, drain);
+-      result = await processFile(filename, type === 'image/png' ? 'png' : 'jpeg');
+-    } finally {
+-      await rm(directory, { recursive: true, force: true });
+-    }
+-    await sendResult(result);
++    return await work(async processFile => {
++      const directory = await privateDirectory();
++      try {
++        const filename = join(directory, 'input');
++        await receive(request, filename, drain);
++        return await processFile(filename, type === 'image/png' ? 'png' : 'jpeg');
++      } finally {
++        await rm(directory, { recursive: true, force: true });
++      }
++    });
+   } finally {
+     activeUploads--;
+   }
+diff --git a/src/avatar.controller.ts b/src/avatar.controller.ts
+index d0f7e85..33e399a 100644
+--- a/src/avatar.controller.ts
++++ b/src/avatar.controller.ts
+@@ -1,4 +1,10 @@
+-import { Controller, Post, Query, Req, Res } from '@nestjs/common';
++import { requireSession, type AuthenticatedRequest } from './auth-context.js';
++import { UserIdSchema } from './auth-contract.js';
++import { AvatarLink, AvatarVisibility, PublishedAvatar } from './avatar-contract.js';
++import { AvatarPublication } from './avatar-publication.js';
++import { SchemaPipe } from './schema.pipe.js';
++import { ResponseSchemaInterceptor } from './response-schema.interceptor.js';
++import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, Req, Res, UseInterceptors } from '@nestjs/common';
+ import { finished } from 'node:stream/promises';
+ import type { Request, Response } from 'express';
+ import { renderAvatar } from './avatar-image.js';
+@@ -18,20 +24,38 @@ async function sendPreview(response: Response, result: Buffer): Promise<void> {
+   }
+ }
+
+-@Controller('profile/avatar')
++@Controller()
+ export class AvatarController {
+-  constructor(private readonly state: ApplicationState) {}
++  constructor(private readonly state: ApplicationState, private readonly avatars: AvatarPublication) {}
+
+-  @Post('preview')
+-  async preview(@Req() request: Request, @Res() response: Response, @Query() query: unknown): Promise<void> {
++  @Post('profile/avatar/preview')
++  async preview(@Req() request: Request, @Res() response: Response, @Query() query: unknown) {
++    return this.upload(request, response, query, async receiveFile => {
++      await sendPreview(response, await receiveFile(renderAvatar));
++    });
++  }
++
++  @Post('profile/avatar')
++  @HttpCode(200)
++  @UseInterceptors(new ResponseSchemaInterceptor(PublishedAvatar))
++  async publish(@Req() request: AuthenticatedRequest, @Res({ passthrough: true }) response: Response,
++    @Query() query: unknown) {
++    const identity = requireSession(request);
++    return this.upload(request, response, query, async receiveFile => {
++      const id = await this.avatars.reserve(identity);
++      const bytes = await receiveFile(renderAvatar);
++      return this.avatars.publish(identity, id, bytes);
++    });
++  }
++
++  private async upload<T>(request: Request, response: Response, query: unknown,
++    work: Parameters<typeof withAvatarUpload<T>>[1]) {
+     const drain = new AbortController();
+     const unsubscribe = this.state.onDrain(() => drain.abort());
+     if (this.state.draining) drain.abort();
+     try {
+       parseInput(EmptyObjectSchema, query);
+-      await this.state.track(() => withAvatarUpload(
+-        request, renderAvatar, result => sendPreview(response, result), drain.signal,
+-      ));
++      return await this.state.track(() => withAvatarUpload(request, work, drain.signal));
+     } catch (error) {
+       if (!response.destroyed && !response.headersSent) response.setHeader('Connection', 'close');
+       throw error;
+@@ -39,4 +63,30 @@ export class AvatarController {
+       unsubscribe();
+     }
+   }
++
++  @Get('profile/avatar')
++  @UseInterceptors(new ResponseSchemaInterceptor(AvatarLink))
++  own(@Req() request: AuthenticatedRequest, @Query(new SchemaPipe(EmptyObjectSchema)) _query: object) {
++    return this.state.track(() => this.avatars.read(requireSession(request)));
++  }
++
++  @Get('profiles/:userId/avatar')
++  @UseInterceptors(new ResponseSchemaInterceptor(AvatarLink))
++  published(@Req() request: AuthenticatedRequest, @Param('userId', new SchemaPipe(UserIdSchema)) userId: string,
++    @Query(new SchemaPipe(EmptyObjectSchema)) _query: object) {
++    return this.state.track(() => this.avatars.read(requireSession(request), userId));
++  }
++
++  @Get('profile/avatar/visibility')
++  @UseInterceptors(new ResponseSchemaInterceptor(AvatarVisibility))
++  getVisibility(@Req() request: AuthenticatedRequest, @Query(new SchemaPipe(EmptyObjectSchema)) _query: object) {
++    return this.state.track(() => this.avatars.getVisibility(requireSession(request)));
++  }
++
++  @Patch('profile/avatar/visibility')
++  @UseInterceptors(new ResponseSchemaInterceptor(AvatarVisibility))
++  visibility(@Req() request: AuthenticatedRequest, @Body(new SchemaPipe(AvatarVisibility)) input: { visible: boolean },
++    @Query(new SchemaPipe(EmptyObjectSchema)) _query: object) {
++    return this.state.track(() => this.avatars.visibility(requireSession(request), input.visible));
++  }
+ }
+diff --git a/src/capture-body.ts b/src/capture-body.ts
+index 82856d5..b18c1cf 100644
+--- a/src/capture-body.ts
++++ b/src/capture-body.ts
+@@ -7,7 +7,7 @@ export function captureBody(
+   next: NextFunction,
+ ): void {
+   // httpBoundary has already accepted the path and method.
+-  if (request.path === '/profile/avatar/preview' || (request.method !== 'POST' && request.method !== 'PATCH')) {
++  if (['/profile/avatar/preview', '/profile/avatar'].includes(request.path) || (request.method !== 'POST' && request.method !== 'PATCH')) {
+     next();
+     return;
+   }
+diff --git a/src/http-boundary.ts b/src/http-boundary.ts
+index 17fbc4c..93112e9 100644
+--- a/src/http-boundary.ts
++++ b/src/http-boundary.ts
+@@ -26,14 +26,17 @@ export function httpBoundary(
+     const discard = /^\/candidates\/([^/]+)\/(?:discard|accept)$/.exec(url.pathname);
+     const learningDetail = /^\/learning-records\/([^/]+)$/.exec(url.pathname);
+     const sessionDetail = /^\/auth\/sessions\/([^/]+)$/.exec(url.pathname);
++    const publicAvatar = /^\/profiles\/([^/]+)\/avatar$/.exec(url.pathname);
+     const publicProfile = /^\/profiles\/([^/]+)$/.exec(url.pathname);
+     const notificationRead = /^\/notifications\/([^/]+)\/read$/.exec(url.pathname);
+     const notificationDetail = /^\/notifications\/([^/]+)$/.exec(url.pathname);
+-    if ((publicProfile?.[1] ?? notificationRead?.[1] ?? notificationDetail?.[1])?.includes('%')) {
++    if ((publicAvatar?.[1] ?? publicProfile?.[1] ?? notificationRead?.[1] ?? notificationDetail?.[1])?.includes('%')) {
+       throw new HttpError(404, 'Route not found', 'ROUTE_NOT_FOUND');
+     }
+     const allowed = ['/auth/login', '/auth/logout', '/auth/password', '/profile/avatar/preview', ...RECOVERY_PATHS].includes(url.pathname) ? ['POST']
+       : ['/auth/me', '/auth/sessions', '/auth/csrf'].includes(url.pathname) ? ['GET'] : sessionDetail ? ['DELETE']
++      : url.pathname === '/profile/avatar' ? ['GET', 'POST']
++      : url.pathname === '/profile/avatar/visibility' ? ['GET', 'PATCH'] : publicAvatar ? ['GET']
+       : url.pathname === '/profile/me' ? ['GET', 'PATCH'] : publicProfile ? ['GET']
+       : ['/notifications', '/notifications/events'].includes(url.pathname) ? ['GET'] : notificationRead ? ['POST'] : notificationDetail ? ['DELETE']
+       : url.pathname === '/captures' ? ['GET', 'POST']
+diff --git a/src/openapi.ts b/src/openapi.ts
+index d30087d..cc33639 100644
+--- a/src/openapi.ts
++++ b/src/openapi.ts
+@@ -1,3 +1,4 @@
++import { AvatarLink, AvatarVisibility, PublishedAvatar } from './avatar-contract.js';
+ import { OwnProfile, ProfilePatch, PublicProfile } from './profile-contract.js';
+ import { UserIdSchema } from './auth-contract.js';
+ import { NotificationQuery, NotificationPage } from './notification-contract.js';
+@@ -40,10 +41,14 @@ const notModified: ResponseObject = {
+ };
+
+ export function createOpenApiDocument(cookieName = 'epp_session'): OpenAPIObject {
++  const avatarBody = { required: true, content: {
++    'image/jpeg': { schema: { type: 'string', format: 'binary' } },
++    'image/png': { schema: { type: 'string', format: 'binary' } },
++  } };
+   const document: OpenAPIObject = {
+     openapi: '3.0.3',
+     info: {
+-      title: 'EPP Capture API', version: '0.19.0',
++      title: 'EPP Capture API', version: '0.20.0',
+       description: 'PostgreSQL records belonging to the authenticated session user. Errors use Problem Details. Capture creation is not idempotent; candidate acceptance supports operation identity.',
+     },
+     security: [{ sessionCookie: [] }],
+@@ -82,10 +87,7 @@ export function createOpenApiDocument(cookieName = 'epp_session'): OpenAPIObject
+       '/profile/avatar/preview': { post: {
+         operationId: 'previewAvatar', summary: 'Create a private, temporary 256×256 WebP preview',
+         description: 'No query. Send a single raw JPEG or PNG, up to 2 MiB, 12 million pixels and 8192 pixels per edge. No content encoding. This operation does not save an avatar.',
+-        requestBody: { required: true, content: {
+-          'image/jpeg': { schema: { type: 'string', format: 'binary' } },
+-          'image/png': { schema: { type: 'string', format: 'binary' } },
+-        } },
++        requestBody: avatarBody,
+         responses: {
+           '200': { description: 'Metadata-stripped WebP', content: { 'image/webp': { schema: { type: 'string', format: 'binary' } } } },
+           '400': problem('Unexpected query or interrupted upload'), '408': problem('UPLOAD_TIMEOUT'),
+@@ -94,6 +96,33 @@ export function createOpenApiDocument(cookieName = 'epp_session'): OpenAPIObject
+           '500': problem('Internal failure'),
+         },
+       } },
++      '/profile/avatar': {
++        post: { operationId: 'publishAvatar', summary: 'Publish a processed private WebP',
++          description: 'Same raw image and resource limits as preview. A newer reservation supersedes an older pending upload. After a lost response, read your current avatar before retrying.',
++          requestBody: avatarBody,
++          responses: { '200': jsonResponse('PublishedAvatar', 'Current pointer replaced'),
++            '400': problem('Unexpected query or interrupted upload'), '408': problem('UPLOAD_TIMEOUT'),
++            '409': problem('AVATAR_SUPERSEDED'), '413': problem('AVATAR_TOO_LARGE'),
++            '415': problem('AVATAR_MEDIA_TYPE or AVATAR_FORMAT'), '422': problem('AVATAR_UNPROCESSABLE'),
++            '429': problem('AVATAR_BUSY'), '503': problem('Service draining, database or avatar storage unavailable') } },
++        get: { operationId: 'readOwnAvatar', summary: 'Get a signed link to your avatar',
++          responses: { '200': jsonResponse('AvatarLink', 'Private GET link valid for 30 seconds from signing time'),
++            '400': problem('Unexpected query'), '404': problem('AVATAR_NOT_FOUND'),
++            '503': problem('Service draining, database or avatar storage unavailable') } },
++      },
++      '/profile/avatar/visibility': {
++        get: { operationId: 'getAvatarVisibility', summary: 'Read your avatar visibility setting even before uploading',
++          responses: { '200': jsonResponse('AvatarVisibility', 'Stored visibility setting'), '400': problem('Unexpected query') } },
++        patch: { operationId: 'setAvatarVisibility', summary: 'Set avatar visibility for other Web users',
++        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/AvatarVisibility' } } } },
++        responses: { '200': jsonResponse('AvatarVisibility', 'Visibility setting saved'), '400': problem('Invalid body or query') },
++      } },
++      '/profiles/{userId}/avatar': { get: { operationId: 'readPublicAvatar', summary: 'Get a signed link to an available and visible avatar',
++        parameters: [{ name: 'userId', in: 'path', required: true, schema: schema(UserIdSchema, 'input') }],
++        responses: { '200': jsonResponse('AvatarLink', 'Private GET link valid for 30 seconds from signing time'),
++          '400': problem('Invalid ID or query'), '404': problem('AVATAR_NOT_FOUND'),
++          '503': problem('Service draining, database or avatar storage unavailable') },
++      } },
+       '/profile/me': {
+         get: { operationId: 'readOwnProfile', summary: 'Read your nickname and its visibility setting',
+           responses: { '200': jsonResponse('OwnProfile', 'Current profile'), '400': problem('Unexpected query'),
+@@ -297,6 +326,8 @@ export function createOpenApiDocument(cookieName = 'epp_session'): OpenAPIObject
+     },
+     components: { securitySchemes: { sessionCookie: { type: 'apiKey', in: 'cookie', name: cookieName,
+       description: 'Set by login; never paste a token into Swagger. Same-origin browser requests carry the HttpOnly cookie.' } }, schemas: {
++      PublishedAvatar: schema(PublishedAvatar, 'output'), AvatarLink: schema(AvatarLink, 'output'),
++      AvatarVisibility: schema(AvatarVisibility, 'input'),
+       OwnProfile: schema(OwnProfile, 'output'), PublicProfile: schema(PublicProfile, 'output'),
+       ProfilePatch: { ...schema(ProfilePatch, 'input'), minProperties: 1 },
+       NotificationPage: schema(NotificationPage, 'output'),
+@@ -354,7 +385,7 @@ export function createOpenApiDocument(cookieName = 'epp_session'): OpenAPIObject
+         operation.responses['403'] = problem('Origin, explicit header, CSRF or account permission rejected; code ORIGIN_REJECTED, REQUEST_HEADER_REQUIRED, CSRF_REJECTED, ACCOUNT_DISABLED or WEB_ACCESS_DENIED');
+       }
+       if (RECOVERY_PATHS.includes(pathname)) operation.responses['403'] = problem('Origin or explicit request header rejected');
+-      operation.responses['503'] = problem('Draining or temporary storage failure; code SERVICE_DRAINING or STORAGE_UNAVAILABLE. Failed writes may have an unknown outcome; do not blindly retry writes, including revision POST and PATCH; retries can append duplicate snapshots.');
++      operation.responses['503'] ??= problem('Draining or temporary storage failure; code SERVICE_DRAINING or STORAGE_UNAVAILABLE. Failed writes may have an unknown outcome; do not blindly retry writes, including revision POST and PATCH; retries can append duplicate snapshots.');
+       if (operation.responses['429'] && !('$ref' in operation.responses['429'])) {
+         operation.responses['429'].headers = { 'Retry-After': { schema: { type: 'string' }, description: 'Seconds for AUTH_RATE_LIMIT only; other limits require their own recovery.' } };
+       }
+diff --git a/src/request-observation.ts b/src/request-observation.ts
+index e732fd2..cbdf9c1 100644
+--- a/src/request-observation.ts
++++ b/src/request-observation.ts
+@@ -17,7 +17,8 @@ export function requestObservation(logger: AppLogger, state: ApplicationState, k
+       : /^\/auth\/sessions\/[^/]+$/.test(path) ? '/auth/sessions/:id'
+       : knownPaths.includes(path) ? path : path === '/captures' ? '/captures'
+       : /^\/profiles\/[^/]+$/.test(path) ? '/profiles/:userId'
+-      : ['/profile/avatar/preview', '/profile/me', '/notifications', '/notifications/events', '/learning-records', '/star-map'].includes(path) ? path
++      : /^\/profiles\/[^/]+\/avatar$/.test(path) ? '/profiles/:userId/avatar'
++      : ['/profile/avatar', '/profile/avatar/visibility', '/profile/avatar/preview', '/profile/me', '/notifications', '/notifications/events', '/learning-records', '/star-map'].includes(path) ? path
+       : /^\/notifications\/[^/]+\/read$/.test(path) ? '/notifications/:id/read'
+       : /^\/notifications\/[^/]+$/.test(path) ? '/notifications/:id'
+       : /^\/learning-records\/[^/]+$/.test(path) ? '/learning-records/:id'

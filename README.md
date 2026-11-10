@@ -622,18 +622,17 @@
 - [50.4 在中断与重启后找回资源](part-07-profiles/chapter-50-avatar/chapter.md#504-在中断与重启后找回资源)
 - [附录：本章必要技术点速查](part-07-profiles/chapter-50-avatar/chapter.md#附录本章必要技术点速查)
 
-[支线 50A　如果上传变成 200 MiB，还要让 API 接文件吗？](part-07-profiles/chapter-50-avatar/side-01-upload-paths.md) 阅读另加 9～13 分钟。
+### [第 51 章 对象存储与数据库如何协作](part-07-profiles/chapter-51-avatar-storage/chapter.md)
 
-### 第 51 章 对象存储与数据库如何协作
+阅读约 75～95 分钟；沿用两个练习账号时，本机安装、编码、发布与故障实验另加 110～155 分钟。
 
-先独立验收私有对象的写、读与删除，再让一次头像替换跨过对象存储和账号事务。
-
-- 51.1 从预览到持久保存，确定桶、对象键、可读者与凭据权限。
-- 51.2 在本机运行固定的 SeaweedFS 4.52 原生 weed mini，核对回环监听、禁用无关入口、Filer 元数据与 Volume 内容。
-- 51.3 分开管理身份与头像桶应用身份，用固定版本 AWS SDK v3 验证上传、受控读取与按键删除；收紧资料可见性后，已签出的链接还能读多久？
-- 51.4 为旧账号保留空头像，按当前账号状态预留写入，给每次尝试一个独有的键。
-- 51.5 发布头像时检查当前版本，辨别写对象与提交引用之间的部分成功，阻止迟到写入覆盖新头像。
-- 51.6 取得候选对象的清理权，按旧版本引用与保留期回收，保留写入记录供账号处置核查。
+- [51.1 一张头像需要保存哪些事实](part-07-profiles/chapter-51-avatar-storage/chapter.md#511-一张头像需要保存哪些事实)
+- [51.2 在本机启动一个私有桶](part-07-profiles/chapter-51-avatar-storage/chapter.md#512-在本机启动一个私有桶)
+- [51.3 用两个身份验证读写和到期](part-07-profiles/chapter-51-avatar-storage/chapter.md#513-用两个身份验证读写和到期)
+- [51.4 把一次写入预订在旧账号上](part-07-profiles/chapter-51-avatar-storage/chapter.md#514-把一次写入预订在旧账号上)
+- [51.5 先预订，写完对象再争发布资格](part-07-profiles/chapter-51-avatar-storage/chapter.md#515-先预订写完对象再争发布资格)
+- [51.6 在删除以前先取得处置权](part-07-profiles/chapter-51-avatar-storage/chapter.md#516-在删除以前先取得处置权)
+- [附录：本章必要技术点速查](part-07-profiles/chapter-51-avatar-storage/chapter.md#附录本章必要技术点速查)
 
 ### 第 52 章 第七篇回顾：文件与数据库没有一起成功时怎么办
 

@@ -474,4 +474,4 @@ NODE_ENV=test node --env-file=.env.test-regression --test --test-concurrency=1 t
 
 源码中的流语义可回查 [Node 24.22.1 Stream](https://nodejs.org/download/release/v24.22.1/docs/api/stream.html)。图像参数可回查 [Sharp 输入限制](https://sharp.pixelplumbing.com/api-constructor/)与[输出选项](https://sharp.pixelplumbing.com/api-output/)。
 
-[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-50) · [上一章](../chapter-49-profile/chapter.md) · [第七篇导读](../README.md) · [全书目录](../../README.md)
+[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-50) · [上一章](../chapter-49-profile/chapter.md) · [第七篇导读](../README.md) · [下一章：对象存储与数据库如何协作](../chapter-51-avatar-storage/chapter.md) · [全书目录](../../README.md)
