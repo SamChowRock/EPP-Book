@@ -612,12 +612,17 @@
 - [49.5 用两个账号检查可见性和配额](part-07-profiles/chapter-49-profile/chapter.md#495-用两个账号检查可见性和配额)
 - [附录：本章必要技术点速查](part-07-profiles/chapter-49-profile/chapter.md#附录本章必要技术点速查)
 
-### 第 50 章 安全地接收和处理头像
+### [第 50 章 安全地接收和处理头像](part-07-profiles/chapter-50-avatar/chapter.md)
 
-- 50.1 约定临时预览的请求和响应：谁能上传、成功后得到什么、会不会改变当前头像。
-- 50.2 沿请求流逐块计量字节，用背压、时限与并发上限控制慢速上传的占用。
-- 50.3 从真实格式、像素和帧数推算解码成本，用 Sharp 重编码并限制输出。
-- 50.4 在断开、解码失败和进程退出时回收临时资源，重启后处置残留，核对原账号资料。
+阅读约 55～75 分钟。已有第 49 章练习账号时，编码、图片联调与退出实验另加 75～105 分钟。
+
+- [50.1 给已登录用户返回一次预览](part-07-profiles/chapter-50-avatar/chapter.md#501-给已登录用户返回一次预览)
+- [50.2 接收端怎样跟上慢速写入](part-07-profiles/chapter-50-avatar/chapter.md#502-接收端怎样跟上慢速写入)
+- [50.3 一张小文件会解码出多少像素](part-07-profiles/chapter-50-avatar/chapter.md#503-一张小文件会解码出多少像素)
+- [50.4 在中断与重启后找回资源](part-07-profiles/chapter-50-avatar/chapter.md#504-在中断与重启后找回资源)
+- [附录：本章必要技术点速查](part-07-profiles/chapter-50-avatar/chapter.md#附录本章必要技术点速查)
+
+[支线 50A　如果上传变成 200 MiB，还要让 API 接文件吗？](part-07-profiles/chapter-50-avatar/side-01-upload-paths.md) 阅读另加 9～13 分钟。
 
 ### 第 51 章 对象存储与数据库如何协作
 
