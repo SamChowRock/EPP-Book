@@ -4,7 +4,7 @@
 
 本章从配套分支 `part-06/chapter-42` 继续。沿用 PostgreSQL、Mailpit、verification_intents、verification_outbox 和一次性函数 `sendOne`。要交付的变化很具体：把 API 和寄信程序各启动一次，以后每次获准签发的注册或重置意图都可以由正在运行的 Worker 接手；关掉 API，Worker 可以投递已经提交的工作；关掉 Worker，API 可以继续受理申请。最后让一封信正发送到一半时再关机，核对哪些承诺还能兑现。
 
-阅读约 65～80 分钟，实现、迁移、双进程调试及联调另加 95～125 分钟，按本章代码与操作步骤估算。
+阅读约 70～85 分钟，实现、迁移、双进程调试及联调另加 100～130 分钟，按本章代码与操作步骤估算。
 
 ## 43.1 谁来发现下一条待办
 
@@ -63,7 +63,11 @@ export class MailWorkerModule {
 }
 ```
 
-**先让“正在处理哪一封”跨重启可见。** 第 42 章已经保证 A 的令牌不会被同一条任务再次签发。但 A 的 SMTP 应答丢失时，单纯退出进程挡不住新进程去领 B。我们需要为整个验证邮件通道留一个跨进程的事实。控制表固定为一行：paused_by 为空，可以开始新尝试；有值，则对应的消息正在发送或需要核对。正常发送只占用这行里的名额，不会让 SQL 行锁跨过 SMTP 调用。
+**先决定 A 的故障应当挡住谁。** 假设 A 的最后一个 SMTP 应答丢了，中继随即恢复。一分钟后，另一位用户申请注册，排进一封 B。A 已经离开 pending，继续领取 B 不会重寄 A。若希望其他账号照常收信，可以只隔离 A，另外观察中继是否持续异常。反过来，假如中继对每封信都吞掉最后的应答，继续发送会让 B、C 也变成需要人工核对的消息。
+
+本章先选一条限制：同一个邮件通道最多容许一封结果待核。它适合能及时接手事故、希望控制待核数量的场景。代价也由 B 承担：夜里无人处置时，B 可能把十五分钟的验证期限全部耗在排队上。若产品更看重其他账号仍能找回密码，就应缩小暂停范围，并给共享故障另设停发条件。第 45 章会让同一个中继分别只拒绝 A、以及收完正文后丢应答，检验你会在哪一层停手。
+
+要让这一选择在进程重启后仍有效，数据库里需留一条全通道共用的记录。控制表固定为一行：paused_by 为空，可以开始新尝试；有值，对应的消息正在发送或需要核对。名额在准备事务里占用，SQL 行锁不会跨过 SMTP 调用。
 
 在 `prisma/migrations/20261109020000_verification_mail_control/migration.sql` 追加以下迁移，在 `prisma/schema.prisma` 末尾追加对应模型。第 42 章没有记录“某次故障要阻止后续邮件”，所以首次升级从空名额开始。已有 unknown 和 attempting 保留原值；升级前先停所有旧版 send-one 和寄信进程、核对遗留任务，避免旧发送者绕过新规则。
 
@@ -119,7 +123,7 @@ model VerificationMailControl {
   return 'accepted';
 ```
 
-若进程在准备提交后崩溃，名额仍指向 A。若 SMTP 已接受但数据库写回失败，清空名额与登记 accepted 同时回滚。另一启动实例可以读到这条线索，只会报告 paused。旧的一次性入口 `src/send-one.ts` 也调用同一函数，把 unknown 和 paused 都映射为退出码 2。若临时手动启动两个发送程序，其中一个看到另一个正在发送也会报告 paused。不要在已有进程尚在工作时释放它的名额。这里选择单通道串行；在多个同时工作的发送者中分配执行权和处理过期领取，是第 44 章的问题。
+若进程在准备提交后崩溃，名额仍指向 A。若 SMTP 已接受但数据库写回失败，清空名额与登记 accepted 同时回滚。另一启动实例可以读到这条线索，只会报告 paused。旧的一次性入口 `src/send-one.ts` 也调用同一函数，把 unknown 和 paused 都映射为退出码 2。若临时手动启动两个发送程序，其中一个看到另一个正在发送也会报告 paused。不要在已有进程尚在工作时释放它的名额。第 44 章再借助执行者身份和租约，区分通道正在被使用与需要核对的两种情况。
 
 模块及启动探测还需要以下修改，一并完成后运行 `npm run check`。
 
@@ -346,7 +350,19 @@ RETURNING id;
 
 放行只清除通道名额，A 的结果与令牌均保持原状。启动 Worker，若 B 仍在有效期内，应由同一消息 ID 寄到 Mailpit 并转为 accepted；若已过期会转为 obsolete。不要通过删除控制行、改写 A 的状态或重寄 A 来恢复 B。
 
-**交付和恢复。** 确认第 43 章迁移已部署，所有寄信入口均使用本章产物。需要回归时先停两个应用和调试器，用具有原虚构样本的独立测试库运行 `npm test`，空库样本见第 42 章。随后用 `npm run check` 生成 dist，将它与 package.json、package-lock.json、.npmrc 复制到干净目录，执行 `npm ci --omit=dev`。API 沿用原生产环境与 `npm start`；Worker 的生产环境只需数据库、日志与 SMTP 配置，使用 `npm run start:worker -- 预期库名`。托管时直接以 `NODE_ENV=production node --enable-source-maps dist/src/mail-worker.js 预期库名` 为进程入口，让停止信号送达实际持有连接的进程。生产入口不加载 .env.worker，不开放 Inspector，也无需监听第二个 HTTP 端口。邮件仍只投本机 SMTP。
+**让回归用例识别跨进程停发。** 第 42 章的 `test/recovery.test.mjs` 在发送抛错后立即再次处理原消息，预期 empty。现在通道仍被 A 占用，入口会先返回 paused。为同一用例的第二条申请保留地址，按地址查出后继 B 的 ID。用测试发送对象使 A 得到 unknown，再处理 B，应得到 paused 且 B 仍为 pending。用 B 的 ID 尝试放行应更新零行，再次处理 B 仍为 paused；用 A 的 ID 才能更新一行，此后再处理原 A 应为 empty。
+
+如果断言中途失败，残留的占用会让下一个用例也得到 paused。在 `fixture` 的 `t.after` 里先按本轮收件地址查出任务 ID，只清除 `pausedBy` 命中这些 ID 的占用，再删本轮发件箱行。并发处理同一条有效消息的用例仍应只记录一封被接受的邮件；另一调用在占用期间可能得到 paused，在占用清除后可能得到 empty。
+
+从第 42 章原版测试继续时，把[第 43 章测试改动](recovery-43.patch)的原始文本保存为项目根目录的 `recovery-43.patch`，在项目根目录运行下句。本章配套测试已包含这些改动。若检查未通过，按补丁中的三个位置合并本地用例。
+
+```bash
+git apply --check recovery-43.patch && git apply recovery-43.patch
+```
+
+需要回归时，停两个应用和调试器，使用已部署第 43 章迁移、通道空闲的独立测试库。空库的固定虚构样本见[第 42.4 节](../chapter-42-outbox/chapter.md#424-让另一个进程寄出一封仍然有效的信)。核对 `.env.test` 中的 TEST_DATABASE_URL，运行 `unset TEST_DATABASE_URL` 再运行 `npm test`。如果发现已有占用，先按上面的故障恢复步骤核对，不让清理函数替其他任务解除暂停。
+
+**交付和恢复。** 确认第 43 章迁移已部署，所有寄信入口均使用本章产物。用 `npm run check` 生成 dist，将它与 package.json、package-lock.json、.npmrc 复制到干净目录，执行 `npm ci --omit=dev`。API 沿用原生产环境与 `npm start`；Worker 的生产环境只需数据库、日志与 SMTP 配置，使用 `npm run start:worker -- 预期库名`。托管时直接以 `NODE_ENV=production node --enable-source-maps dist/src/mail-worker.js 预期库名` 为进程入口，让停止信号送达实际持有连接的进程。生产入口不加载 .env.worker，不开放 Inspector，也无需监听第二个 HTTP 端口。邮件仍只投本机 SMTP。
 
 中途恢复先查当前库、消息 ID、status 和收件端事实。通道空闲时，pending 可以由下次启动接续；attempting 可能表示仍有活进程发送，也可能表示此前进程退出。数据库连接恰好 idle、进程列表少了一项，都不能证明接收端没有收过信。第 44 章将把问题换成两个执行者和一个迟到写回；第 45 章再区分可重试失败和结果未知。清理本次演示时关闭本轮 Worker、API、Mailpit，移除断点和 Postman 本地秘密。后续候选生成会遇到模型费用和供应商对账，本章的邮件停止策略只覆盖当前这条链。
 

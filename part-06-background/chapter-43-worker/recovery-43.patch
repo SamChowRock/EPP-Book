@@ -1,0 +1,46 @@
+diff --git a/test/recovery.test.mjs b/test/recovery.test.mjs
+index 67f91a5..fd8b7c6 100644
+--- a/test/recovery.test.mjs
++++ b/test/recovery.test.mjs
+@@ -28,6 +28,8 @@ async function fixture(t, delivery) {
+     try {
+       const contacts = await db.verifiedEmail.findMany({ where: { email: { in: emails } } });
+       const ids = contacts.map(x => x.userId);
++      const jobs = await db.verificationOutbox.findMany({ where: { recipient: { in: emails } }, select: { id: true } });
++      await db.verificationMailControl.updateMany({ where: { pausedBy: { in: jobs.map(job => job.id) } }, data: { pausedBy: null } });
+       await db.verificationOutbox.deleteMany({ where: { recipient: { in: emails } } });
+       await db.verificationIntent.deleteMany({ where: { email: { in: emails } } });
+       await db.verifiedEmail.deleteMany({ where: { email: { in: emails } } });
+@@ -125,7 +127,8 @@ test('reset replaces credentials and revokes sessions atomically; active change
+ test('delivery failure preserves intent, response privacy and shared password capacity', async t => {
+   const { recovery, db, address, sessions, app, dispatch } = await fixture(t, { async send() { throw new Error('secret provider detail'); } });
+   const email = address(), first = await recovery.request('reset', email);
+-  assert.deepEqual(await recovery.request('register', address()), first);
++  const secondEmail = address();
++  assert.deepEqual(await recovery.request('register', secondEmail), first);
+   assert.equal(await db.verificationIntent.count({ where: { email } }), 1);
+   let release; const gate = new Promise(r => release = r);
+   const work = [sessions.passwordWork(() => gate), sessions.passwordWork(() => gate)];
+@@ -133,6 +136,12 @@ test('delivery failure preserves intent, response privacy and shared password ca
+   release(); await Promise.all(work); assert.equal(app.get(ApplicationState).active, 0);
+   const job = await db.verificationOutbox.findFirstOrThrow({ where: { recipient: email } });
+   assert.equal(await dispatch(job.id), 'unknown');
++  const second = await db.verificationOutbox.findFirstOrThrow({ where: { purpose: 'register', recipient: secondEmail } });
++  assert.equal(await dispatch(second.id), 'paused');
++  assert.equal((await db.verificationOutbox.findUniqueOrThrow({ where: { id: second.id } })).status, 'pending');
++  assert.equal((await db.verificationMailControl.updateMany({ where: { id: 1, pausedBy: second.id }, data: { pausedBy: null } })).count, 0);
++  assert.equal(await dispatch(second.id), 'paused');
++  assert.equal((await db.verificationMailControl.updateMany({ where: { id: 1, pausedBy: job.id }, data: { pausedBy: null } })).count, 1);
+   assert.equal(await dispatch(job.id), 'empty');
+   const requests = [recovery.request('register', address()), recovery.request('register', address())];
+   assert.throws(() => recovery.request('register', address()), e => e.code === 'DELIVERY_BUSY');
+@@ -174,7 +183,8 @@ test('a replaced, expired or already attempted mailing cannot issue another usab
+   const current = await db.verificationOutbox.findFirstOrThrow({ where: { recipient: email, id: { not: old.id } } });
+   assert.equal(await dispatch(old.id), 'obsolete');
+   const results = await Promise.all([dispatch(current.id), dispatch(current.id)]);
+-  assert.deepEqual(results.sort(), ['accepted', 'empty']);
++  assert.equal(results.filter(result => result === 'accepted').length, 1);
++  assert(results.some(result => result === 'paused' || result === 'empty'));
+   assert.equal(messages.length, 1);
+   const other = address();
+   await recovery.request('register', other);
