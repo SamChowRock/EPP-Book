@@ -235,4 +235,4 @@ checkout 决定这次检查的源码，setup-node 读取项目指定版本。cac
 
 阅读约 45～60 分钟，已有 PostgreSQL 18 时，从干净目录构建、运行、制造差异再恢复另加 65～90 分钟。有自己的 GitHub 仓库时配置并检查一次远程运行另加 10～18 分钟，网络下载与 runner 排队另计。按正文代码、两图和实操步骤估算。
 
-[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-54) · [上一章](../chapter-53-account-cli/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)
+[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-54) · [上一章](../chapter-53-account-cli/chapter.md) · [下一章](../chapter-55-performance/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)

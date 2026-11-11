@@ -266,6 +266,10 @@ node database/chapter-51/store-probe.mjs buckets
 
 核心路线沿用 Node 24.22.1、npm 和本机 PostgreSQL 18。进入第 54 章配套项目执行 `nvm use`、`npm ci`，锁文件安装开发工具 Biome 2.6.6 和 Prisma 生成器辅助包 7.10.1；`npm run ci:check` 会检查格式、Lint、类型、构建以及两份生成文件。VS Code 1.121 起的内置 Markdown 预览能显示 ERD；在 docs/generated/ERD.md 选择 **Markdown: Open Preview to the Side** 核对关系。交付演练另建独立空库，在本地 .env.delivery 中设置 DATABASE_URL，默认 API 回环端口 3354。远程 CI 属选做路线，需要可运行 Actions 的 GitHub 练习仓库，PostgreSQL 服务在该 job 内启动。操作和结果见[第 54 章](part-08-maintenance/chapter-54-build-ci/chapter.md)。
 
+### 第 55 章准备性能采样
+
+沿用 Node 24.22.1、Chrome DevTools、PostgreSQL 18 和本机 Mailpit。在代码根目录的 .env.perf 只填写指向回环独立库 epp_ch55_lab 的 DATABASE_URL；池等待实验启动自己的临时端口，不占用日常 API。CPU profile 放在私有临时目录，堆快照仅从合成进程生成，分别在 Performance 和 Memory 导入。投递实验另用回环 API、SMTP 和 Mailpit 网页（例：3355、1055、8055）。见[第 55 章](part-08-maintenance/chapter-55-performance/chapter.md)。
+
 ## 7. 下次继续与常见问题
 
 第 53 章的账号管理 CLI 随项目构建，沿用本机 Node 和 PostgreSQL。在对应章节的代码目录完成迁移和构建后，按正文用预期库名和账号 ID 预览操作，再决定是否执行变更。[第 53 章管理命令](part-08-maintenance/chapter-53-account-cli/chapter.md)

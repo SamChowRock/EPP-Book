@@ -680,13 +680,16 @@
 - [54.4 把同样的检查交给 GitHub Actions](part-08-maintenance/chapter-54-build-ci/chapter.md#544-把同样的检查交给-GitHub-Actions)
 - [附录：本章必要技术点速查](part-08-maintenance/chapter-54-build-ci/chapter.md#附录本章必要技术点速查)
 
-#### 第 55 章 调试性能与资源问题
+#### [第 55 章 调试性能与资源问题](part-08-maintenance/chapter-55-performance/chapter.md)
 
-- 55.1 围绕当前记录查询、登录、邮件投递与 SSE，从日志区分请求和依赖耗时。
-- 55.2 使用 Node CPU profile、Chrome DevTools 与堆快照观察事件循环阻塞、内存增长、连接泄漏和高成本密码计算；解释采样、快照的观测成本及敏感数据边界。
-- 55.3 结合 EXPLAIN、数据库活动与锁等待、连接池指标定位慢 SQL、连接耗尽、任务积压和长连接问题。
-- 55.4 用适量并发和资源观察确定瓶颈；后续模型调用沿同样方式增加供应商耗时与费用维度。
-- 55.5 根据瓶颈比较查询优化、限流、缓存、执行隔离与多实例；解释缓存失效、容量与共享状态，即使当前方案不采用，也要能说明取舍依据。
+阅读约 35～48 分钟；在本机跟做另加 45～65 分钟（估算）。
+
+- [55.1 给耗时找一个起点和终点](part-08-maintenance/chapter-55-performance/chapter.md#551-给耗时找一个起点和终点)
+- [55.2 同样过了半秒，Node 做了什么](part-08-maintenance/chapter-55-performance/chapter.md#552-同样过了半秒node-做了什么)
+- [55.3 请求在等池、等锁，还是在读行](part-08-maintenance/chapter-55-performance/chapter.md#553-请求在等池等锁还是在读行)
+- [55.4 一次只改变并发，把成功和代价一起记下](part-08-maintenance/chapter-55-performance/chapter.md#554-一次只改变并发把成功和代价一起记下)
+- [55.5 根据证据选择改动](part-08-maintenance/chapter-55-performance/chapter.md#555-根据证据选择改动)
+- [附录：本章必要技术点速查](part-08-maintenance/chapter-55-performance/chapter.md#附录本章必要技术点速查)
 
 #### 第 56 章 第八篇回顾：从维护动作到可交付产物
 
