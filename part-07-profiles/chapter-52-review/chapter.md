@@ -167,4 +167,4 @@ node --env-file=.chapter51-store/app.env database/chapter-51/head-avatar.mjs "$a
 | 指定 ID 已处理 1 项 | 区分删除时是否本来就不存在、稍后是否有 PUT，保留退役记录和下一次复查时间。 |
 | 对象数增长而本轮批处理 0 项 | 检查可处置行的期限、锁与所属数据库。未知来源的对象需要独立对账。 |
 
-[本章沿用的第 51 章代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-51) · [上一章](../chapter-51-avatar-storage/chapter.md) · [第七篇导读](../README.md) · [全书目录](../../README.md)
+[本章沿用的第 51 章代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-51) · [上一章](../chapter-51-avatar-storage/chapter.md) · [第七篇导读](../README.md) · [全书目录](../../README.md) · [下一章：账号管理命令](../../part-08-maintenance/chapter-53-account-cli/chapter.md)

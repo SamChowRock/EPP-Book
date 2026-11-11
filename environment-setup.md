@@ -13,14 +13,25 @@
 | Node.js、npm | Node 固定为 `24.22.1`；npm 使用该 Node 随附版本 | 第 2 章前 |
 | Visual Studio Code | 编辑项目、连接 Node 调试器；使用适配本机的稳定版 | 第 2 章前 |
 | Postman 桌面客户端 | 发送、保存和重复调用 HTTP 请求；已有同类客户端也可复用 | 第 2 章前 |
-| 浏览器 | 打开接口结果及后续 Swagger 页面；现有浏览器即可 | 第 2 章前 |
+| Google Chrome | 按书中界面连接 Node Inspector，后续在 DevTools 观察请求、Cookie 和事件流 | 第 2 章调试前 |
 | Homebrew | 按本书 macOS 路线安装 PostgreSQL | 第 15 章前 |
 | PostgreSQL | 数据库服务与 `psql` 等工具，使用 **18.x** | 第 15 章前 |
 | DBeaver Community | 图形化连接数据库、执行 SQL、查看数据和事务 | 第 15 章前 |
 
-TypeScript、Nest、Prisma、数据库驱动等由各章项目的 `package.json` 和锁文件管理，随项目安装，不另行全局安装。当前单包实践使用 npm，不需要为它增加 pnpm 或 Yarn。
+读到下列章节时，再准备对应的工具。已经完成前一阶段的读者可以从这里接着走。
 
-Docker 与 Compose 属于部署篇的可选路线。AI 工具、模型密钥、云服务器、域名和微信开发者工具也不是开始实践的前提，读到相应内容再准备。
+| 软件或组件 | 用途 | 何时准备 |
+| --- | --- | --- |
+| Swagger UI | API 提供的交互文档，在浏览器中发送请求 | 第 11 章，随项目依赖安装 |
+| PostgreSQL 的 `pg_dump`、`pg_restore` | 从已有数据备份并恢复到独立练习库 | 第 22 章，复用已装的 PostgreSQL 18 |
+| Mailpit 1.33.0 | 在本机接收注册和重置邮件，在网页收件箱查看 | 第 36 章，后台寄信实验继续使用 |
+| 微信开发者工具 | 导入小程序、用真实 AppID 登录和预览 | 选做第 37、40 章真实小程序联调时 |
+| sharp 0.35.5 与 libvips | 把上传的图片解码并生成 WebP 预览 | 第 50 章，按项目锁文件安装 |
+| SeaweedFS 4.52 | 在本机运行私有对象存储，用浏览器里的 Filer 查看文件 | 第 51 章，第 52 章复用 |
+
+TypeScript、Nest、Prisma CLI 和数据库驱动都由各章项目的 `package.json` 和锁文件管理。寄信使用的 Nodemailer、接入 S3 使用的 AWS SDK 也随项目安装。
+
+后续篇章按[全书目录](README.md)安排准备时间。第 54 章规划使用 GitHub Actions，第 57 章在 Mac 上用系统自带的 launchd 托管进程，第 58～61 章选做 Docker 与 Compose，第 62 章用 Caddy 做反向代理，选择家庭主机隧道路线时再准备 Cloudflare Tunnel，第 63 章的容器支线再用 Dozzle 查看日志。真实模型调用在第十篇准备供应商账号、密钥和费用额度，第 77 章再为 PostgreSQL 增加 pgvector；第十三篇接入 MCP 时按所选宿主准备客户端。
 
 ## 2. 准备命令行与 Node.js
 
@@ -101,6 +112,12 @@ code --version
 
 章节代码提供该配置后，先在集成终端执行 `nvm use` 和本章启动命令，再到 **Run and Debug** 选择 `EPP: attach to npm run dev`，连接 `127.0.0.1:9229`。
 
+### Chrome、Node Inspector 与 Swagger UI
+
+若 Mac 上还没有 Chrome，从 [Google Chrome 下载页](https://www.google.com/chrome/)安装。第 2 章运行 `npm run dev` 后，在 Chrome 地址栏打开 `chrome://inspect`。在 **Devices** 中找到本次 Node 进程并点 **inspect**。列表为空时，核对终端的调试监听地址，再检查 **Discover network targets → Configure** 是否含 `127.0.0.1:9229`。[第 2 章断点操作](part-01-nodejs/chapter-02-minimal-service/chapter.md)
+
+第 11 章的开发 API 启动后，在浏览器打开 `http://127.0.0.1:3000/docs`（端口以开发终端为准）。展开列表接口，点 **Try it out → Execute**，在 **Server response** 查看状态码和响应正文。Swagger UI 由该章 API 提供。第 47 章观察 SSE 时，打开的是实验页面自身的 DevTools，在 **Network** 里选择持续连接并查看 **EventStream**。[第 11 章接口文档](part-02-nestjs/chapter-11-contracts/chapter.md) · [第 47 章浏览器实验](part-06-background/chapter-47-sse/chapter.md)
+
 ### Postman
 
 从 [Postman 下载页](https://www.postman.com/downloads/)选择 **The Postman app** 对应的 Mac 版本。本文使用桌面应用；页面中的 CLI、插件和 Desktop Agent 有其他用途，不是这里的安装目标。
@@ -133,6 +150,8 @@ psql --version
 本书另建自己的学习实例，通过 `pg_ctl` 启停，固定使用 `127.0.0.1:55432`。不要额外执行 `brew services start postgresql@18` 来代替这套步骤；包管理器的默认实例与书中的学习实例不是同一份数据目录。
 
 **接下来完整执行[第 15 章 15.3 节](part-03-postgresql/chapter-15-postgresql-environment/chapter.md#153-安装启动再从两个客户端连接同一个库)**：初始化数据目录、设置回环监听与密码认证、启动服务，再建立 `epp_owner` 和 `epp_dev`。已有该实例时从状态检查与启动继续，不重复初始化、建角色或建库。
+
+第 22 章开始使用数据库备份与恢复。在准备运行备份命令的那个终端，执行 `pg_dump --version` 和 `pg_restore --version`，两条都应显示 18.x。这两个程序与 `psql` 在同一个 `bin` 目录。备份原库、建立副本及恢复后的数据核对见[第 22 章](part-04-consistency/chapter-22-revisions/chapter.md)。
 
 ### DBeaver Community
 
@@ -180,6 +199,10 @@ npm ci
 | 第 18 章起 | 按该章建立 `.env.database`、`.env.database-verify`，供数据库命令连接开发库和独立校验库 |
 | 第 19 章起 | 在 `.env` 设置 API 的 `DATABASE_URL` 等运行配置；API 不自动加载数据库 CLI 的配置文件 |
 | 第 19 章起运行测试 | 首次将 `test/database.env.example` 复制为 `.env.test`，设置 `TEST_DATABASE_URL` 指向已迁移的独立校验库；测试不读取开发 `.env`，缺少测试连接时退出 |
+| 第 29、33 章起 | 第 29 章的 `CURSOR_HMAC_KEY` 用于签名游标，生产运行要提供持久密钥；第 33 章用 `APP_ORIGIN` 指定用户实际打开的网站来源，开发时与访问 API 的协议、主机和端口对齐 |
+| 第 36、43 章起 | 最初由 API 读取 `LOCAL_SMTP_PORT`；独立寄信 Worker 启用后，在 `.env.worker` 核对它连接的数据库和 SMTP 端口 |
+| 第 49 章独立回归 | 另建回归库，按[第 49 章](part-07-profiles/chapter-49-profile/chapter.md)建立 `.env.test-regression`，让迁移用的 `DATABASE_URL` 和测试用的 `TEST_DATABASE_URL` 指向同一个回归库，保留手工联调库的数据 |
+| 第 51 章起 | 接入头像存储时，按章节启动命令为 API 加载 `.chapter51-store/app.env` 中的四项 `AVATAR_S3_*` 配置；`admin.env` 供建桶使用 |
 | 后续数据库章节 | 按本章 README 追加迁移并核对数据，再启动相应版本的 API |
 
 密码写入本机配置，不提交到 Git；URL 中密码的保留字符需按章节说明编码。修改 `.env` 后手动重启开发进程。数据库校验、回填和迁移会操作数据，具体顺序见[第 18 章](part-03-postgresql/chapter-18-prisma/chapter.md)、[第 19 章](part-03-postgresql/chapter-19-prisma-nest/chapter.md)及后续章节，不能把一条“初始化命令”反复应用到所有章节。
@@ -188,9 +211,62 @@ npm ci
 
 具备本章运行前提后执行 `npm run dev`；第 5 章起另用 `npm run check` 做类型与构建检查。静态检查通过后仍需在 Postman 发送请求。生产产物按对应章节使用 `npm run build` 与 `npm start`，后者不自动读取开发 `.env`，需要由启动环境提供配置。
 
-## 6. 下次继续与常见问题
+## 6. 第五篇起按章节准备服务
 
-下次打开项目时，先在终端执行 `nvm use`。数据库阶段先确认学习实例运行，再执行当前章节的开发命令，连接调试器，最后重发已保存的 Postman 请求。不要因为隔了一晚就重新安装依赖、初始化数据库或重复迁移。
+### 第 36 章用 Mailpit 收信
+
+从 [Mailpit 1.33.0 发行页](https://github.com/axllent/mailpit/releases/tag/v1.33.0) 下载 macOS 压缩包。Apple Silicon 选 `darwin-arm64`，Intel 选 `darwin-amd64`。解压后在放有 `mailpit` 的目录打开终端，核对版本，再启动本机收件服务。
+
+```bash
+./mailpit version
+./mailpit --smtp 127.0.0.1:1025 --listen 127.0.0.1:8025 \
+  --disable-version-check --block-remote-css-and-fonts
+```
+
+保留这个终端。浏览器打开 `http://127.0.0.1:8025` 查看收件箱；API 的 `LOCAL_SMTP_PORT` 填寄信用的 `1025`。按第 36 章用虚构地址申请注册后，在收件箱按收件人找到本次邮件。后续练习若换端口，寄信进程的配置要跟随本轮 SMTP 端口，浏览器要打开本轮网页端口。章节命令写作 `mailpit` 时，若使用解压安装，可在程序所在目录执行 `./mailpit`。[第 36 章本地寄信](part-05-identity/chapter-36-registration/chapter.md)
+
+第 43 章把寄信移入独立的 Node 进程。在两个项目终端分别选择项目的 Node 版本。先按本章配置 API，将 `database/chapter-43/worker.env.example` 复制为项目根的 `.env.worker`，填入同一练习库的连接和 Mailpit 的 SMTP 端口，再分别运行 `npm run dev` 和 `npm run dev:worker -- epp_ch43_verify`，最后一个参数换成实际练习库名。VS Code 调试 API 连 `9229`，调试 Worker 连 `9230`。第 46 章的站内通知复用 Worker 入口，选 `notifications` 角色，消息写入数据库。[第 43 章 Worker 启动与调试](part-06-background/chapter-43-worker/chapter.md) · [第 46 章角色切换](part-06-background/chapter-46-notifications/chapter.md)
+
+### 第 37～40 章选做真实平台登录
+
+这几章的本机实验入口随各章配套代码提供。要做真实联调，再按所选路线准备。
+
+- **微信小程序（第 37、40 章）。** 安装[微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)，用有该小程序开发资格的微信登录。选择导入项目，选配套代码的 `mini-program/`，填写真实小程序 AppID，与后端配置核对。AppSecret 只放在服务端。真机用手机微信打开开发版或体验版，API 需要手机可达的 HTTPS 地址，并已在平台登记为合法请求域名。手机上的 `127.0.0.1` 指向手机自己。[第 37 章小程序接入](part-05-identity/chapter-37-mini-program/chapter.md) · [第 40 章扫码确认](part-05-identity/chapter-40-mini-confirm/chapter.md)
+- **OIDC（第 38 章）。** 本机练习带有实验提供方。接真实提供方时，注册服务端 Web 客户端，取得 issuer、Client ID 和 Client Secret，逐字登记 EPP 的 HTTPS 回调地址，准备两个测试账号验证登录与关联。[第 38 章提供方配置](part-05-identity/chapter-38-oidc/chapter.md)
+- **微信网站登录（第 39 章）。** 准备微信开放平台已审核、已开通登录权限的网站应用，在平台核对授权回调域，在后端配置这份网站应用自己的 AppID 和 AppSecret。电脑浏览器访问 HTTPS 网站，手机微信扫码确认。[第 39 章网站应用联调](part-05-identity/chapter-39-wechat-website/chapter.md)
+
+### 第 50 章检查图片处理依赖
+
+在本机对应章节的代码目录执行 `npm ci` 时保留可选依赖，npm 会按系统和 CPU 架构安装 sharp 所需的原生组件。在实际运行 API 的目录执行下面的命令，应能加载模块并打印版本。书中使用 sharp 0.35.5，配套验证的 libvips 为 8.18.7。随后用该章的灯塔 PNG 发送预览请求，应得到 256 × 256 的 WebP。[第 50 章头像预览](part-07-profiles/chapter-50-avatar/chapter.md)
+
+```bash
+node --input-type=module -e "import sharp from 'sharp'; console.log(sharp.versions.sharp, sharp.versions.vips)"
+```
+
+### 第 51 章启动 SeaweedFS 并打开 Filer
+
+在第 51 章配套代码根目录完成 `nvm use` 和 `npm ci` 后，首次运行以下三步。安装脚本根据 Mac 芯片下载 4.52 并核对 SHA-256。初始化脚本创建 `.chapter51-store/`，保存本机数据、管理身份和应用身份。已有同一套环境时，先用 `.chapter51-tools/weed version` 确认版本，重启只执行最后一行。
+
+```bash
+sh database/chapter-51/install-weed.sh
+node database/chapter-51/init-store.mjs
+sh database/chapter-51/start-store.sh
+```
+
+保留前台进程，另开项目终端，运行 `nvm use`。把下面的 `12345` 换成启动行显示的 PID；检查应显示十个回环监听，然后建桶。
+
+```bash
+sh database/chapter-51/listeners.sh 12345
+node database/chapter-51/store-probe.mjs buckets
+```
+
+在 Chrome **访客窗口**打开 `http://127.0.0.1:18632/`，点 **buckets → avatars**。这是直通底层文件的 Filer 管理界面，可按第 51.3 节在自己的练习子目录上传和查看样图。EPP 使用的是 S3 端点 `http://127.0.0.1:18633`。回到操作终端执行 `node database/chapter-51/store-probe.mjs write`，核对应用能写入并读回相同字节、匿名读取返回 403；按第 51.3 节继续完成重启后的读取和清理。第 52 章沿用上章数据与身份。[第 51 章存储安装、操作与权限验证](part-07-profiles/chapter-51-avatar-storage/chapter.md)
+
+## 7. 下次继续与常见问题
+
+第 53 章的账号管理 CLI 随项目构建，沿用本机 Node 和 PostgreSQL。在对应章节的代码目录完成迁移和构建后，按正文用预期库名和账号 ID 预览操作，再决定是否执行变更。[第 53 章管理命令](part-08-maintenance/chapter-53-account-cli/chapter.md)
+
+下次打开项目时，先在终端执行 `nvm use`。数据库阶段先确认学习实例运行。做寄信实验时启动 Mailpit，异步寄信还要启动邮件 Worker；继续头像存储实验时，沿用原目录启动 SeaweedFS。再执行当前章节的开发命令，连接调试器，最后重发已保存的 Postman 请求。不要因为隔了一晚就重新安装依赖、初始化数据库或重复迁移。
 
 | 现象 | 先核对什么 |
 | --- | --- |
