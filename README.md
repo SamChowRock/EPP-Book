@@ -670,12 +670,15 @@
 - [53.4 把入口复用到下一项维护工作](part-08-maintenance/chapter-53-account-cli/chapter.md#534-把入口复用到下一项维护工作)
 - [附录：本章必要技术点速查](part-08-maintenance/chapter-53-account-cli/chapter.md#附录本章必要技术点速查)
 
-#### 第 54 章 构建与持续集成
+#### [第 54 章 构建与持续集成](part-08-maintenance/chapter-54-build-ci/chapter.md)
 
-- 54.1 将当前服务的格式、Lint、类型检查与构建串成可重复流程；已有测试命令只作简短说明。
-- 54.2 从空依赖环境运行编译产物，核对 API、Worker 与管理命令的入口。
-- 54.3 为当前 Schema 生成 ERD，与已有 OpenAPI 一起检查生成文件的一致性。
-- 54.4 GitHub Actions 与锁文件；多包构建的扩展随共享契约拆分再加入，不提前要求四仓协作。
+阅读约 45～60 分钟，本机跟做另加 65～90 分钟；选做远程 CI 另加 10～18 分钟。
+
+- [54.1 从一份干净的工作目录开始](part-08-maintenance/chapter-54-build-ci/chapter.md#541-从一份干净的工作目录开始)
+- [54.2 交付目录里究竟要有什么](part-08-maintenance/chapter-54-build-ci/chapter.md#542-交付目录里究竟要有什么)
+- [54.3 两份生成文件，两个需要核对的事实](part-08-maintenance/chapter-54-build-ci/chapter.md#543-两份生成文件两个需要核对的事实)
+- [54.4 把同样的检查交给 GitHub Actions](part-08-maintenance/chapter-54-build-ci/chapter.md#544-把同样的检查交给-GitHub-Actions)
+- [附录：本章必要技术点速查](part-08-maintenance/chapter-54-build-ci/chapter.md#附录本章必要技术点速查)
 
 #### 第 55 章 调试性能与资源问题
 

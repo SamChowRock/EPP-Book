@@ -200,4 +200,4 @@ admin apply "$account" off "$suspend_id"
 
 阅读约 32～43 分钟，已有练习账号时，编码、迁移与两窗口操作另加 48～70 分钟。按事务代码、两幅响应图和两次资格变化估算，首次准备账号另计。
 
-[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-53) · [上一章](../../part-07-profiles/chapter-52-review/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)
+[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-53) · [上一章](../../part-07-profiles/chapter-52-review/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md) · [下一章：构建与持续集成](../chapter-54-build-ci/chapter.md)

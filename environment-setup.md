@@ -31,7 +31,7 @@
 
 TypeScript、Nest、Prisma CLI 和数据库驱动都由各章项目的 `package.json` 和锁文件管理。寄信使用的 Nodemailer、接入 S3 使用的 AWS SDK 也随项目安装。
 
-后续篇章按[全书目录](README.md)安排准备时间。第 54 章规划使用 GitHub Actions，第 57 章在 Mac 上用系统自带的 launchd 托管进程，第 58～61 章选做 Docker 与 Compose，第 62 章用 Caddy 做反向代理，选择家庭主机隧道路线时再准备 Cloudflare Tunnel，第 63 章的容器支线再用 Dozzle 查看日志。真实模型调用在第十篇准备供应商账号、密钥和费用额度，第 77 章再为 PostgreSQL 增加 pgvector；第十三篇接入 MCP 时按所选宿主准备客户端。
+后续篇章按[全书目录](README.md)安排准备时间。第 54 章在本机运行构建检查，有自己的 GitHub 仓库时可接入 Actions。第 57 章在 Mac 上用系统自带的 launchd 托管进程，第 58～61 章选做 Docker 与 Compose，第 62 章用 Caddy 做反向代理，选择家庭主机隧道路线时再准备 Cloudflare Tunnel，第 63 章的容器支线再用 Dozzle 查看日志。真实模型调用在第十篇准备供应商账号、密钥和费用额度，第 77 章再为 PostgreSQL 增加 pgvector；第十三篇接入 MCP 时按所选宿主准备客户端。
 
 ## 2. 准备命令行与 Node.js
 
@@ -261,6 +261,10 @@ node database/chapter-51/store-probe.mjs buckets
 ```
 
 在 Chrome **访客窗口**打开 `http://127.0.0.1:18632/`，点 **buckets → avatars**。这是直通底层文件的 Filer 管理界面，可按第 51.3 节在自己的练习子目录上传和查看样图。EPP 使用的是 S3 端点 `http://127.0.0.1:18633`。回到操作终端执行 `node database/chapter-51/store-probe.mjs write`，核对应用能写入并读回相同字节、匿名读取返回 403；按第 51.3 节继续完成重启后的读取和清理。第 52 章沿用上章数据与身份。[第 51 章存储安装、操作与权限验证](part-07-profiles/chapter-51-avatar-storage/chapter.md)
+
+### 第 54 章准备构建与持续集成
+
+核心路线沿用 Node 24.22.1、npm 和本机 PostgreSQL 18。进入第 54 章配套项目执行 `nvm use`、`npm ci`，锁文件安装开发工具 Biome 2.6.6 和 Prisma 生成器辅助包 7.10.1；`npm run ci:check` 会检查格式、Lint、类型、构建以及两份生成文件。VS Code 1.121 起的内置 Markdown 预览能显示 ERD；在 docs/generated/ERD.md 选择 **Markdown: Open Preview to the Side** 核对关系。交付演练另建独立空库，在本地 .env.delivery 中设置 DATABASE_URL，默认 API 回环端口 3354。远程 CI 属选做路线，需要可运行 Actions 的 GitHub 练习仓库，PostgreSQL 服务在该 job 内启动。操作和结果见[第 54 章](part-08-maintenance/chapter-54-build-ci/chapter.md)。
 
 ## 7. 下次继续与常见问题
 
