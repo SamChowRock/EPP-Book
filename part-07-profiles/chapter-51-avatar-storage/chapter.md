@@ -22,15 +22,17 @@
 | --- | --- | --- |
 | 在编辑页试裁切 | POST /profile/avatar/preview | 沿用 24；返回图片，关闭页面不留下可发布版本 |
 | 确认替换 | POST /profile/avatar | 重新发送所选原文件，服务端重新按同一规则转码。成功后 200 和 avatarId |
-| 本人重新打开头像 | GET /profile/avatar | 无头像时 404；有头像时得到版本 ID 和 30 秒短期 GET 地址 |
+| 本人重新打开头像 | GET /profile/avatar | 账号尚无当前版本时返回 404；已有引用时返回版本 ID 和 30 秒短期 GET 地址 |
 | 保存或读回头像展示意愿 | PATCH／GET /profile/avatar/visibility | `{"visible":false}` 或 `{"visible":true}`；尚无头像也能读回设置 |
-| 另一个已登录用户看卡片 | GET /profiles/:userId/avatar | 目标可用、已发布且允许展示才签发；隐藏、缺图或找不到目标都返回 404 |
+| 另一个已登录用户看卡片 | GET /profiles/:userId/avatar | 目标可用、有当前引用且允许展示时签发；目标不可用、隐藏或当前引用为空时返回 404 |
+
+读头像需要两次请求。即使当前键在桶里意外丢失，以上两个读接口仍可能签发地址并返回 200；在本章私有桶中，紧接着向存储发 GET 才能看到缺件的 404。排障先记清是哪一次请求返回了这个状态。
 
 默认隐藏。第 49 章的 nicknameVisible 只管昵称；关昵称不会关头像，发布新图也不会擅自打开头像展示。即使本人访问卡片地址，也遵从卡片的可见规则。「公开」沿用第 49 章的含义：有 Web 资格的会话可以向 API 申请链接。拿到链接之后，存储服务识别的是签名；持有人在到期前可能把链接转交给别人。这一点直接决定后面的保留时间和产品界面上能承诺的撤回速度。
 
 ## 51.2 在本机启动一个私有桶
 
-先不要启动 EPP。下面的命令在配套代码项目根运行。若从前章跟写，先把[本章操作文件](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-51/database/chapter-51)取到 `database/chapter-51/`；用完整的章节副本时文件已经在位。将 `.chapter51-tools/`、`.chapter51-store/` 加入项目的 .gitignore。前者放本机程序，后者放本轮数据和私有凭据，两者都在你控制的本机目录。
+SeaweedFS 是本章运行在 Mac 上的文件存储软件，发行包里的程序叫 `weed`。启动后，你用浏览器里的 Filer 查看文件，EPP 通过同一服务的 S3 接口读写。先单独启动存储，等 51.3 建桶后再打开网页。下面的命令在配套代码项目根运行。若从前章跟写，先把[本章操作文件](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-51/database/chapter-51)取到 `database/chapter-51/`；用完整的章节副本时文件已经在位。将 `.chapter51-tools/`、`.chapter51-store/` 加入项目的 .gitignore。前者放本机程序，后者放本轮数据和私有凭据，两者都在你控制的本机目录。
 
 ```bash
 nvm use
@@ -83,7 +85,7 @@ node database/chapter-51/store-probe.mjs buckets
 
 建桶命令用管理身份创建两个私有桶。先看看文件存在哪里，再验证谁可以读写。
 
-**用浏览器操作 SeaweedFS。** 保持存储服务运行，在 Chrome 的访客窗口打开[本机文件管理器](http://127.0.0.1:18632/)。页面标题是 SeaweedFS Filer。这个入口能直接改动底层文件，只供本章的单用户本机实验使用。访客窗口避免把日常浏览器中的 EPP 登录 Cookie 带到同一主机的另一个端口。
+**用浏览器操作 SeaweedFS。** 保持存储服务运行，把 `http://127.0.0.1:18632/` 复制到 Chrome 访客窗口的地址栏并打开。页面标题是 SeaweedFS Filer。这个入口能直接改动底层文件，只供本章的单用户本机实验使用。访客窗口避免把日常浏览器中的 EPP 登录 Cookie 带到同一主机的另一个端口。
 
 1. 点 `buckets`。应能看见业务桶 `avatars` 和对照桶 `chapter51-private-control`。进入 `avatars`，点右上角 **New Folder**，输入 `gui-lab`。若已有同名目录，换一个新名字，再点进刚建的目录。
 2. 点 **Upload**，从配套项目的 `examples/avatar-preview/` 选 `harbor.png`。再点一次，选 `harbor.jpg`。表中应出现两行，可以比较类型与大小。点 PNG 文件名能打开灯塔原图，再用浏览器后退回到列表。
@@ -352,6 +354,15 @@ export class AvatarPublication {
   }
 ```
 
+回到第 50 章看过的两个 415。已有一个发布版本 P，设备 A 传一份合法 PNG，已经取得预订但还没发完。设备 B 此时也调用 **发布** 接口。两轮都保持 P 和一个有效慢传作为起点，只换 B 的请求头：
+
+| B 发送相同的 PNG 字节 | B 的回执 | 让 A 传完，再查本人头像 |
+| --- | --- | --- |
+| 声明 application/octet-stream | 415 AVATAR_MEDIA_TYPE，在预订前被挡住 | A 的预订仍有效，A 得到 200，当前版本换成 A |
+| 声明 image/jpeg | 415 AVATAR_FORMAT，先取得预订，随后发现字节不符 | A 已被 B 淘汰，得到 409。B 也没发布，当前版本仍是 P |
+
+在 DBeaver 里，第一轮只会为这两笔请求新增 A 的尝试行，第二轮会新增两行。当前头像由最近一次成功发布决定，谁还能争取下一次发布由预订决定。只看 B 的 HTTP 状态码会漏掉这次变化。
+
 **外部应答与数据库提交分别处理。** PUT 报错时保留预订，返回存储暂不可用；远端可能已经写成，API 不在异常处理里按当前账号的头像键删除。成功应答后，也还要再查本人会话、资格和同一个 id 的状态。A 耗时太长，或 B 已使 A 的预订退休，A 都会得到 409。此时它的对象可以存在，却不会成为当前头像。若第三步在提交前因 SQL 错误或业务条件被拒而回滚，库内的版本状态与指针一起保持原值。若数据库已经提交、提交应答却在返回 API 前丢失，事务调用也可能报错，实际 current 却已经换了；这时先查当前引用，再对照已知的尝试 ID。业务失败与连接超时都不应驱动客户端无条件重发一个新的「替换」。
 
 ```ts
@@ -595,7 +606,7 @@ node --env-file=.env.database-verify --env-file=.chapter51-store/app.env \
 
 若上一次恰在 DELETE 成功后、登记下一次复查前退出，五分钟后会重删同一个键。若所有对象都报告删除失败，先查端点、身份所属桶与应用写权限。只有周期检查继续运行、身份有权限且目标可用，补偿才会收敛；这里没有让两套独立系统神奇地拥有一个共同事务。
 
-完整回归另用专用测试库。由第 50 章跟写的读者把本章配套的 `test/avatar-publication.test.mjs` 放入 test，并保留前章头像两份样本。按第 49 章的[独立回归配置与固定样本步骤](https://github.com/SamChowRock/epp-public/blob/part-07/chapter-49/database/chapter-49/README.md)引导本章结构。将 .env.test-regression 的 TEST_DATABASE_URL 指向该库，清除外层变量，执行：
+完整回归另用专用测试库。由第 50 章跟写的读者把本章配套的 `test/avatar-publication.test.mjs` 放入 test，并保留前章头像两份样本。按第 49 章的[独立回归配置与固定样本步骤](https://github.com/SamChowRock/epp-public/blob/part-07/chapter-49/database/chapter-49/README.md)引导本章结构。将 .env.test-regression 的 DATABASE_URL 与 TEST_DATABASE_URL 都指向这个独立回归库。第一次在空库用本章迁移 bootstrap；若沿用已完成第 50 章回归的非空测试库，使用同一文件和原测试库名执行 deploy，补上头像迁移。核对固定样本后，清除外层变量并执行：
 
 ```bash
 unset DATABASE_URL TEST_DATABASE_URL
@@ -619,4 +630,4 @@ NODE_ENV=test node --env-file=.env.test-regression --test --test-concurrency=1 t
 | 到期的 retired | 允许继续处置且此后不可发布，数据库状态单独不能回答远端还有没有对象 |
 | 回环端口、Filer 元数据和 Volume | 区分应用入口与内部服务，准备持久化与恢复时要保护能重新连接名字和字节的全部事实 |
 
-[第 51 章完成代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-51) · [上一章](../chapter-50-avatar/chapter.md) · [第七篇导读](../README.md) · [全书目录](../../README.md)
+[第 51 章完成代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-51) · [上一章](../chapter-50-avatar/chapter.md) · [下一章：接手头像报障](../chapter-52-review/chapter.md) · [第七篇导读](../README.md) · [全书目录](../../README.md)

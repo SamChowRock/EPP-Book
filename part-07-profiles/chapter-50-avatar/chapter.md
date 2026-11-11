@@ -377,7 +377,7 @@ sendPreview 给本地响应流三秒完成写出的时间，超时会关闭连�
 
 ## 50.4 在中断与重启后找回资源
 
-同事说「选了照片就失败」时，先保留一个能成功的 PNG、同一登录会话和请求 ID，每次只换一个条件。得到 403 时核对来源、X-EPP-Request 和本次 Cookie 的 CSRF；把同一组凭据和头发给原来的资料入口仍然失败，就先处理账号问题。若正确登录后所有合法小图都返回 500，先核对 API 运行目录的可写性、.avatar-tmp 的属主和权限以及卷的剩余空间；磁盘写入或清理失败同样可能让本次请求无法成功，不能让客户端看到服务器文件路径。得到 415 时再分两种：把外层声明换成 multipart 会在媒体类型关口被拒；把一份 PNG 字节谎报为 JPEG，外层已获准、签名检查才失败。后者可以在 Postman 复制 24，保持 Body 中的 PNG，只改 Content-Type 为 image/jpeg；副本沿用的成功断言会失败，此时看实际响应的 code。
+同事说「选了照片就失败」时，先保留一个能成功的 PNG、同一登录会话和请求 ID，每次只换一个条件。得到 403 时先看响应的 code。用同一会话发 20 核对本人；读取成功只能确认这次读请求获准。回到失败的写请求，若是 REQUEST_HEADER_REQUIRED，补上 X-EPP-Request: 1；若是 CSRF_REJECTED，在同一客户端发 15，再用刚取得的令牌重发 24。ORIGIN_REJECTED 则应核对浏览器页面的源和 API 配置。若正确登录后所有合法小图都返回 500，先核对 API 运行目录的可写性、.avatar-tmp 的属主和权限以及卷的剩余空间；磁盘写入或清理失败同样可能让本次请求无法成功，不能让客户端看到服务器文件路径。得到 415 时再分两种：把外层声明换成 multipart 会在媒体类型关口被拒；把一份 PNG 字节谎报为 JPEG，外层已获准、签名检查才失败。后者可以在 Postman 复制 24，保持 Body 中的 PNG，只改 Content-Type 为 image/jpeg；副本沿用的成功断言会失败，此时看实际响应的 code。第 51 章开放正式发布时，这两个 415 的差别还会决定另一台设备上正在上传的头像能否发布。
 
 ![Swagger 对不符的 JPEG 声明返回 415](images/avatar-format.jpg)
 
@@ -449,7 +449,7 @@ rmdir "$preview_dir"
 
 重启一次，在 Postman 先发 20 确认身份，若 Cookie 失效就先登录。再发 15、24、20，核对预览和原资料。开发启动若未配置固定 HMAC 密钥，重启后可能出现原 Cookie 仍能读、旧的写入令牌却被拒的情况；15 会为当前会话取得这次有效的令牌。换到浏览器发写请求时，在那里重新取令牌。用仍有效的本人会话 GET /auth/sessions，按两次 hold 打印的不同标签及创建时刻找到本轮仍未注销的会话，核对 current 为 false，再以每一行自己的 id 单独撤销，重新查列表。参见[第 33.3 节](../../part-05-identity/chapter-33-sessions/chapter.md#333-看见会话再分别撤销和退出)；DELETE 仍需本次操作者的 CSRF 与显式请求头。清除 Postman 的本地密码和令牌，在第二终端执行 `unset avatar_password AVATAR_EMAIL AVATAR_USER_ID AVATAR_BASE_URL` 和 `unset -f avatar_upload`。结束本轮 API。
 
-运行完整回归时，跟写者还需从本章配套取[头像用例](https://github.com/SamChowRock/epp-public/blob/part-07/chapter-50/test/avatar-preview.test.mjs)，存为 `test/avatar-preview.test.mjs`，两张灯塔样本保持原相对路径。在第 49 章单独准备的回归数据库运行；空测试库先 bootstrap 本章沿用的结构，再补前章固定用户。不要把联调库覆盖成回归库。仍从项目根执行：
+运行完整回归时，跟写者还需从本章配套取[头像用例](https://github.com/SamChowRock/epp-public/blob/part-07/chapter-50/test/avatar-preview.test.mjs)，存为 `test/avatar-preview.test.mjs`，两张灯塔样本保持原相对路径。在第 49 章单独准备的回归数据库运行；新建的空测试库按[第 49.5 节末尾](../chapter-49-profile/chapter.md#495-用两个账号检查可见性和配额)填写两项连接、引导结构并准备固定用户；沿用已完成第 49 章回归的库可直接运行。不要把联调库覆盖成回归库。仍从项目根执行：
 
 ```bash
 unset DATABASE_URL TEST_DATABASE_URL

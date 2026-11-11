@@ -419,7 +419,14 @@ Network 里可以按 profile/me 筛选。通常应有一个 200、一个 429（N
 
 现在额度用尽。回到 Postman，用刚才争名额的账号登录并发 20、15，更新身份和写令牌。若它与先前的 A 不同，把 profileTargetId 改为这位账号的 ID。把集合变量 nicknameVisible 明确设回 false，单独发 22 关闭展示仍返回 200，B 再读卡片时应为 null。若刚切到 B，再登录刚才满额的账号，发 20、15 核对身份并获取写入令牌。复制 21 作为临时请求，保留请求头，将 Body 的 raw 内容改成 `{"nickname":"本轮另一个新名字","nicknameVisible":true}`，其中名字与满额账号的当前值不同。把两项修改放进**同一份** PATCH，则整个保存应得到 429，20 仍显示原名和 false。想验证写入属主，在 Postman 复制 21，将副本的 raw body 改为 `{"userId":"另一个账号的实际UUID","nickname":"越界尝试"}`，保留当前会话和写请求头；服务端返回 400，两位用户的设置均应保持。复制的请求可能沿用原成功断言，判断这次负例要读实际 HTTP 状态和响应。
 
-中途离开回来，先确认三个值：20 返回的本人 ID、23 使用的目标 ID、数据库里该账号仍在窗口内的次数。会话失效就用当前密码重新登录、重取 15，已经用掉的名额不随会话或 API 重启归零。要运行本章自动回归，另备新测试库，按 49.2 在该空库 bootstrap **本章**结构，再按[第 42.4 节末尾的固定用户 SQL](../../part-06-background/chapter-42-outbox/chapter.md#424-让另一个进程寄出一封仍然有效的信)准备旧素材用例所需的样本，将单独的配置文件 `.env.test-regression` 的 TEST_DATABASE_URL 指向它，清除外层同名变量后运行：
+中途离开回来，先确认三个值：20 返回的本人 ID、23 使用的目标 ID、数据库里该账号仍在窗口内的次数。会话失效就用当前密码重新登录、重取 15，已经用掉的名额不随会话或 API 重启归零。要运行本章自动回归，另建一个空的回归库，例如 `epp_ch49_regression`，并在项目根单独建 `.env.test-regression`。将文件里的 **DATABASE_URL 和 TEST_DATABASE_URL 都指向这一个回归库**：迁移程序读前者，测试进程读后者。用于 Postman 联调的 VERIFY 继续使用原来的配置。首次建库时，在项目根执行：
+
+```bash
+unset DATABASE_URL TEST_DATABASE_URL SHADOW_DATABASE_URL
+node --env-file=.env.test-regression scripts/deploy-verify.mjs bootstrap epp_ch49_regression
+```
+
+在 DBeaver 的回归库连接先执行 `SELECT current_database();` 核对刚建的库名，再按[第 42.4 节末尾的固定用户 SQL](../../part-06-background/chapter-42-outbox/chapter.md#424-让另一个进程寄出一封仍然有效的信)准备旧素材用例所需的样本。已经引导过这个库的读者直接核对样本，随后运行：
 
 ```bash
 unset TEST_DATABASE_URL DATABASE_URL

@@ -117,13 +117,13 @@ curl -i http://127.0.0.1:3000/captures \
 
 日常学习先在终端运行 `npm run dev`，再在 Run and Debug 选择 `EPP: attach to npm run dev`。在源码中设置断点，发送请求、暂停观察、继续，再修改保存。开发脚本编译后重启进程；restart:true 让 VS Code 尝试连接新的9229目标，原断点继续保留。若长时间类型错误超过连接等待时间，修复后重新执行 attach。编辑器只是连接，不负责自动重发请求；每次重启后的 Map 为空。
 
-先以一条请求确认断点命中，再修改一处启动提示并保存。等新进程监听后重发同一请求，确认断点仍停在当前源码；不要用暂停期间的超时判断接口性能。停止开发时在原终端按 Ctrl+C；断开 attach 不等于停止开发监听。Chrome 可能需要从 chrome://inspect 重新选择新进程。
+先以一条请求确认断点命中，再修改一处启动提示并保存。等新进程监听后重发同一请求，确认断点仍停在当前源码；不要用暂停期间的超时判断接口性能。停止开发时在原终端按 Ctrl+C；断开 attach 不等于停止开发监听。Chrome 可能需要从 `chrome://inspect` 重新选择新进程。
 
 以下两种方式用于比较产物调试和排查启动过程，它们不自动监听源码。先停止 dev，避免争用业务及调试端口；若此前还运行着独立产物服务，也先停止，避免把请求发到另一份进程。
 
 在 Run and Debug 中选择 `EPP: build and launch`，执行 Start Debugging。编辑器先构建再启动 Node，集成终端应出现监听信息。如果提示找不到 node，检查编辑器进程可用的 PATH；终端完成 nvm 切换，并不保证已经打开的编辑器也改变了解释器环境。可先使用下面的终端启动方式，连接那个已经确认版本的进程。
 
-attach 路线是在终端依次运行 `npm run build`、`npm run debug`，再选择 `EPP: attach to npm run debug`。debug 使用 inspect-brk，连接后需要 Continue 才会执行到监听；这个等待不是启动卡死。使用 Chrome 时，沿第二章的 chrome://inspect 连接同一个本机目标即可，不必换另一套业务代码。
+attach 路线是在终端依次运行 `npm run build`、`npm run debug`，再选择 `EPP: attach to npm run debug`。debug 使用 inspect-brk，连接后需要 Continue 才会执行到监听；这个等待不是启动卡死。使用 Chrome 时，沿第二章的 `chrome://inspect` 连接同一个本机目标即可，不必换另一套业务代码。
 
 3000 是业务请求入口，9229 是 Inspector 入口，HTTP 客户端不能向后者发送记录请求。调试入口允许执行进程中的代码，只绑定本机回环地址，不把它随业务端口公开。结束 attach 后还应回到终端停止自己启动的服务；断开调试连接不等于可靠地结束业务进程。
 

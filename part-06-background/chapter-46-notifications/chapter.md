@@ -194,7 +194,7 @@ export class NotificationsController {
 
 在 `src/request-observation.ts` 为这三种路径增加固定日志标签，仅记录 /notifications、/notifications/:id/read、/notifications/:id。在 `src/openapi.ts` 给三条路径补上响应和参数，NotificationPage 从同一 Zod 输出契约生成。沿用全局 sessionCookie 安全定义与已有的写请求头生成逻辑。完整变更在本章配套代码；这三个入口缺了任何一处，都可能出现“文档说可以，真实请求被拒绝”或日志无法按操作定位的问题。
 
-按[第43章 API 终端配置](../chapter-43-worker/chapter.md)启动 API，末尾的预期库名改为 epp_ch46_verify。日常开发仍是 API 9229；导入 `requests/chapter-46.postman_collection.json`，baseUrl 指向本轮 API（示例为 http://127.0.0.1:3360）。如果有升级前已经开通的练习账号，用其旧凭据登录后单发 13，应该得到空列表；未登录应为 401。若从空库开始，可以先确认 401，等46.4开通本轮注册用户后看同样的空列表。此阶段的代码可以单独构建、启动与查询。
+按[第43章 API 终端配置](../chapter-43-worker/chapter.md)启动 API，末尾的预期库名改为 epp_ch46_verify。日常开发仍是 API 9229；导入 `requests/chapter-46.postman_collection.json`，baseUrl 指向本轮 API（示例为 `http://127.0.0.1:3360`）。如果有升级前已经开通的练习账号，用其旧凭据登录后单发 13，应该得到空列表；未登录应为 401。若从空库开始，可以先确认 401，等46.4开通本轮注册用户后看同样的空列表。此阶段的代码可以单独构建、启动与查询。
 
 ![通知 Worker 尚未运行时查询返回 200 和空数组](images/inbox-before.jpg)
 
