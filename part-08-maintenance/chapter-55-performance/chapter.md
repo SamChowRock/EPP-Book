@@ -182,4 +182,4 @@ ORDER BY available_at DESC, id;
 
 阅读约 35～48 分钟；已有 PostgreSQL 18 和本机 Mailpit 时，跟做登录、两类采样、执行计划和投递对照另加 45～65 分钟。按四幅界面图与实际操作估算，首次安装与下载另计。
 
-[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-55) · [上一章](../chapter-54-build-ci/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)
+[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-55) · [上一章](../chapter-54-build-ci/chapter.md) · [下一章](../chapter-56-review/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)

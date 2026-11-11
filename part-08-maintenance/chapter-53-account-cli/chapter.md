@@ -181,7 +181,7 @@ admin apply "$account" off "$suspend_id"
 
 同样的程序入口也适合一次性的 AI 对账或向量重建：参数校验、独立确认目标、只装入本次需要的依赖、返回可查询身份和退出码、用 finally 归还资源。事务的完成条件要重新推导。如果一次调用把请求发给外部供应商，本地事务回滚并不能收回已发请求。再查不到本地完成行，也得用供应商接受的幂等键或外部账单核对。如果要重建十万条向量，可以先生成独立版本，逐批记进度，检查完整后切换读指针；一张“任务已受理”的收据只能说明接手了工作。这些操作留给相应专题。眼前这个命令能一次做完，是因为资格和收据都由同一个 PostgreSQL 事务提交。
 
-收工时停止练习 API。CLI 正常返回终端就已经关闭连接，保留练习库、配置和操作 ID，下一章可以从干净目录验证交付产物。开发中每次修改命令源码后先构建；需要断点时，对 preview 的 node 加 `--inspect-brk=127.0.0.1:9231 --enable-source-maps`，编辑器从 9231 附加，在事务外的 context.get 处看本轮参数。暂停时事务内的时间仍在走，解除断点后按同一个 ID 查证，再正常重发。给运行环境的入口只需 dist、config、package.json、锁文件和生产依赖，注入 DATABASE_URL，直接执行 `NODE_ENV=production node dist/src/account-admin.js` 并追加库名与动作。
+收工时停止练习 API。CLI 正常返回终端就已经关闭连接，保留练习库、配置和操作 ID，下一章可以从干净目录验证交付产物。开发中每次修改命令源码后先构建；需要断点时，对 preview 的 node 加 `--inspect-brk=127.0.0.1:9231 --enable-source-maps`，编辑器从 9231 附加，在事务外的 context.get 处看本轮参数。暂停时事务内的时间仍在走，解除断点后按同一个 ID 查证，再正常重发。构建时默认配置随产物进入 dist/config。在交付目录放入 dist、package.json、package-lock.json 和项目 .npmrc，按锁安装生产依赖。给账号 CLI 注入 DATABASE_URL，直接执行 `NODE_ENV=production node dist/src/account-admin.js` 并追加库名与动作。
 
 [支线 53A　如果审批只对预览时的状态有效](side-01-preview-revision.md)
 

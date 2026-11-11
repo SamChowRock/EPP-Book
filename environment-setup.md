@@ -270,6 +270,10 @@ node database/chapter-51/store-probe.mjs buckets
 
 沿用 Node 24.22.1、Chrome DevTools、PostgreSQL 18 和本机 Mailpit。在代码根目录的 .env.perf 只填写指向回环独立库 epp_ch55_lab 的 DATABASE_URL；池等待实验启动自己的临时端口，不占用日常 API。CPU profile 放在私有临时目录，堆快照仅从合成进程生成，分别在 Performance 和 Memory 导入。投递实验另用回环 API、SMTP 和 Mailpit 网页（例：3355、1055、8055）。见[第 55 章](part-08-maintenance/chapter-55-performance/chapter.md)。
 
+### 第 56 章准备维护交接
+
+在第 55 章代码根目录准备两份仅自己可读的连接配置。用 `.env.handoff` 指向含旧账号与迁移历史的交接副本，用 `.env.delivery` 指向另建的空库。练习 API 和交付探测分别使用空闲回环端口，如 3357 和 3356。另开两个独立 SQL 会话连交接副本，在其中一个持锁期间用另一个观察。登录性能对照仍使用第 55 章的 `.env.perf`。[第 56 章的环境与操作](part-08-maintenance/chapter-56-review/chapter.md)
+
 ## 7. 下次继续与常见问题
 
 第 53 章的账号管理 CLI 随项目构建，沿用本机 Node 和 PostgreSQL。在对应章节的代码目录完成迁移和构建后，按正文用预期库名和账号 ID 预览操作，再决定是否执行变更。[第 53 章管理命令](part-08-maintenance/chapter-53-account-cli/chapter.md)
