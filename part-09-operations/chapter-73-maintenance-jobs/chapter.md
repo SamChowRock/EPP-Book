@@ -254,4 +254,4 @@ sudo journalctl -u epp-avatar-clean.service -o short-iso --no-pager --grep='"res
 
 按四节 SQL、两份 unit、三幅运行现场估计，阅读约 30～40 分钟。已有 Linux 练习机、可登录的副本和配对桶时，配置、断点、五分钟等待与恢复另加 50～75 分钟；首次复制环境和可选的整机关机演练另计。
 
-[配套起点 · 第 70 章](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 为 API、邮件和通知进程分别分配运行权限](../chapter-72-service-roles/chapter.md) · [下一章 · 运行环境变了，怎样交付同一份服务](../../README.md#第-74-章-运行环境变了怎样交付同一份服务) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[配套起点 · 第 70 章](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 为 API、邮件和通知进程分别分配运行权限](../chapter-72-service-roles/chapter.md) · [下一章 · 运行环境变了，怎样交付同一份服务](../chapter-74-portable-release/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

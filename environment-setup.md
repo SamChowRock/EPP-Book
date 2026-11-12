@@ -292,6 +292,10 @@ node database/chapter-51/store-probe.mjs buckets
 
 在第 72 章的 Linux 练习目标用系统级 systemd 运行 service 和日历 timer。准备能独立停用的计时器、PostgreSQL 非空副本及其配对私有桶，保留有权读取练习对象的独立观察身份。用 Node 24.22.1 自带的终端调试器连接只监听练习机回环的端口，可将清理停在数据库领取与对象删除之间。整机关机对照仅在独立练习机进行。[第 73 章的调度与恢复](part-09-operations/chapter-73-maintenance-jobs/chapter.md)
 
+### 第 74 章把同一套服务移到第二个目录
+
+准备操作端固定的客户端来源和第二套可管理用户与工作目录的练习环境。目标平台安装 Node 24.22.1 和按锁安装的生产依赖，保留第 73 章非空库与配对桶、旧账号、收据中的两个 ID。操作端的 iTerm2、Postman、Chrome 和独立 SQL 连接分别用来控制前台进程、保留原会话、实读签名对象及对照队列。若跨机走 SSH，先核对每个转发的两端和端口占用；邮件只接入隔离收件箱。[第 74 章的切换与接手](part-09-operations/chapter-74-portable-release/chapter.md)
+
 ## 7. 下次继续与常见问题
 
 第 63 章的账号管理 CLI 随项目构建，沿用本机 Node 和 PostgreSQL。在对应章节的代码目录完成迁移和构建后，按正文用预期库名和账号 ID 预览操作，再决定是否执行变更。[第 63 章管理命令](part-08-maintenance/chapter-63-account-cli/chapter.md)
