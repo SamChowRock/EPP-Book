@@ -288,6 +288,10 @@ node database/chapter-51/store-probe.mjs buckets
 
 操作端仍使用 iTerm2、Postman 与 DBeaver。宿主演练用一台能独立管理服务账号、使用系统级 systemd 的 Linux 练习机（正文使用 Debian 13，也可在 Mac 上运行独立虚拟机）。进入目标后用 `systemctl --version`、`command -v useradd install` 核对工具；创建账号、安装 unit 及指定文件属主需要管理权限。准备同平台 Node 24.22.1、生产依赖、PostgreSQL 18 的隔离非空库、配对桶和可达的私有 Mailpit；旧账号需已开通，保留原收据 ID。迁移管理员能创建视图、实例管理员能建立登录角色；三个运行账号使用各自凭据。[第 72 章的部署与验证](part-09-operations/chapter-72-service-roles/chapter.md)
 
+### 第 73 章运行一次性维护任务
+
+在第 72 章的 Linux 练习目标用系统级 systemd 运行 service 和日历 timer。准备能独立停用的计时器、PostgreSQL 非空副本及其配对私有桶，保留有权读取练习对象的独立观察身份。用 Node 24.22.1 自带的终端调试器连接只监听练习机回环的端口，可将清理停在数据库领取与对象删除之间。整机关机对照仅在独立练习机进行。[第 73 章的调度与恢复](part-09-operations/chapter-73-maintenance-jobs/chapter.md)
+
 ## 7. 下次继续与常见问题
 
 第 63 章的账号管理 CLI 随项目构建，沿用本机 Node 和 PostgreSQL。在对应章节的代码目录完成迁移和构建后，按正文用预期库名和账号 ID 预览操作，再决定是否执行变更。[第 63 章管理命令](part-08-maintenance/chapter-63-account-cli/chapter.md)

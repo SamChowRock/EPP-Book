@@ -857,14 +857,15 @@
 - [72.4 恢复漏授的权限并交接](part-09-operations/chapter-72-service-roles/chapter.md#724-恢复漏授的权限并交接)
 - [附录：本章必要技术点速查](part-09-operations/chapter-72-service-roles/chapter.md#附录本章必要技术点速查)
 
-#### [第 73 章 定时维护漏跑或同时启动两次以后怎么办](part-09-operations/chapter-73-maintenance-jobs/outline.md)
+#### [第 73 章 定时维护漏跑或同时启动两次以后怎么办](part-09-operations/chapter-73-maintenance-jobs/chapter.md)
 
-[章节提要](part-09-operations/chapter-73-maintenance-jobs/outline.md)
+阅读约 30～40 分钟，已备好 Linux 练习机与配对副本时，维护演练另加 50～75 分钟。
 
-- [73.1 把到期头像清理接入宿主调度](part-09-operations/chapter-73-maintenance-jobs/outline.md#731-把到期头像清理接入宿主调度)
-- [73.2 让主机错过一个触发时刻](part-09-operations/chapter-73-maintenance-jobs/outline.md#732-让主机错过一个触发时刻)
-- [73.3 两个执行者同时工作时认出谁已占用](part-09-operations/chapter-73-maintenance-jobs/outline.md#733-两个执行者同时工作时认出谁已占用)
-- [73.4 根据业务进度恢复调度](part-09-operations/chapter-73-maintenance-jobs/outline.md#734-根据业务进度恢复调度)
+- [73.1 把到期头像清理接入宿主调度](part-09-operations/chapter-73-maintenance-jobs/chapter.md#731-把到期头像清理接入宿主调度)
+- [73.2 让主机错过一个触发时刻](part-09-operations/chapter-73-maintenance-jobs/chapter.md#732-让主机错过一个触发时刻)
+- [73.3 两个执行者同时工作时认出谁已占用](part-09-operations/chapter-73-maintenance-jobs/chapter.md#733-两个执行者同时工作时认出谁已占用)
+- [73.4 根据业务进度恢复调度](part-09-operations/chapter-73-maintenance-jobs/chapter.md#734-根据业务进度恢复调度)
+- [附录：本章必要技术点速查](part-09-operations/chapter-73-maintenance-jobs/chapter.md#附录本章必要技术点速查)
 
 <a id="第-58-章-运行环境变了怎样交付同一份服务"></a>
 
