@@ -1,6 +1,6 @@
 # 第 50 章 选读：让小程序登录与事务发件箱在同一服务工作
 
-**选读章**　接在第 49 章「Transactional Outbox：业务和消息如何一起提交」之后。练习从[已有配套](https://github.com/SamChowRock/epp-public/tree/part-06/chapter-49)的副本开始。
+**选读章**　承接第 49 章「Transactional Outbox：业务和消息如何一起提交」。练习从[已有配套](https://github.com/SamChowRock/epp-public/tree/part-06/chapter-49)的副本开始。
 
 ## 50.1 为两个已在使用的分支各留一份基线
 

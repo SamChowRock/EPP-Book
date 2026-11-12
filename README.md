@@ -195,11 +195,11 @@
 
 #### [第 16 章 两次都写成功，JSON 文件里为什么少了一条素材](part-03-postgresql/chapter-16-json-file/outline.md)
 
-[本章教学规划](part-03-postgresql/chapter-16-json-file/outline.md)
+[章节提要](part-03-postgresql/chapter-16-json-file/outline.md)
 
 - [16.1 给素材仓储换一份可以重开的文件](part-03-postgresql/chapter-16-json-file/outline.md#161-给素材仓储换一份可以重开的文件)
 - [16.2 把两次修改停在读完旧文件的位置](part-03-postgresql/chapter-16-json-file/outline.md#162-把两次修改停在读完旧文件的位置)
-- [16.3 让读者只看见完整文件以后再试](part-03-postgresql/chapter-16-json-file/outline.md#163-让读者只看见完整文件以后再试)
+- [16.3 完整替换文件能保住两次写入吗](part-03-postgresql/chapter-16-json-file/outline.md#163-完整替换文件能保住两次写入吗)
 - [16.4 把丢失的 ID 带到数据库篇](part-03-postgresql/chapter-16-json-file/outline.md#164-把丢失的-id-带到数据库篇)
 
 #### [第 17 章 PostgreSQL 运行环境：安装、连接与实例管理](part-03-postgresql/chapter-17-postgresql-environment/chapter.md)
@@ -275,7 +275,7 @@
 
 #### [第 24 章 第三篇回顾：带着旧记录完成一次结构演进](part-03-postgresql/chapter-24-review/chapter.md)
 
-**阅读前提**：先完成本篇已成稿的第 17～23 章。第 16 章规划用 JSON 文件的竞争引出数据库。
+**阅读前提**：本章练习使用第 17～23 章建立的数据库、迁移记录和接口。
 
 - [24.1 从接口结果回到 SQL、模型和历史](part-03-postgresql/chapter-24-review/chapter.md#241-从接口结果回到-sql模型和历史)。
 - [24.2 保留旧记录，安排一次约束放宽](part-03-postgresql/chapter-24-review/chapter.md#242-保留旧记录安排一次约束放宽)。
@@ -283,7 +283,7 @@
 - [24.4 单行正确之后，下一步为什么是一致性](part-03-postgresql/chapter-24-review/chapter.md#244-单行正确之后下一步为什么是一致性)。
 - [章末附录：本章必要技术点速查](part-03-postgresql/chapter-24-review/chapter.md#附录本章必要技术点速查)。
 
-时间参考（估算）：只阅读约75～90分钟；跟做另加50～70分钟，合计约125～160分钟。第三篇已成稿第 17～24 章阅读约 790～930 分钟，操作约 415～550 分钟。第 16 章为教学规划，时间待正文完成后计入；支线另列于篇导读。
+时间参考（估算）：只阅读约75～90分钟；跟做另加50～70分钟，合计约125～160分钟。第三篇第 17～24 章阅读约 790～930 分钟，操作约 415～550 分钟。支线用时见本篇导读。
 
 ### [第四篇 业务一致性：修订、候选、事务与采纳](part-04-consistency/README.md)
 
@@ -351,7 +351,7 @@
 
 #### [第 30 章 创建素材与追加修订怎样承受重试](part-04-consistency/chapter-30-write-retry/outline.md)
 
-[本章教学规划](part-04-consistency/chapter-30-write-retry/outline.md)
+[章节提要](part-04-consistency/chapter-30-write-retry/outline.md)
 
 - [30.1 重发同一段文本会多出什么](part-04-consistency/chapter-30-write-retry/outline.md#301-重发同一段文本会多出什么)
 - [30.2 为两种写入划定操作身份](part-04-consistency/chapter-30-write-retry/outline.md#302-为两种写入划定操作身份)
@@ -391,7 +391,7 @@
 
 #### [第 34 章 已有素材列表怎样从全量读取迁到分页](part-04-consistency/chapter-34-paging-upgrade/outline.md)
 
-[本章教学规划](part-04-consistency/chapter-34-paging-upgrade/outline.md)
+[章节提要](part-04-consistency/chapter-34-paging-upgrade/outline.md)
 
 - [34.1 找出哪个客户端把一页当成全部](part-04-consistency/chapter-34-paging-upgrade/outline.md#341-找出哪个客户端把一页当成全部)
 - [34.2 让两种读取约定并存](part-04-consistency/chapter-34-paging-upgrade/outline.md#342-让两种读取约定并存)
@@ -418,7 +418,7 @@
 - [36.4 从学习列表查回来源，也查清是谁的来源](part-04-consistency/chapter-36-review/chapter.md#364-从学习列表查回来源也查清是谁的来源)
 - [附录：本章必要技术点速查](part-04-consistency/chapter-36-review/chapter.md#附录本章必要技术点速查)
 
-时间参考（估算）：阅读约45～60分钟，跟做另加40～60分钟。第四篇已成稿十章（第 25～29、31～33、35～36 章）合计阅读约1100～1300分钟，跟做约740～970分钟；支线另列于篇导读。
+时间参考（估算）：阅读约45～60分钟，跟做另加40～60分钟。第四篇十章（第 25～29、31～33、35～36 章）合计阅读约1100～1300分钟，跟做约740～970分钟；支线另列于篇导读。
 
 ### [第五篇 让服务认识用户：身份、会话与权限](part-05-identity/README.md)
 
@@ -476,7 +476,7 @@
 
 #### [第 41 章 两个 API 实例如何共用登录额度](part-05-identity/chapter-41-shared-limit/outline.md)
 
-[本章教学规划](part-05-identity/chapter-41-shared-limit/outline.md)
+[章节提要](part-05-identity/chapter-41-shared-limit/outline.md)
 
 - [41.1 交替访问两个独立端口](part-05-identity/chapter-41-shared-limit/outline.md#411-交替访问两个独立端口)
 - [41.2 在数据库内作出一次配额决定](part-05-identity/chapter-41-shared-limit/outline.md#412-在数据库内作出一次配额决定)
@@ -566,7 +566,7 @@
 - [48.5 邮件请求返回以后，谁接着做](part-05-identity/chapter-48-review/chapter.md#485-邮件请求返回以后谁接着做)
 - [附录：本章必要技术点速查](part-05-identity/chapter-48-review/chapter.md#附录本章必要技术点速查)
 
-第五篇按成稿与实际操作步骤估算。已成稿核心章节（第 37～40、42～43、48 章）阅读约 632～770 分钟，跟做另加 650～850 分钟。第 41 章按规划衔接两实例的额度练习，估时待补。四个可选登录分支全部跟做时，额外阅读约 285～370 分钟，本地操作另加 405～555 分钟。七条知识支线全部阅读另加 167～224 分钟，46A 的本地复现另加 5～10 分钟。真实平台申请、部署与真机联调另计。
+核心章节（第 37～40、42～43、48 章）阅读约 632～770 分钟，跟做另加 650～850 分钟。四个可选登录分支全部跟做时，额外阅读约 285～370 分钟，本地操作另加 405～555 分钟。七条知识支线全部阅读另加 167～224 分钟，46A 的本地复现另加 5～10 分钟。真实平台申请、部署与真机联调另计。
 
 ### [第六篇 请求返回以后：后台任务与用户通知](part-06-background/README.md)
 
@@ -590,7 +590,7 @@
 
 #### [第 50 章 选读：让小程序登录与事务发件箱在同一服务工作](part-06-background/chapter-50-login-integration/outline.md)
 
-选读章 · [本章教学规划](part-06-background/chapter-50-login-integration/outline.md)
+选读章 · [章节提要](part-06-background/chapter-50-login-integration/outline.md)
 
 - [50.1 为两个已在使用的分支各留一份基线](part-06-background/chapter-50-login-integration/outline.md#501-为两个已在使用的分支各留一份基线)
 - [50.2 让两种迁移历史都能走到同一结构](part-06-background/chapter-50-login-integration/outline.md#502-让两种迁移历史都能走到同一结构)
@@ -632,7 +632,7 @@
 
 #### [第 54 章 选读：追踪一封事务邮件的实际送达与异步退信](part-06-background/chapter-54-mail-delivery/outline.md)
 
-选读章 · [本章教学规划](part-06-background/chapter-54-mail-delivery/outline.md)
+选读章 · [章节提要](part-06-background/chapter-54-mail-delivery/outline.md)
 
 - [54.1 从本地接收跨到受控邮箱](part-06-background/chapter-54-mail-delivery/outline.md#541-从本地接收跨到受控邮箱)
 - [54.2 把接收应答与收件箱证据配成一组](part-06-background/chapter-54-mail-delivery/outline.md#542-把接收应答与收件箱证据配成一组)
@@ -671,7 +671,7 @@
 - [57.4 把目的地换成头像文件](part-06-background/chapter-57-review/chapter.md#574-把目的地换成头像文件)
 - [附录：本章必要技术点速查](part-06-background/chapter-57-review/chapter.md#附录本章必要技术点速查)
 
-第六篇已成稿第 49、51～53、55～57 章合计阅读约 360～460 分钟，连续沿用练习账号时操作另加 505～685 分钟。六条支线阅读另加 58～81 分钟，56A 的双会话实验另加 8～12 分钟。以上按成稿和本机操作步骤估算。
+第六篇第 49、51～53、55～57 章合计阅读约 360～460 分钟，连续沿用练习账号时操作另加 505～685 分钟。六条支线阅读另加 58～81 分钟，56A 的双会话实验另加 8～12 分钟。
 
 ### [第七篇 用户资料与文件：数据库之外的数据](part-07-profiles/README.md)
 
@@ -714,7 +714,7 @@
 
 #### [第 61 章 从头像记录与私有桶的差异追查缺件和多件](part-07-profiles/chapter-61-object-reconcile/outline.md)
 
-[本章教学规划](part-07-profiles/chapter-61-object-reconcile/outline.md)
+[章节提要](part-07-profiles/chapter-61-object-reconcile/outline.md)
 
 - [61.1 为对账准备两份独立清单](part-07-profiles/chapter-61-object-reconcile/outline.md#611-为对账准备两份独立清单)
 - [61.2 按当前指针和写入尝试解释差异](part-07-profiles/chapter-61-object-reconcile/outline.md#612-按当前指针和写入尝试解释差异)
@@ -733,7 +733,7 @@
 - [62.4 决定这一笔能否清理](part-07-profiles/chapter-62-review/chapter.md#624-决定这一笔能否清理)
 - [附录：本章必要技术点速查](part-07-profiles/chapter-62-review/chapter.md#附录本章必要技术点速查)
 
-第七篇已成稿第 58～60、62 章合计阅读约 210～275 分钟，连续沿用两个练习账号时操作另加 295～415 分钟。三条支线阅读另加 26～37 分钟。首次准备账号和下载工具另计；第 62 章可次日观察复查结果，约一天的等待不计入操作时间。以上按成稿、配图和本机操作步骤估算。
+第七篇第 58～60、62 章合计阅读约 210～275 分钟，连续沿用两个练习账号时操作另加 295～415 分钟。三条支线阅读另加 26～37 分钟。首次准备账号和下载工具另计；第 62 章可次日观察复查结果，约一天的等待不计入操作时间。
 
 ### [第八篇 开发与维护：管理命令、构建和性能](part-08-maintenance/README.md)
 
@@ -767,7 +767,7 @@
 
 #### [第 65 章 把验过的那份运行制品从验收环境交给发布环境](part-08-maintenance/chapter-65-artifact-promotion/outline.md)
 
-[本章教学规划](part-08-maintenance/chapter-65-artifact-promotion/outline.md)
+[章节提要](part-08-maintenance/chapter-65-artifact-promotion/outline.md)
 
 - [65.1 从一次构建取得可运行的归档](part-08-maintenance/chapter-65-artifact-promotion/outline.md#651-从一次构建取得可运行的归档)
 - [65.2 让验收记录指向归档摘要](part-08-maintenance/chapter-65-artifact-promotion/outline.md#652-让验收记录指向归档摘要)
@@ -787,7 +787,7 @@
 
 #### [第 67 章 长事务结束以后，PostgreSQL 怎样回收旧行占用的空间](part-08-maintenance/chapter-67-pg-maintenance/outline.md)
 
-[本章教学规划](part-08-maintenance/chapter-67-pg-maintenance/outline.md)
+[章节提要](part-08-maintenance/chapter-67-pg-maintenance/outline.md)
 
 - [67.1 让两个会话看到同一行的不同版本](part-08-maintenance/chapter-67-pg-maintenance/outline.md#671-让两个会话看到同一行的不同版本)
 - [67.2 在快照仍有效时检查清理结果](part-08-maintenance/chapter-67-pg-maintenance/outline.md#672-在快照仍有效时检查清理结果)
@@ -796,7 +796,7 @@
 
 #### [第 68 章 一条历史坏记录应该让多少服务停下来](part-08-maintenance/chapter-68-bad-data/outline.md)
 
-[本章教学规划](part-08-maintenance/chapter-68-bad-data/outline.md)
+[章节提要](part-08-maintenance/chapter-68-bad-data/outline.md)
 
 - [68.1 从缺少首版修订的旧素材开始](part-08-maintenance/chapter-68-bad-data/outline.md#681-从缺少首版修订的旧素材开始)
 - [68.2 按受影响的承诺划定停用范围](part-08-maintenance/chapter-68-bad-data/outline.md#682-按受影响的承诺划定停用范围)
@@ -813,7 +813,7 @@
 - [69.4 把资源判断交给下一班](part-08-maintenance/chapter-69-review/chapter.md#694-把资源判断交给下一班)
 - [附录：本章必要技术点速查](part-08-maintenance/chapter-69-review/chapter.md#附录本章必要技术点速查)
 
-第八篇已成稿第 63、64、66、69 章合计阅读约 136～185 分钟，连续跟做另加 198～280 分钟。三条支线阅读另加 18～27 分钟，缓存对照另加 2～3 分钟。选做远程 CI 另加 10～18 分钟。首次安装和下载另计。
+第八篇第 63、64、66、69 章合计阅读约 136～185 分钟，连续跟做另加 198～280 分钟。三条支线阅读另加 18～27 分钟，缓存对照另加 2～3 分钟。选做远程 CI 另加 10～18 分钟。首次安装和下载另计。
 
 ### [第九篇 部署与运维：发布、观测和恢复](part-09-operations/README.md)
 
@@ -839,7 +839,7 @@
 
 #### [第 71 章 用 iTerm2 经 SSH 接手另一台主机上的服务](part-09-operations/chapter-71-remote-host/outline.md)
 
-[本章教学规划](part-09-operations/chapter-71-remote-host/outline.md)
+[章节提要](part-09-operations/chapter-71-remote-host/outline.md)
 
 - [71.1 先识别将要接手的主机](part-09-operations/chapter-71-remote-host/outline.md#711-先识别将要接手的主机)
 - [71.2 通过隧道核对只监听回环的 API](part-09-operations/chapter-71-remote-host/outline.md#712-通过隧道核对只监听回环的-api)
@@ -848,7 +848,7 @@
 
 #### [第 72 章 为 API、邮件和通知进程分别分配运行权限](part-09-operations/chapter-72-service-roles/outline.md)
 
-[本章教学规划](part-09-operations/chapter-72-service-roles/outline.md)
+[章节提要](part-09-operations/chapter-72-service-roles/outline.md)
 
 - [72.1 从三笔工作推导各自的权限](part-09-operations/chapter-72-service-roles/outline.md#721-从三笔工作推导各自的权限)
 - [72.2 给每个进程独立的启动身份](part-09-operations/chapter-72-service-roles/outline.md#722-给每个进程独立的启动身份)
@@ -857,7 +857,7 @@
 
 #### [第 73 章 定时维护漏跑或同时启动两次以后怎么办](part-09-operations/chapter-73-maintenance-jobs/outline.md)
 
-[本章教学规划](part-09-operations/chapter-73-maintenance-jobs/outline.md)
+[章节提要](part-09-operations/chapter-73-maintenance-jobs/outline.md)
 
 - [73.1 把到期头像清理接入宿主调度](part-09-operations/chapter-73-maintenance-jobs/outline.md#731-把到期头像清理接入宿主调度)
 - [73.2 让主机错过一个触发时刻](part-09-operations/chapter-73-maintenance-jobs/outline.md#732-让主机错过一个触发时刻)
@@ -877,7 +877,7 @@
 
 #### [第 75 章 客户端怎样确认访问的是自己的 HTTPS 服务](part-09-operations/chapter-75-tls-trust/outline.md)
 
-[本章教学规划](part-09-operations/chapter-75-tls-trust/outline.md)
+[章节提要](part-09-operations/chapter-75-tls-trust/outline.md)
 
 - [75.1 先让客户端按名字找到目标](part-09-operations/chapter-75-tls-trust/outline.md#751-先让客户端按名字找到目标)
 - [75.2 签一张带正确名称的练习证书](part-09-operations/chapter-75-tls-trust/outline.md#752-签一张带正确名称的练习证书)
@@ -886,7 +886,7 @@
 
 #### [第 76 章 让 API 和后台进程更换凭据与签名密钥](part-09-operations/chapter-76-rotate-credentials/outline.md)
 
-[本章教学规划](part-09-operations/chapter-76-rotate-credentials/outline.md)
+[章节提要](part-09-operations/chapter-76-rotate-credentials/outline.md)
 
 - [76.1 盘点哪些进程还会以旧身份重连](part-09-operations/chapter-76-rotate-credentials/outline.md#761-盘点哪些进程还会以旧身份重连)
 - [76.2 先切一个进程并迫使它新建连接](part-09-operations/chapter-76-rotate-credentials/outline.md#762-先切一个进程并迫使它新建连接)
@@ -976,11 +976,11 @@
 
 **从告警回到一次请求、一个任务和一次投递**
 
-规划演练：同一练习收件人先后申请两次，一笔确定临时失败后重试，一笔在 SMTP 收完正文后丢失最终应答。受理端保存 requestId 与新建的 outbox.id，领取端保存 message_id、claim_id、实际进入发送的尝试序号和结果；区分领取后还未寄送与已经进入投递两种状态。现有 attempts 是累计数，claim_id 在完成后会清除。要按次回查历史，增加可持久查询的尝试记录或明确保留期的结构化日志，在提交或应答丢失处单列证据不足。由读者从单个请求 ID 找到自己的消息、全部尝试、最终状态和通道占用；用同收件人的另一笔检验关联不会串单。
+同一练习收件人先后申请两次，一笔确定临时失败后重试，一笔在 SMTP 收完正文后丢失最终应答。受理端保存 requestId 与新建的 outbox.id，领取端保存 message_id、claim_id、实际进入发送的尝试序号和结果；区分领取后还未寄送与已经进入投递两种状态。现有 attempts 是累计数，claim_id 在完成后会清除。要按次回查历史，增加可持久查询的尝试记录或明确保留期的结构化日志，在提交或应答丢失处单列证据不足。从单个请求 ID 找到对应的消息、全部尝试、最终状态和通道占用；用同收件人的另一笔检验关联不会串单。
 
 **轮转后按事故时间取回旧日志**
 
-规划演练：在 macOS 原生任务与 Linux journal 各确定实际输出落点，记录轮转前后两笔请求 ID、时间、角色和进程身份。让读者分别在活动文件和归档、当前和上一时间窗取证，观测磁盘用量与最早可查询时间。在专用练习实例设置容量或时间保留条件，制造有限的日志量，复核达到条件后哪一段证据仍存在。若历史已超出保留窗口，交接单须明确可查的时间范围。将主机重启、服务重启和日志文件重新打开分开验证。
+在 macOS 原生任务与 Linux journal 各确定实际输出落点，记录轮转前后两笔请求 ID、时间、角色和进程身份。分别在活动文件和归档、当前和上一时间窗取证，观测磁盘用量与最早可查询时间。在专用练习实例设置容量或时间保留条件，制造有限的日志量，复核达到条件后哪一段证据仍存在。若历史已超出保留窗口，交接单须明确可查的时间范围。将主机重启、服务重启和日志文件重新打开分开验证。
 
 
 - 82.1 从一次失败请求入手，在代理和现有 JSON 日志中查找时间、进程、构建版本与请求 ID。补齐缺少的关联字段，核对失败日志也会避开 Cookie、正文和签名地址。
@@ -1003,7 +1003,7 @@
 
 #### [第 84 章 回到误操作之前，再把一条业务记录修回现在](part-09-operations/chapter-84-pitr/outline.md)
 
-[本章教学规划](part-09-operations/chapter-84-pitr/outline.md)
+[章节提要](part-09-operations/chapter-84-pitr/outline.md)
 
 - [84.1 为一条误改留下可定位的恢复点](part-09-operations/chapter-84-pitr/outline.md#841-为一条误改留下可定位的恢复点)
 - [84.2 在隔离目标上重放到误改之前](part-09-operations/chapter-84-pitr/outline.md#842-在隔离目标上重放到误改之前)
@@ -1513,11 +1513,11 @@
 
 ### 阅读方式与范围
 
-这组技术分享从已有 JavaScript 和前端经验出发，围绕 EPP 的实际问题，从零搭建一个公开的 EPP。代码、数据结构和运行步骤随章节逐步建立，开发数据与真实用户数据隔离。章题链接进入正文或标有「教学规划」的章节提纲，篇标题链接进入篇导读。
+这组技术分享从已有 JavaScript 和前端经验出发，围绕 EPP 的实际问题，从零搭建一个公开的 EPP。代码、数据结构和运行步骤随章节逐步建立，开发数据与真实用户数据隔离。从篇标题进入导读，从章题查看正文或章节提要。
 
 每篇以导读明确起点，以正式总结章回顾能力、综合应用并衔接后续内容。总结章在完成本篇相应主线后阅读；可选路线只核对已选择的部分，不能成为核心路线的新前提。上部在第 87 章从已有服务的恢复转入新需求的独立交付；下部在第 119 章用所选专题完成综合实践。
 
-当前目录共 **2 部、14 篇、119 章**。已成稿章节的估时按现有分章列出，新增提纲待正文完成后计入。除拆章已重新估算外，表中沿用原有各章的时间区间，新增的定向诊断实验另留操作时间。章数随内容扩展，新增主章放在用到它的章节之前，各篇与各章按复杂度分配篇幅，小节数量随内容变化；数据库、业务一致性、后台任务和运维等重点保留足够空间。
+全书分两部、十四篇。各章分别估算阅读和动手时间，篇导读列出适用的章次与选读路线。
 
 [目标与能力路线](backend-capabilities.md)说明各项后端能力由哪些章节共同建立，以及怎样通过改变约束、跨场景应用和独立交付核对。EPP 的功能进度与读者能力进度分别维护；必要基础的覆盖范围由独立后端开发的目标决定。
 
@@ -1590,9 +1590,3 @@ PostgreSQL 与对象存储先以本地进程运行，在对应章节说明必要
 | I 扩展讨论 | 缓存、独立队列、多实例与更复杂部署的适用条件 |
 
 Redis、BullMQ、Kubernetes 等作为有条件的演进讨论，在相应需求出现时再说明适用条件。平台接入的验证方法与结果在对应实践中说明。
-
-## 持续维护
-
-README.md 维护当前目录、阅读路线和前置依赖；[目标与能力路线](backend-capabilities.md)维护能力覆盖与独立应用的对应关系；[AGENTS.md](AGENTS.md) 维护写作原则、篇章文件组织、配套代码与截图规范。
-
-各章沿同一个项目展开：先解释问题与原理，再编写实现并观察结果，后续章节接着已有代码和数据演进。时间参考区分阅读与跟做，便于安排实践。
