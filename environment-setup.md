@@ -284,6 +284,10 @@ node database/chapter-51/store-probe.mjs buckets
 
 操作端沿用 iTerm2 和 Postman，使用 macOS 自带的 OpenSSH。执行 `command -v ssh ssh-keygen scp` 和 `ssh -V` 核对客户端。部署端需要可由操作端访问的 SSH 监听、获准登录并可读任务和日志的练习账号，以及从独立控制台取得的主机指纹。部署端保留第 70 章的非空练习库、已登记的 API 和实际运行路径。换钥使用一次性目标上的专用监听，保留控制台和原登录入口。[第 71 章的连接与接手步骤](part-09-operations/chapter-71-remote-host/chapter.md)
 
+### 第 72 章为三个服务分配身份
+
+操作端仍使用 iTerm2、Postman 与 DBeaver。宿主演练用一台能独立管理服务账号、使用系统级 systemd 的 Linux 练习机（正文使用 Debian 13，也可在 Mac 上运行独立虚拟机）。进入目标后用 `systemctl --version`、`command -v useradd install` 核对工具；创建账号、安装 unit 及指定文件属主需要管理权限。准备同平台 Node 24.22.1、生产依赖、PostgreSQL 18 的隔离非空库、配对桶和可达的私有 Mailpit；旧账号需已开通，保留原收据 ID。迁移管理员能创建视图、实例管理员能建立登录角色；三个运行账号使用各自凭据。[第 72 章的部署与验证](part-09-operations/chapter-72-service-roles/chapter.md)
+
 ## 7. 下次继续与常见问题
 
 第 63 章的账号管理 CLI 随项目构建，沿用本机 Node 和 PostgreSQL。在对应章节的代码目录完成迁移和构建后，按正文用预期库名和账号 ID 预览操作，再决定是否执行变更。[第 63 章管理命令](part-08-maintenance/chapter-63-account-cli/chapter.md)

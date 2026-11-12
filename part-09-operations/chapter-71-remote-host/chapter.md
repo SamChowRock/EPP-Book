@@ -232,4 +232,4 @@ ssh -F ~/.ssh/epp71.conf -p 22271 -N -o ExitOnForwardFailure=yes \
 
 阅读约 25～35 分钟。已准备好可登录的练习目标、第 70 章部署与旧收据时，跟做另加 40～60 分钟。首次准备第二台系统、恢复数据及网络接入另计。
 
-[沿用配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 在本机直接部署服务](../chapter-70-native-deployment/chapter.md) · [下一章 · 为 API、邮件和通知进程分别分配运行权限](../chapter-72-service-roles/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[沿用配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 在本机直接部署服务](../chapter-70-native-deployment/chapter.md) · [下一章 · 为 API、邮件和通知进程分别分配运行权限](../chapter-72-service-roles/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

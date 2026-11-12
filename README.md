@@ -847,14 +847,15 @@
 - [71.4 在主机身份改变时恢复接手](part-09-operations/chapter-71-remote-host/chapter.md#714-在主机身份改变时恢复接手)
 - [附录：本章必要技术点速查](part-09-operations/chapter-71-remote-host/chapter.md#附录本章必要技术点速查)
 
-#### [第 72 章 为 API、邮件和通知进程分别分配运行权限](part-09-operations/chapter-72-service-roles/outline.md)
+#### [第 72 章 为 API、邮件和通知进程分别分配运行权限](part-09-operations/chapter-72-service-roles/chapter.md)
 
-[章节提要](part-09-operations/chapter-72-service-roles/outline.md)
+阅读约 40～55 分钟，准备好 Linux 练习目标和非空副本时，跟做另加 65～95 分钟。
 
-- [72.1 从三笔工作推导各自的权限](part-09-operations/chapter-72-service-roles/outline.md#721-从三笔工作推导各自的权限)
-- [72.2 给每个进程独立的启动身份](part-09-operations/chapter-72-service-roles/outline.md#722-给每个进程独立的启动身份)
-- [72.3 先让需要的工作通过，再越权一次](part-09-operations/chapter-72-service-roles/outline.md#723-先让需要的工作通过再越权一次)
-- [72.4 恢复漏授的权限并交接](part-09-operations/chapter-72-service-roles/outline.md#724-恢复漏授的权限并交接)
+- [72.1 从三笔工作推导各自的权限](part-09-operations/chapter-72-service-roles/chapter.md#721-从三笔工作推导各自的权限)
+- [72.2 给每个进程独立的启动身份](part-09-operations/chapter-72-service-roles/chapter.md#722-给每个进程独立的启动身份)
+- [72.3 先让需要的工作通过，再越权一次](part-09-operations/chapter-72-service-roles/chapter.md#723-先让需要的工作通过再越权一次)
+- [72.4 恢复漏授的权限并交接](part-09-operations/chapter-72-service-roles/chapter.md#724-恢复漏授的权限并交接)
+- [附录：本章必要技术点速查](part-09-operations/chapter-72-service-roles/chapter.md#附录本章必要技术点速查)
 
 #### [第 73 章 定时维护漏跑或同时启动两次以后怎么办](part-09-operations/chapter-73-maintenance-jobs/outline.md)
 
