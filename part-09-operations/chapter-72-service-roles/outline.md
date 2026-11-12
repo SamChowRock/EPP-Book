@@ -18,4 +18,4 @@
 
 在练习副本撤去一项确需的表权限，按任务和 SQL 错误定位受影响角色，仅补回该项再重试；外部发送结果未知时沿已有事故流程核查。核对其他角色及邻近数据未受影响，记录授权与撤销入口。后续容器仍需分别配置运行用户、挂载和库角色。
 
-[上一章 · 用 iTerm2 经 SSH 接手另一台主机上的服务](../chapter-71-remote-host/outline.md) · [下一章 · 定时维护漏跑或同时启动两次以后怎么办](../chapter-73-maintenance-jobs/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[上一章 · 用 iTerm2 经 SSH 接手另一台主机上的服务](../chapter-71-remote-host/chapter.md) · [下一章 · 定时维护漏跑或同时启动两次以后怎么办](../chapter-73-maintenance-jobs/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

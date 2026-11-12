@@ -555,7 +555,7 @@ WHERE j.user_id = '替换为本轮A的userId'::uuid AND j.kind = 'registered';
 
 本轮客户端得到 503 SERVICE_DRAINING，暂存文件消失，日志出现 app.stopped，退出码 0。再查任务时 runs 没有增加，这回可以在原端口做维护。如果得到 408，先看发送信号前是否已经等过 10 秒上传期限；重新启动 API，用新请求再做一轮。上传期限管一次请求，plist 的 ExitTimeOut 则管管理器发出停止信号后给整个进程多久退出。若进程在应用自己的停机期限内无法收尾，应用也可能以失败状态退出；这时回看 app.stopped 有没有出现，再按业务 ID 确认在途写入。
 
-离开练习时，在 Linux 主机逐项 stop 或按本次安装方式 disable --now，并重新核对状态。在 Mac 用加载任务的账号逐一 bootout。先确认标签的配置路径属于本轮，再运行下列命令。这个循环逐个卸载完整标签。结束后再对 API 标签执行 print，并用 70.2 的 lsof 核对端口。随后在故障端窗口按 Ctrl-C，关闭本轮的依赖，保留库、桶、构建、配置与交接记录。下次从 70.1 的已知收据、头像和邮件占用开始。带上这份交接记录，进入[第 71 章](../chapter-71-remote-host/outline.md)，从 iTerm2 经 SSH 接手另一台主机。
+离开练习时，在 Linux 主机逐项 stop 或按本次安装方式 disable --now，并重新核对状态。在 Mac 用加载任务的账号逐一 bootout。先确认标签的配置路径属于本轮，再运行下列命令。这个循环逐个卸载完整标签。结束后再对 API 标签执行 print，并用 70.2 的 lsof 核对端口。随后在故障端窗口按 Ctrl-C，关闭本轮的依赖，保留库、桶、构建、配置与交接记录。下次从 70.1 的已知收据、头像和邮件占用开始。带上这份交接记录，进入[第 71 章](../chapter-71-remote-host/chapter.md)，从 iTerm2 经 SSH 接手另一台主机。
 
 ```bash
 for role in mail notifications api; do
@@ -581,4 +581,4 @@ done
 
 [本章配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章：第八篇回顾：从维护动作到可交付产物](../../part-08-maintenance/chapter-69-review/chapter.md) · [第九篇导读](../README.md) · [全书目录](../../README.md)
 
-[下一章：用 iTerm2 经 SSH 接手另一台主机上的服务](../chapter-71-remote-host/outline.md)
+[下一章：用 iTerm2 经 SSH 接手另一台主机上的服务](../chapter-71-remote-host/chapter.md)

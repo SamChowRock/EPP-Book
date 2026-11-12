@@ -837,14 +837,15 @@
 - [70.6 同样少了一个进程，下一步可以相反](part-09-operations/chapter-70-native-deployment/chapter.md#706-同样少了一个进程下一步可以相反)
 - [附录：本章必要技术点速查](part-09-operations/chapter-70-native-deployment/chapter.md#附录本章必要技术点速查)
 
-#### [第 71 章 用 iTerm2 经 SSH 接手另一台主机上的服务](part-09-operations/chapter-71-remote-host/outline.md)
+#### [第 71 章 用 iTerm2 经 SSH 接手另一台主机上的服务](part-09-operations/chapter-71-remote-host/chapter.md)
 
-[章节提要](part-09-operations/chapter-71-remote-host/outline.md)
+阅读约 25～35 分钟，已有可登录的练习目标和第 70 章部署时，跟做另加 40～60 分钟。
 
-- [71.1 先识别将要接手的主机](part-09-operations/chapter-71-remote-host/outline.md#711-先识别将要接手的主机)
-- [71.2 通过隧道核对只监听回环的 API](part-09-operations/chapter-71-remote-host/outline.md#712-通过隧道核对只监听回环的-api)
-- [71.3 断开终端以后由谁维持服务](part-09-operations/chapter-71-remote-host/outline.md#713-断开终端以后由谁维持服务)
-- [71.4 在主机身份改变时恢复接手](part-09-operations/chapter-71-remote-host/outline.md#714-在主机身份改变时恢复接手)
+- [71.1 先识别将要接手的主机](part-09-operations/chapter-71-remote-host/chapter.md#711-先识别将要接手的主机)
+- [71.2 通过隧道核对只监听回环的 API](part-09-operations/chapter-71-remote-host/chapter.md#712-通过隧道核对只监听回环的-api)
+- [71.3 断开终端以后由谁维持服务](part-09-operations/chapter-71-remote-host/chapter.md#713-断开终端以后由谁维持服务)
+- [71.4 在主机身份改变时恢复接手](part-09-operations/chapter-71-remote-host/chapter.md#714-在主机身份改变时恢复接手)
+- [附录：本章必要技术点速查](part-09-operations/chapter-71-remote-host/chapter.md#附录本章必要技术点速查)
 
 #### [第 72 章 为 API、邮件和通知进程分别分配运行权限](part-09-operations/chapter-72-service-roles/outline.md)
 

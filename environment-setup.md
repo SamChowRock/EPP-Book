@@ -280,6 +280,10 @@ node database/chapter-51/store-probe.mjs buckets
 
 沿用第 69 章非空副本、同一恢复点的私有桶、旧账号与旧收据。本章在 iTerm2 中运行 Bash，分窗口操作 API、邮件和通知。Mac 需要在图形登录会话中运行 launchctl，配套脚本用项目的 Node 生成任务文件，plutil 只用于在 Mac 上查看文件。在配套根目录运行 `nvm use`，用 `node --version` 核对版本，再用 `command -v launchctl plutil` 查看两项系统工具的路径。构建与运行使用相同平台的 Node 24.22.1，在持久目录准备 release、config、work、logs。数据库、存储和 SMTP 均用练习环境的回环入口，邮件角色启动前核对遗留待办与收件端。关机与注销实验安排在专用机或虚拟机中。[第 70 章的部署步骤](part-09-operations/chapter-70-native-deployment/chapter.md)
 
+### 第 71 章从另一台电脑接手
+
+操作端沿用 iTerm2 和 Postman，使用 macOS 自带的 OpenSSH。执行 `command -v ssh ssh-keygen scp` 和 `ssh -V` 核对客户端。部署端需要可由操作端访问的 SSH 监听、获准登录并可读任务和日志的练习账号，以及从独立控制台取得的主机指纹。部署端保留第 70 章的非空练习库、已登记的 API 和实际运行路径。换钥使用一次性目标上的专用监听，保留控制台和原登录入口。[第 71 章的连接与接手步骤](part-09-operations/chapter-71-remote-host/chapter.md)
+
 ## 7. 下次继续与常见问题
 
 第 63 章的账号管理 CLI 随项目构建，沿用本机 Node 和 PostgreSQL。在对应章节的代码目录完成迁移和构建后，按正文用预期库名和账号 ID 预览操作，再决定是否执行变更。[第 63 章管理命令](part-08-maintenance/chapter-63-account-cli/chapter.md)
