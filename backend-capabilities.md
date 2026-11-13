@@ -39,7 +39,7 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | [第 41 章](part-05-identity/chapter-41-shared-limit/outline.md)、[第 50 章](part-06-background/chapter-50-login-integration/outline.md)、[第 54 章](part-06-background/chapter-54-mail-delivery/outline.md) | 从两个 API 观察同一登录额度。选读登录接线用原账号和收件箱验证身份延续；选读邮件交付按供应商消息和退信事件追到实际邮箱。 |
 | [第 61 章](part-07-profiles/chapter-61-object-reconcile/outline.md)、[第 65 章](part-08-maintenance/chapter-65-artifact-promotion/outline.md) | 按尝试 ID 对照私有桶与数据库的两份清单。另从制品摘要查回当时验过的运行包，在发布副本核对相同入口。 |
 | [第 67 章](part-08-maintenance/chapter-67-pg-maintenance/outline.md)、[第 68 章](part-08-maintenance/chapter-68-bad-data/outline.md) | 从长事务、旧行版本与表空间读数选择维护时机。让一条坏记录只影响相关读取，核对其余业务与修复后的历史。 |
-| [第 71 章](part-09-operations/chapter-71-remote-host/chapter.md)、[第 72 章](part-09-operations/chapter-72-service-roles/chapter.md)、[第 73 章](part-09-operations/chapter-73-maintenance-jobs/chapter.md)、[第 75 章](part-09-operations/chapter-75-tls-trust/chapter.md)、[第 76 章](part-09-operations/chapter-76-rotate-credentials/outline.md) | 从 SSH 目标、运行角色和维护任务识别另一主机的责任。分别验证名称与证书、每个进程的新连接以及撤销旧凭据后的结果。 |
+| [第 71 章](part-09-operations/chapter-71-remote-host/chapter.md)、[第 72 章](part-09-operations/chapter-72-service-roles/chapter.md)、[第 73 章](part-09-operations/chapter-73-maintenance-jobs/chapter.md)、[第 75 章](part-09-operations/chapter-75-tls-trust/chapter.md)、[第 76 章](part-09-operations/chapter-76-rotate-credentials/chapter.md) | 从 SSH 目标、运行角色和维护任务识别另一主机的责任。分别验证名称与证书、每个角色的新连接；固定 Cookie 和 Origin 交叉验证 CSRF 与游标，按任务 ID 验收后台切换，并区分禁止旧登录与终止旧会话。 |
 | [第 84 章](part-09-operations/chapter-84-pitr/outline.md) | 先恢复到隔离时间点，保留事故之后的合法写入，从副本提取并修复受影响的记录。 |
 
 ## 后端能力如何跨篇递进

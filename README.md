@@ -891,14 +891,15 @@
 - [75.4 换证后回到原业务请求](part-09-operations/chapter-75-tls-trust/chapter.md#754-换证后回到原业务请求)
 - [附录：本章必要技术点速查](part-09-operations/chapter-75-tls-trust/chapter.md#附录本章必要技术点速查)
 
-#### [第 76 章 让 API 和后台进程更换凭据与签名密钥](part-09-operations/chapter-76-rotate-credentials/outline.md)
+#### [第 76 章 让 API 和后台进程更换凭据与签名密钥](part-09-operations/chapter-76-rotate-credentials/chapter.md)
 
-[章节提要](part-09-operations/chapter-76-rotate-credentials/outline.md)
+阅读约 30～40 分钟，双实例、角色轮换与撤销实验另加 65～95 分钟。
 
-- [76.1 盘点哪些进程还会以旧身份重连](part-09-operations/chapter-76-rotate-credentials/outline.md#761-盘点哪些进程还会以旧身份重连)
-- [76.2 先切一个进程并迫使它新建连接](part-09-operations/chapter-76-rotate-credentials/outline.md#762-先切一个进程并迫使它新建连接)
-- [76.3 轮流排空其余角色](part-09-operations/chapter-76-rotate-credentials/outline.md#763-轮流排空其余角色)
-- [76.4 撤掉旧登录后验证故障边界](part-09-operations/chapter-76-rotate-credentials/outline.md#764-撤掉旧登录后验证故障边界)
+- [76.1 盘点哪些进程还会以旧身份重连](part-09-operations/chapter-76-rotate-credentials/chapter.md#761-盘点哪些进程还会以旧身份重连)
+- [76.2 先切一个进程并迫使它新建连接](part-09-operations/chapter-76-rotate-credentials/chapter.md#762-先切一个进程并迫使它新建连接)
+- [76.3 轮流排空其余角色](part-09-operations/chapter-76-rotate-credentials/chapter.md#763-轮流排空其余角色)
+- [76.4 撤掉旧登录后验证故障边界](part-09-operations/chapter-76-rotate-credentials/chapter.md#764-撤掉旧登录后验证故障边界)
+- [附录：本章必要技术点速查](part-09-operations/chapter-76-rotate-credentials/chapter.md#附录本章必要技术点速查)
 
 <a id="第-58-章-docker-基础从本地进程到容器"></a>
 

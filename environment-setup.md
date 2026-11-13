@@ -25,11 +25,12 @@
 | 第 72 章 | [Linux 版 Node.js 24.22.1、npm](#第-72-章为三个服务分配身份)（部署机） | 以各自的系统用户运行 API、邮件和通知 |
 | 第 75 章 | [OpenSSL 3](#两端准备-openssl)、[nginx](#在-debian-准备-nginx)（OpenSSL 装在两端，nginx 装在 Debian） | 签发练习证书，由独立入口接收 HTTPS |
 | 第 75.3 节选做 | [Firefox ESR、libnss3-tools](#用-firefox-查看证书错误选做)（有图形会话的 Debian） | 用专用浏览器配置观察导入练习根证书前后的变化 |
+| 第 76 章 | [复用 PostgreSQL 18、curl 和 Mailpit](#让两个实例接到同一份练习数据) | 用同一份业务数据检查两个 API、后台进程和旧连接 |
 
 <details>
-<summary>第 76 章以后还会用到什么？</summary>
+<summary>第 77 章起还会用到什么？</summary>
 
-第 76 章沿用部署环境轮换数据库凭据，第 77～80 章可选 Docker 与 Compose，第 81 章准备 Caddy（家庭主机隧道路线另用 Cloudflare Tunnel），第 82 章容器日志支线使用 Dozzle。第十篇做真实模型调用时准备供应商账号、密钥和额度，第 97 章用到 pgvector，第十三篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
+第 77～80 章可选 Docker 与 Compose，第 81 章准备 Caddy（家庭主机隧道路线另用 Cloudflare Tunnel），第 82 章容器日志支线使用 Dozzle。第十篇做真实模型调用时准备供应商账号、密钥和额度，第 97 章用到 pgvector，第十三篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
 
 </details>
 
@@ -359,6 +360,10 @@ command -v certutil
 ```
 
 在 Debian 确认版本和 `certutil` 路径后，按正文创建专用 Firefox 配置，核对练习根指纹，观察导入前后的页面。撤销信任时先保留 nginx 在线，再用同一浏览器配置访问原地址，才能看到证书再次被拒绝。[第 75.3 节浏览器对照](part-09-operations/chapter-75-tls-trust/chapter.md#753-用两个客户端复现名称和信任差异)
+
+### 让两个实例接到同一份练习数据
+
+第 75 章结束时已经恢复了原来的 HTTP 入口。第 76 章用同一练习账号和回环来源，把请求分别送到两个 API。为两个进程各留一个监听端口和可写目录，用操作端原有的 curl 选择目标；远程部署时继续用 SSH 转发。准备私有 Mailpit，并保存旧收据、邮件占用和一份可用于续页的账号数据。数据库轮换要改集群范围的登录权限，所以应使用独立的 PostgreSQL 18 集群副本。确认其端口、数据目录和原实例不同，再让各进程连接副本。[第 76 章的操作与验证](part-09-operations/chapter-76-rotate-credentials/chapter.md)
 
 ## 7. 停下后怎样接着做
 

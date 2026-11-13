@@ -405,4 +405,4 @@ read_capture after && cmp "$lab/before.json" "$lab/after.json"
 
 按现场记录、三图及展开的操作说明估计，阅读约 25～35 分钟。已有上一章部署、账号与工具时，两端签发、两种客户端诊断和换证回退另加 50～75 分钟。首次安装浏览器及准备隔离环境另计。
 
-[配套起点 · 第 70 章](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 运行环境变了，怎样交付同一份服务](../chapter-74-portable-release/chapter.md) · [下一章 · 让 API 和后台进程更换凭据与签名密钥](../chapter-76-rotate-credentials/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[配套起点 · 第 70 章](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 运行环境变了，怎样交付同一份服务](../chapter-74-portable-release/chapter.md) · [下一章 · 让 API 和后台进程更换凭据与签名密钥](../chapter-76-rotate-credentials/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
