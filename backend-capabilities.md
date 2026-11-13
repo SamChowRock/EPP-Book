@@ -39,7 +39,7 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | [第 41 章](part-05-identity/chapter-41-shared-limit/outline.md)、[第 50 章](part-06-background/chapter-50-login-integration/outline.md)、[第 54 章](part-06-background/chapter-54-mail-delivery/outline.md) | 从两个 API 观察同一登录额度。选读登录接线用原账号和收件箱验证身份延续；选读邮件交付按供应商消息和退信事件追到实际邮箱。 |
 | [第 61 章](part-07-profiles/chapter-61-object-reconcile/outline.md)、[第 65 章](part-08-maintenance/chapter-65-artifact-promotion/outline.md) | 按尝试 ID 对照私有桶与数据库的两份清单。另从制品摘要查回当时验过的运行包，在发布副本核对相同入口。 |
 | [第 67 章](part-08-maintenance/chapter-67-pg-maintenance/outline.md)、[第 68 章](part-08-maintenance/chapter-68-bad-data/outline.md) | 从长事务、旧行版本与表空间读数选择维护时机。让一条坏记录只影响相关读取，核对其余业务与修复后的历史。 |
-| [第 71 章](part-09-operations/chapter-71-remote-host/chapter.md)、[第 72 章](part-09-operations/chapter-72-service-roles/chapter.md)、[第 73 章](part-09-operations/chapter-73-maintenance-jobs/chapter.md)、[第 75 章](part-09-operations/chapter-75-tls-trust/outline.md)、[第 76 章](part-09-operations/chapter-76-rotate-credentials/outline.md) | 从 SSH 目标、运行角色和维护任务识别另一主机的责任。分别验证名称与证书、每个进程的新连接以及撤销旧凭据后的结果。 |
+| [第 71 章](part-09-operations/chapter-71-remote-host/chapter.md)、[第 72 章](part-09-operations/chapter-72-service-roles/chapter.md)、[第 73 章](part-09-operations/chapter-73-maintenance-jobs/chapter.md)、[第 75 章](part-09-operations/chapter-75-tls-trust/chapter.md)、[第 76 章](part-09-operations/chapter-76-rotate-credentials/outline.md) | 从 SSH 目标、运行角色和维护任务识别另一主机的责任。分别验证名称与证书、每个进程的新连接以及撤销旧凭据后的结果。 |
 | [第 84 章](part-09-operations/chapter-84-pitr/outline.md) | 先恢复到隔离时间点，保留事故之后的合法写入，从副本提取并修复受影响的记录。 |
 
 ## 后端能力如何跨篇递进
@@ -249,6 +249,7 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | [第九篇 · 第 72 章](part-09-operations/chapter-72-service-roles/chapter.md) | 第 53、55、63、70～71 章 | 按真实进程、数据库身份和一次业务事务推导文件与列权限，拒绝越权、恢复同一任务并保留原收据 | 给维护任务单独授权，逐角色更换凭据 |
 | [第九篇 · 第 73 章](part-09-operations/chapter-73-maintenance-jobs/chapter.md) | 第 60、62、70～72 章 | 把有界清理托管给宿主，按同一对象的领取期限、逐项结果与实际读取恢复漏跑和重复启动 | 区分按到期状态补扫与按业务日补交，交接积压及未恢复的失败 |
 | [第九篇 · 第 74 章](part-09-operations/chapter-74-portable-release/chapter.md) | 第 64、69～73 章 | 在第二个运行目录交付相同的入口，用独立配置验证地址、权限、信号和旧数据 | 同一套运行要求可由本地进程管理器或容器提供 |
+| [第九篇 · 第 75 章](part-09-operations/chapter-75-tls-trust/chapter.md) | 第 71、74 章 | 用相同报错下的两组握手证据区分客户端根与入口证书链，再按 URL 名称核对 SAN | 换证与回退时分别用新连接核对线上证书，用原会话和素材响应核对业务连续性 |
 | 第九篇 · 第 83 章 | 第 62、69～70、82 章 | 原服务可用时取得共同恢复点，在隔离库、桶验证一套备份能否还原同一条引用、对象及权限 | 为原主机失效备齐恢复材料 |
 | 第九篇 · 第 85～86 章 | 第 23、64、70、81～83 章 | 在发布副本找出旧程序仍可读写的边界；回到 EPP，模拟失去原主机，从备份接手，按数据损失区间和任务状态决定何时放行 | 在事故原因未知时独立决定处置范围 |
 | 第九篇 · 第 87 章 | 第 70～76、81～86 章，容器化可选 | 从报障自行取证并恢复已有业务；另发布预约第一版，带旧预约升级并在另一环境复核权限与余量 | 完成上部独立交付，按需进入下部 |

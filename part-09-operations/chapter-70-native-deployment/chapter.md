@@ -60,7 +60,7 @@ WHERE c.id = 1;
 
 想象下一班人准备替换 release。编译后的 server.js 和随构建复制的 service.json 必须一起换；账号连接配置、投递去向和游标签名密钥应当能交给新进程继续使用；刚才的事故日志还要留着。由这三个动作，可以画出四个目录：release 放可以整份替换的产物，config 留给运行时身份与配置，logs 存运行历史，work 给进程落临时文件。数据库与对象存储有各自的数据目录，换 release 时不会动到它们。
 
-在专用练习账号的 iTerm2 中运行 `/bin/bash`，进入[本章配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)根目录。若从第 66 章跟写，先从[第 70 章代码](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70/src)取 config.ts、serve.ts、mail-worker.module.ts 和 verification-delivery.ts，接入本节说明的地址选项，再从[本章部署工具](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70/examples/deployment)取 runtime-grants.sql、launch-agents.mjs 和同目录的 launch-plist.mjs，保留相对路径。
+要使用书中的终端界面，先按[环境配置](../../environment-setup.md#第-70-章在本机托管进程)准备 iTerm2 和 Bash。在专用练习账号的 iTerm2 中运行 `/bin/bash`，进入[本章配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)根目录。若从第 66 章跟写，先从[第 70 章代码](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70/src)取 config.ts、serve.ts、mail-worker.module.ts 和 verification-delivery.ts，接入本节说明的地址选项，再从[本章部署工具](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70/examples/deployment)取 runtime-grants.sql、launch-agents.mjs 和同目录的 launch-plist.mjs，保留相对路径。
 
 先让当前窗口记住三个位置及目标库。源码根有 .nvmrc，`nvm use` 从中选 Node 版本；`command -v node` 显示这个 Shell 实际会执行哪个 node。若 Bash 找不到 nvm，按安装时的路径加载 nvm.sh，默认位置可用 `. "$HOME/.nvm/nvm.sh"`。开头的点让定义在当前 Shell 生效。
 

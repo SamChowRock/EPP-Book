@@ -881,14 +881,15 @@
 
 核心路线先完成第 75、76 章的证书验证和凭据轮换，再进入[第 81 章](#第-81-章-从域名到服务-dns-https-与反向代理)。选做容器路线也先完成第 75、76 章，再读第 77～80 章。
 
-#### [第 75 章 客户端怎样确认访问的是自己的 HTTPS 服务](part-09-operations/chapter-75-tls-trust/outline.md)
+#### [第 75 章 客户端怎样确认访问的是自己的 HTTPS 服务](part-09-operations/chapter-75-tls-trust/chapter.md)
 
-[章节提要](part-09-operations/chapter-75-tls-trust/outline.md)
+阅读约 25～35 分钟，已有第 74 章部署时，签发、客户端诊断、换证与回退另加 50～75 分钟。
 
-- [75.1 先让客户端按名字找到目标](part-09-operations/chapter-75-tls-trust/outline.md#751-先让客户端按名字找到目标)
-- [75.2 签一张带正确名称的练习证书](part-09-operations/chapter-75-tls-trust/outline.md#752-签一张带正确名称的练习证书)
-- [75.3 用两个客户端复现名称和信任差异](part-09-operations/chapter-75-tls-trust/outline.md#753-用两个客户端复现名称和信任差异)
-- [75.4 换证后回到原业务请求](part-09-operations/chapter-75-tls-trust/outline.md#754-换证后回到原业务请求)
+- [75.1 先让客户端按名字找到目标](part-09-operations/chapter-75-tls-trust/chapter.md#751-先让客户端按名字找到目标)
+- [75.2 签一张带正确名称的练习证书](part-09-operations/chapter-75-tls-trust/chapter.md#752-签一张带正确名称的练习证书)
+- [75.3 用两个客户端复现名称和信任差异](part-09-operations/chapter-75-tls-trust/chapter.md#753-用两个客户端复现名称和信任差异)
+- [75.4 换证后回到原业务请求](part-09-operations/chapter-75-tls-trust/chapter.md#754-换证后回到原业务请求)
+- [附录：本章必要技术点速查](part-09-operations/chapter-75-tls-trust/chapter.md#附录本章必要技术点速查)
 
 #### [第 76 章 让 API 和后台进程更换凭据与签名密钥](part-09-operations/chapter-76-rotate-credentials/outline.md)
 

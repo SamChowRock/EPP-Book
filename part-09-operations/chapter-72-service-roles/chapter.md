@@ -2,7 +2,7 @@
 
 站内通知进程收到一笔“注册成功”的任务。它要查账号是否仍然有效，再往收件箱写一行。如果它拿自己的数据库连接去改这个人的昵称，会发生什么？第 70 章部署了三个进程，也给了它们三个日志文件，但三个连接串里仍是同一个 epp57_run。对数据库来说，改昵称的请求有足够的权限。换个进程名解决不了这个问题。
 
-沿用[第 70 章配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)和[第 71 章交接的服务](../chapter-71-remote-host/chapter.md)。这一章要在旧账号仍能登录、原收据仍能查回的条件下，让数据库和操作系统分别拒绝一次越权。以下在一台由你管理的 Debian 13 练习机上使用系统级 systemd。操作端仍可用 Mac 上的 iTerm2 和 Postman；数据库使用 PostgreSQL 18，邮件只投到自己的 Mailpit。需要安装服务和设定文件属主的权限。单用户 Mac 的 LaunchAgent 继承登录用户身份，在 plist 里给三个任务起三个标签，得不到本章要观察的三个系统用户。
+沿用[第 70 章配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)和[第 71 章交接的服务](../chapter-71-remote-host/chapter.md)。这一章要在旧账号仍能登录、原收据仍能查回的条件下，让数据库和操作系统分别拒绝一次越权。以下在一台由你管理的 Debian 13 练习机上使用系统级 systemd。若手头只有 Mac，先按环境说明[创建并验证 Debian 部署端](../../environment-setup.md#准备-debian-13-部署端)。操作端仍可用 Mac 上的 iTerm2 和 Postman；数据库使用 PostgreSQL 18，邮件只投到自己的 Mailpit。需要安装服务和设定文件属主的权限。单用户 Mac 的 LaunchAgent 继承登录用户身份，在 plist 里给三个任务起三个标签，得不到本章要观察的三个系统用户。
 
 ## 72.1 从三笔工作推导各自的权限
 
@@ -215,7 +215,7 @@ sudo install -d -o root -g root -m 0755 /etc/epp72
 
 useradd 为每个服务分配独立 UID 和同名组，不给交互 Shell。若中途失败，用 `id epp-api` 等逐个核对成功的账号，补齐所缺的，三者不得互为对方组成员。管理者保留配置目录的写权。如果服务用户能替换别人的配置、Node 可执行文件，或者在共同的 release 中改一行 JavaScript，光把 .env 设成只读挡不住它。
 
-在目标平台准备相同版本的 Node 24.22.1 和构建产物。示例将目标平台、架构匹配的 Node 发行包展开到 root 管理的 `/opt/epp72/node`，以 `/opt/epp72/node/bin/node --version` 核对；已有其他系统级安装可把后面三个 ExecStart 的首项改为同一绝对路径。在新交付目录放入 dist、package.json、package-lock.json 和 .npmrc，用目标平台的 Node 按第 70 章执行 `npm ci --omit=dev`。Mac 的 node_modules 里有本机的 sharp、argon2 产物，要在 Linux 安装生产依赖。下面在部署端操作。先在私有暂存目录放好 dist 和三份安装文件，目录中只放交付所需文件。cd 进去，从该目录执行：
+在目标平台准备相同版本的 Node 24.22.1 和构建产物。首次安装见[Linux 版 Node 的架构选择、安装与验证](../../environment-setup.md#第-72-章为三个服务分配身份)。示例将目标平台、架构匹配的 Node 发行包展开到 root 管理的 `/opt/epp72/node`，以 `/opt/epp72/node/bin/node --version` 核对；已有其他系统级安装可把后面三个 ExecStart 的首项改为同一绝对路径。在新交付目录放入 dist、package.json、package-lock.json 和 .npmrc，用目标平台的 Node 按第 70 章执行 `npm ci --omit=dev`。Mac 的 node_modules 里有本机的 sharp、argon2 产物，要在 Linux 安装生产依赖。下面在部署端操作。先在私有暂存目录放好 dist 和三份安装文件，目录中只放交付所需文件。cd 进去，从该目录执行：
 
 ```bash
 export PATH="/opt/epp72/node/bin:$PATH"
