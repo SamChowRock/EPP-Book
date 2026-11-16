@@ -14,6 +14,7 @@
 | 第 16 章 | [沿用 Node、VS Code、Postman](#第-16-章在独立目录观察文件写入)（Mac） | 在私有临时目录重开 JSON，控制两个独立写入者；无新增软件 |
 | 第 17 章 | [Homebrew、PostgreSQL 18.x](#homebrew-与数据库程序)、[DBeaver Community](#用-dbeaver-确认连的是哪个库)（Mac） | 建立学习实例，用 SQL 查看数据 |
 | 第 25 章 | [pg_dump、pg_restore](#用备份建立练习副本)（PostgreSQL 18 自带） | 把原库备份并恢复到独立练习库 |
+| 第 30 章 | [沿用Chrome、Postman、DBeaver与Node](#第-30-章在同一页签恢复待确认的提交)（Mac） | 通过回环页面和故障代理观察刷新恢复；固定身份夹具只用于独立VERIFY副本 |
 | 第 42 章 | [Mailpit 1.33.0](#在本机收取注册邮件)（Mac） | 用本地收件箱完成注册验证，第 43 章继续用它收重置邮件 |
 | 第 44、47 章选做 | [微信开发者工具](#真实平台登录选做)（Mac） | 导入小程序，使用真实 AppID 联调 |
 | 第 51 章 | [邮件 Worker](#让独立进程寄信)（随项目运行） | 把入队后的邮件交给 Mailpit；第 55 章再启动通知角色 |
@@ -556,3 +557,14 @@ Docker 服务应为 active，`version` 同时显示 Client 和 Server；Buildx �
 沿用前章本机的 [Node 准备](#选择项目使用的-node)、[VS Code](#打开项目并启动-api)和 [Postman](#发送并保存第一个请求)。在独立练习副本执行 `nvm use`、`npm ci`、`npm run check`；确认 Node 为 24.22.1。先停前章 dev，避免 Inspector 9229 冲突。文件 API、readline 都由 Node 自带，无需安装数据库或文件锁包。
 
 在项目根目录用 `mktemp -d` 建立私有实验目录，保存其绝对路径。两个终端各自进入同一项目、选择 Node 并恢复该路径；Shell 变量不会自动跨窗口传递。按[第 16 章](part-03-postgresql/chapter-16-json-file/chapter.md)先显式初始化，再以 JSON_FILE 启动独立入口；app.ready 和 Postman 的 201／原 ID 详情 200 才证明入口可用。CLI 先编译开发产物，生产 build 排除实验目录。停止后保留实验数据，下一次从已知基线复制新文件继续，不覆盖损坏现场。
+
+
+### 第 30 章：在同一页签恢复待确认的提交
+
+上一章已能保存采纳操作的回执，本章还要观察浏览器刷新以后能否继续一次创建或追加。沿用Chrome、Node、Postman与DBeaver，没有新增系统软件。先完成[数据库连接准备](#给开发迁移和测试各自选库)和[备份副本](#用备份建立练习副本)，在DBeaver用 `SELECT current_database(), current_user;` 核对是独立VERIFY库，保留前章的非空数据。页面、代理和API都运行在开发Mac，不能在部署端或日常数据上做末步失败实验。
+
+进入第30章配套目录，`nvm use` 应显示Node 24.22.1；完成迁移与 `npm run check` 后，按章内命令启动 `examples/write-retry/api-fixture.mjs` 和 `server.mjs`。前者显式接VERIFY及合成用户，只绑定本机API端口；后者监听另一个回环端口并提供页面，不转发任意远端地址。启动后在Chrome打开 `http://127.0.0.1:3030`，看到“可以提交”才说明页面取得了当前练习身份；若一直无法确认，先分别检查API与代理的就绪日志和目标端口。
+
+在Chrome菜单“更多工具 → 开发者工具”的Network中观察创建、身份确认及重试；Application → Session storage可核对本页签待办是否在刷新后保留，仅使用虚构原文，截图前关闭Cookies和真实站点。不要换地址中的主机名或端口来模拟账号切换，那会改变存储所属的源。关闭页签不作为本章的持久恢复保证。
+
+固定身份夹具只用于身份篇之前的甲乙对照，不是登录系统。第38章之后改用正式API与 `SESSION_MODE=true`，第40章再开启 `CSRF_MODE=true`；实际页面源必须与APP_ORIGIN一致，登录与退出沿对应章节进行。故障模式默认关闭，练习开启时会截断每个键第一次成功响应，恢复时保持代理运行。

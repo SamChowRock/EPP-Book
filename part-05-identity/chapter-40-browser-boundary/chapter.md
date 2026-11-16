@@ -4,7 +4,7 @@
 
 本章从 `part-05/chapter-39` 继续，分别处理浏览器请求来源、写操作的额外证明、输入与计算成本，以及代理提供的信息。保留原用户、密码、会话和业务数据，不增加表或迁移。主线仍采用同源页面与Cookie API；用两个本机端口改变来源，观察浏览器与服务端各自做了什么。跨源产品接入要重新设计许可范围，不能为了消除一条控制台报错直接开放所有来源。
 
-阅读约120～145分钟；编码、浏览器联调与产物核对另加110～145分钟，按本章解释、代码和实验估算。可以先完成40.2并停在Postman的合法创建，再继续后面三节。中断时保留VERIFY和旧记录，结束自己的服务；回来重新核对目标库，登录并重新获取Token，不初始化或覆盖密码。
+阅读约130～160分钟；编码、浏览器联调与产物核对另加140～180分钟，按本章解释、代码和实验估算。可以先完成40.2并停在Postman的合法创建，再继续后面三节。中断时保留VERIFY和旧记录，结束自己的服务；回来重新核对目标库，登录并重新获取Token，不初始化或覆盖密码。
 
 ## 40.1 浏览器替谁携带Cookie，又允许谁读响应
 
@@ -130,7 +130,7 @@ Origin完整匹配启动配置，不使用endsWith，不从请求Host拼出“�
 
 在 `app.ts` 导入browserBoundary，把privateResponses移到Swagger注册之前，随后注册browserBoundary。这样开发文档及错误响应也能得到公共响应头；已有请求日志仍在最前面。写操作的来源检查发生在读取正文与密码计算之前。
 
-最后在 `session-http.ts` 导入requireCsrf，删除此前直接检查Origin的代码块，把已认证分支改为：
+最后在 `session-http.ts` 导入requireCsrf，删除此前直接检查Origin的代码块。保留第38章在认证之后、下面分支之前的X-Expected-Session比较；会话不符仍先401/SESSION_CHANGED，不能取了新会话Token就把旧待办转交给它。把已认证分支改为：
 
 ```ts
 if (identity) {
@@ -440,6 +440,51 @@ VS Code应停在该行，Call Stack显示Paused on breakpoint。选中最上面�
 修改源码触发开发重启后，先看编译与启动日志，再在原浏览器重新读取身份和获取Token。普通读应保持旧数据，新的Token恢复写入；如果配置持久密钥且会话不变，Token也保持。写请求超时或响应丢失时，先查询本次效果；刷新Token不是重新执行非幂等写入的理由。采纳仍用原operationId恢复，不因CSRF失败处理而换一个业务身份。
 
 最后点击3350的正常退出，再读取身份应401，关闭两页与自己的两个服务。已有业务数据保留，本轮样本可以保留供回查。退出只是撤销当前会话，不删除用户或素材；若退出返回存储故障，先恢复服务并确认会话事实，不能只靠关闭标签页宣称已经撤销。
+
+### 让带操作键的恢复请求也通过浏览器边界
+
+前面的3350／3351页面用于分辨发送、携带与读取。完成这些观察并退出后，停止自己的3352 API与双源实验代理，再接回第38章的待提交页面；两个实验不要混用APP_ORIGIN。仍使用同一份已核对的VERIFY，不reset、不初始化新密码。在项目根重新读取连接并启动正式API：
+
+```bash
+unset DATABASE_URL TEST_DATABASE_URL DB_QUERY_DEBUG APP_ORIGIN TRUST_PROXY_IPS
+verify_database_url=$(node --env-file=.env.test -p 'process.env.TEST_DATABASE_URL || ""')
+if test -n "$verify_database_url"; then
+  DATABASE_URL="$verify_database_url" DB_QUERY_DEBUG=false PORT=3000 \
+  APP_ORIGIN=http://127.0.0.1:3030 npm run dev
+fi
+unset verify_database_url
+```
+
+另一个终端启动同源页面与固定回环转发器：
+
+```bash
+PORT=3030 TARGET_PORT=3000 SESSION_MODE=true CSRF_MODE=true \
+DROP_SUCCESS_ONCE=true node examples/write-retry/server.mjs
+```
+
+在Chrome打开 `http://127.0.0.1:3030`，使用VERIFY已有的、当前具备Web资格的账号登录。页面的登录POST只在JSON类型之外加 `X-EPP-Request: 1`，Origin由浏览器提供，不先取CSRF Token，也不发送旧X-Expected-Session。登录尚未建立会话，不能要求它拿到该会话的Token；但来源和显式请求头检查仍然执行。Set-Cookie由浏览器处理，不能拿Postman的登录状态代替。
+
+创建或追加时，页面先确认 `/auth/me` 与待办owner一致，再取 `/auth/csrf`；POST同时携带原 `Idempotency-Key`、原 `X-Expected-Session`、`X-CSRF-Token` 和 `X-EPP-Request: 1`。代理原样传递这些头及Cookie、Origin，不根据正文或额外身份头伪造用户。预期会话头表达“这份待办属于刚才确认的会话”，CSRF Token表达“这个写请求具备当前会话要求的浏览器防护证明”；操作键则标识同一次业务操作，三者用途不同。只有操作键、甚至同时有预期会话头，都不能替代CSRF校验。
+
+先让一条新创建遇到截断响应，保留原键，刷新后继续，应取得原ID。页面不会把Cookie或CSRF Token写入sessionStorage；恢复时重新取Token。如果API重启换了开发密钥，旧Cookie仍有效也可能需要重新取Token，不能因此换操作键。若在确认身份与发送之间另一个页签换了Cookie，服务端应先返回401/SESSION_CHANGED，旧正文不会写入新用户。退出同样先清页面，再按实际会话请求Token并发送退出；本地清空不等于服务端204已收到。
+
+![真实会话与CSRF模式下刷新后继续原提交](images/browser-retry-session.jpg)
+
+图40-5：本轮使用正式API的真实Cookie会话与CSRF模式，首次成功响应被截断，刷新后用原键继续，页面取得同一个素材ID并清除待办。图中显示恢复后的结果，没有展示Cookie、Token、身份请求头或数据库计数，不能单凭这张图推断回执行数。相同入口随后还对照了有待办时登录乙会清除旧正文、退出后刷新为未登录；这些观察不能替代下面逐项拒绝与零写入核对。
+
+接着用Postman做可控的拒绝对照，避免试图从浏览器脚本手动伪造Origin。baseUrl设为 `http://127.0.0.1:3030`，用Postman自己的Cookie jar登录，登录带正确Origin和 `X-EPP-Request: 1`；再请求 `/auth/me`、`/auth/csrf`，仅把结果留在本机临时变量。会话标识、Cookie、Token均不写入截图或共享集合。为这一轮生成一个全新的小写UUID作Idempotency-Key，固定一份新原文，以下步骤一直使用原键原正文：
+
+| 这次只改变什么 | 应观察的响应 | 本轮操作键对应的数据 |
+| --- | --- | --- |
+| Origin改成 `http://127.0.0.1:3031`，其余头正确 | 403/ORIGIN_REJECTED | 无回执、无新增素材 |
+| 恢复3030，删除X-EPP-Request | 403/REQUEST_HEADER_REQUIRED | 仍无回执、无新增素材 |
+| 恢复显式头，删除X-CSRF-Token | 403/CSRF_REJECTED | 仍无回执、无新增素材 |
+| 恢复当前会话Token，所有头与身份正确 | 首次响应被代理截断；同键重试得到201 | 一份成功回执、一个素材ID |
+| 保留Token与键，却将X-Expected-Session换成与/auth/me不同的小写UUID | 401/SESSION_CHANGED | 已有结果保持，没有新写入 |
+
+每轮拒绝之后先按操作键在DBeaver查询 `capture_write_receipts`，同时检查本轮标记原文在当前用户下的素材；拒绝组三次都应是零写入，再进行合法请求。最后按返回captureId读取详情、按原键查成功回执，不能因为全库已有其他素材而误判失败。页面不开放“关闭CSRF”按钮，也不把这些拒绝自动改成无键重发。这组步骤用于补查恢复请求，前文图40-1～4仍对应3350／3351实验，不将旧图当作新入口的现场记录。
+
+结束后在页面退出，确认原会话已失效，关闭3030代理和3000 API，再继续下面的独立产物检查。
 
 ### 检查实际交付入口
 

@@ -453,7 +453,7 @@ npm run check后按前章方式将dist、package.json、package-lock.json与.npm
 
 这次升级是输入契约变化，旧客户端的空Body会400，应同步更新客户端；不是让服务替缺失身份的请求临时生成UUID。第28章程序能连接新增表后的库，也不代表可以安全回退：它不会写回执，会丢失新承诺。出现问题时保留幂等契约修复实现，或停写检查，不通过删除回执、恢复旧API来假装兼容。
 
-本章完成的是单数据库中成功采纳的重试恢复。若以后采纳还要发邮件、扣外部额度或调用另一个服务，不能把那些副作用塞进这个回调就称为原子提交；事务回滚无法撤回已经发出的邮件。第 31 章先整合现有模型与表达身份，后台执行和跨系统交付在后续篇接上；当前边界的原因在支线29A中展开。
+本章完成的是单数据库中成功采纳的重试恢复。若以后采纳还要发邮件、扣外部额度或调用另一个服务，不能把那些副作用塞进这个回调就称为原子提交；事务回滚无法撤回已经发出的邮件。第 30 章先把操作身份接到创建与追加修订，第 31 章再整合现有模型与表达身份，后台执行和跨系统交付在后续篇接上；当前边界的原因在支线29A中展开。
 
 ## 知识支线
 
@@ -478,6 +478,6 @@ npm run check后按前章方式将dist、package.json、package-lock.json与.npm
 
 官方入口：[PostgreSQL 18建议锁](https://www.postgresql.org/docs/18/explicit-locking.html#ADVISORY-LOCKS)、[事务快照](https://www.postgresql.org/docs/18/transaction-iso.html)、[JSON类型](https://www.postgresql.org/docs/18/datatype-json.html)、[Prisma 7交互式事务](https://docs.prisma.io/docs/orm/v7/prisma-client/queries/transactions)、[Node.js 24 Crypto](https://nodejs.org/docs/latest-v24.x/api/crypto.html)。Prisma入口明确为v7，避免把后续版本的不同API直接带入本章。
 
-本章完成代码状态为 `part-04/chapter-29`，第 31 章从此继续。
+本章完成代码状态为 `part-04/chapter-29`，第 30 章从此继续。
 
-[上一章：并发控制：两个请求同时到来怎么办](../chapter-28-concurrency/chapter.md) · [返回第四篇](../README.md) · [返回全书目录](../../README.md) · [下一章：创建素材与追加修订怎样承受重试](../chapter-30-write-retry/outline.md)
+[上一章：并发控制：两个请求同时到来怎么办](../chapter-28-concurrency/chapter.md) · [返回第四篇](../README.md) · [返回全书目录](../../README.md) · [下一章：创建素材与追加修订怎样承受重试](../chapter-30-write-retry/chapter.md)

@@ -6,7 +6,7 @@
 
 反过来，只看英文相同便强行归到一起也不可靠。`bank` 可以表示银行，也可以表示河岸。本章要在已有完整采纳链中补上这层判断，并把旧数据库一起带过来：怎样确定哪些内容可以复用，怎样防住两个不同候选同时创建相同表达，怎样保留每次采纳的来处，又怎样继续解释已经保存过的旧结果。
 
-代码起点为 `part-04/chapter-29`，沿用 Node.js 24.22.1、PostgreSQL 18、Prisma 7.10.1 和前章开发配置。本章完成状态为 `part-04/chapter-31`，不增加依赖。仍使用固定开发用户和人工填写的候选；生成、相似推荐与向量并非本章的运行前提。
+代码起点为 `part-04/chapter-30`，沿用 Node.js 24.22.1、PostgreSQL 18、Prisma 7.10.1 和前章开发配置。本章完成状态为 `part-04/chapter-31`，不增加依赖。仍使用固定开发用户和人工填写的候选；生成、相似推荐与向量并非本章的运行前提。
 
 时间参考（估算）：阅读约125～145分钟，跟做另加85～110分钟；支线31A单列于篇导读。可先完成模型与事务实现，再停写迁移和联调，最后核对旧回执与恢复；不要在代码仍缺新必填字段时启动写入。
 
@@ -34,6 +34,8 @@ flowchart LR
 ```
 
 沿着图再问一次“重复的是谁”。同一operationId重发，是同一个操作，重放原结果；换一个operationId再次采纳同一个已accepted候选，是新的命令碰到不再成立的状态前提，仍然409；不同候选内容相同，是不同来源指向同一表达，允许各自成功。三个判断依次使用操作身份、候选状态和表达身份，不靠一个通用的“去重”布尔值解决。
+
+第三十章又让创建与追加在响应丢失后保留原ID和版号，带键与无键客户端均继续可用。
 
 本章只改变第三个判断。候选创建、放弃、修订追加的输入契约不变，采纳Body仍只有operationId；归属判断仍沿候选、修订、输入查询。表达复用增加用户范围：即使两个人保存了相同文本，也不共享一个人的显示形式、创建时间或后续编辑权。当前用户仍来自开发常量，尚不能把这个范围条件称为真实认证。
 
@@ -399,4 +401,4 @@ A暂不释放时，在Postman采纳对应pending候选。每次锁获取最多�
 | Prisma $queryRaw／交互式事务 | 参数化调用规则，原子提交状态、来源及回执 | 取锁后独立查询；不加入外部网络等待，[原始查询](https://www.prisma.io/docs/orm/v7/prisma-client/using-raw-sql/raw-queries)、[事务](https://www.prisma.io/docs/orm/v7/prisma-client/queries/transactions) |
 | migrate deploy／status／diff／resolve | 追加迁移、核对实际结构及登记失败恢复 | resolve不修复数据，diff不证明旧内容没变，[Prisma CLI](https://www.prisma.io/docs/orm/v7/reference/prisma-cli-reference) |
 
-[上一章：创建素材与追加修订怎样承受重试](../chapter-30-write-retry/outline.md) · [下一章：构建可供客户端使用的查询接口](../chapter-32-queries/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
+[上一章：创建素材与追加修订怎样承受重试](../chapter-30-write-retry/chapter.md) · [下一章：构建可供客户端使用的查询接口](../chapter-32-queries/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)

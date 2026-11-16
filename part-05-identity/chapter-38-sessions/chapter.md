@@ -307,6 +307,10 @@ export function sessionBoundary(service: SessionService, config: AppConfig): Req
       if (path === '/auth/login') return;
       const token = readCookie(request.headers.cookie, sessionCookieName(config));
       const identity = token === undefined ? undefined : await service.authenticate(token);
+      if (identity && path !== '/auth/logout' && request.headers['x-expected-session'] !== undefined
+        && request.headers['x-expected-session'] !== identity.sessionId) {
+        throw new HttpError(401, 'Session changed; confirm the current identity before retrying', 'SESSION_CHANGED');
+      }
       if (identity) request.auth = Object.freeze(identity);
       else if (path !== '/auth/logout') throw new HttpError(401, 'Authentication required', 'AUTH_REQUIRED');
     })().then(() => next(), (error: unknown) => { response.setHeader('Connection', 'close'); next(error); });
@@ -315,6 +319,8 @@ export function sessionBoundary(service: SessionService, config: AppConfig): Req
 ```
 
 入口顺序有几个刻意的决定。登录允许没有旧Cookie，它会生成全新令牌，不接受客户端指定会话秘密。退出也允许没有或已过期的会话，否则客户端恰恰在凭据失效时不能清理自己。其余已知业务路由都必须找到有效身份。重复出现两个同名Cookie直接拒绝，不能让代理、框架和应用各选不同的一份。
+
+第30章页面还会附一个可选的 `X-Expected-Session`，值来自待办保存时确认的sessionId。中间件先验证实际Cookie，再比较这个预期值；不同则401/SESSION_CHANGED，发生在正文解析和业务命令之前。请求头不能指定当前用户，也不能代替Cookie认证。不带此头的原客户端仍按已有会话契约处理；退出有意不做预期值比较，让客户端清理实际携带的会话。页面先GET身份仍有竞争窗口，这项服务端比较才阻止“确认甲以后Cookie换成乙，旧正文却写入乙”。
 
 Cookie会被浏览器自动携带，因此在本章首次写入时就建立最小来源边界：明确的Origin必须等于配置值，cross-site请求拒绝；所有POST／PATCH继续经过原有严格JSON与16KiB限制，DELETE不接受正文，不开放CORS，也不通过GET修改状态。缺少Origin不代表可信，只是在当前没有简单表单写入、跨域预检不放行的条件下允许原生客户端。以后改变这些条件，必须重新判断，第40章会展开CSRF与代理；不能将这段窄入口直接描述为任意部署下的完整CSRF方案。
 
@@ -414,9 +420,13 @@ export class LearningQueries {
 
 其余detail、starMap方法中的旧 `ownedRecord` 全部换成 `this.ownedRecord`，旧常量换成 `this.userId`。只改列表、不改详情，会留下知道ID即可读取别人的路径。这里保留已经存在的归属规则；第39章再深入账号状态与权限，不需要为了章节顺序暂时制造泄漏。
 
-在 `captures.module.ts` 导入AuthModule与CURRENT_USER_ID，imports加入AuthModule，替换下面三个工厂，其他服务和ObservedCaptureStore的包装不变：
+在 `captures.module.ts` 导入AuthModule、CURRENT_USER_ID与CaptureCommands，imports加入AuthModule，替换下面四个工厂，其他服务和ObservedCaptureStore的包装不变：
 
 ```ts
+{ provide: CaptureCommands,
+  useFactory: (database: DatabaseService, state: ApplicationState, userId: string) =>
+    new CaptureCommands(database, state, userId),
+  inject: [DatabaseService, ApplicationState, CURRENT_USER_ID] },
 { provide: LearningQueries,
   useFactory: (database: DatabaseService, state: ApplicationState, config: AppConfig, userId: string) =>
     new LearningQueries(database, state, config.cursorKey, userId),
@@ -428,6 +438,8 @@ export class LearningQueries {
   useFactory: (database: DatabaseService, userId: string) => new PrismaCaptureStore(database, userId),
   inject: [DatabaseService, CURRENT_USER_ID] },
 ```
+
+其中CaptureCommands是第30章带操作键写入的入口，也必须取得本请求的userId；只替换旧store，会让无键请求属于登录用户、带键请求仍使用固定用户。它与回执查询一起沿请求作用域传播，不在共享实例中修改一个可变“当前用户”。
 
 `DatabaseService.onModuleInit`移除“固定开发用户必须存在”的检查与常量import，改为检查passwordCredential和session所需列可读取；保留全部原有结构与约束检查。系统可以没有用户却仍正常启动，匿名请求应401；不应该启动时悄悄seed用户和密码。
 
@@ -491,6 +503,37 @@ pm.variables.set("authBody", JSON.stringify({
 ![VS Code 在素材读取方法暂停并查看当前用户](images/vscode-current-user.jpg)
 
 图38-1：Postman携带已有Cookie读取素材详情，在PrismaCaptureStore.find内命中断点，Debug Console只求值this.userId。这里显示的用户ID与登录身份一致；黄色位置是源码映射后的实际暂停点，不要求与你设置的行号完全相同。
+
+### 把第30章的待提交页面接到真实会话
+
+第30章用服务端固定身份隔离“提交结果未知”的问题；现在已经有真正的会话，页面不能继续向固定身份夹具发送正文。停止自己的 `api-fixture.mjs` 和旧页面代理，保留VERIFY中的旧素材、回执与第37章已建立的密码凭据。这里只更换入口，不重置数据库、不重新初始化密码。先完成本节前面的正式API接线与检查，再从项目根启动正式API：
+
+```bash
+unset DATABASE_URL TEST_DATABASE_URL DB_QUERY_DEBUG APP_ORIGIN
+verify_url=$(node --env-file=.env.test -p 'process.env.TEST_DATABASE_URL || ""')
+if [[ -n "$verify_url" ]]; then
+  DATABASE_URL="$verify_url" DB_QUERY_DEBUG=false PORT=3000 \
+  APP_ORIGIN=http://127.0.0.1:3030 npm run dev
+fi
+unset verify_url
+```
+
+另一个终端进入相同代码目录，启动随章保留的页面：
+
+```bash
+PORT=3030 TARGET_PORT=3000 SESSION_MODE=true DROP_SUCCESS_ONCE=true \
+node examples/write-retry/server.mjs
+```
+
+API监听3000，浏览器访问 `http://127.0.0.1:3030`。APP_ORIGIN填页面源3030，因为这是浏览器实际发出请求的地方；代理保留Origin，不把它改成3000。这个脚本只向固定回环API转发，不是生产部署入口。第40章再启用CSRF模式，本章不要提前设置 `CSRF_MODE=true`。
+
+页面现在出现用户UUID和密码登录区。填写VERIFY中已有账号，点击登录；密码框立即清空，页面发送 `POST /auth/login`，正文是 `{userId,password,label:"Write retry practice"}`。浏览器自己保存响应中的HttpOnly Cookie，再由 `/auth/me` 确认身份，脚本不读取Cookie。这里的UUID只是登录输入，必须与密码一起通过认证；素材正文依旧没有可指定作者的userId。Postman登录并不会替浏览器建立Cookie，两者要分别登录。
+
+登录成功后输入一条新的练习原文。丢响应模式先完整收完上游201，再向浏览器发送一个被截断的201响应；浏览器可能已看见201状态，却无法读完JSON，所以页面仍保留待办。仅在发送任何响应字节之前断开，浏览器可能透明重试连接，反而直接显示成功；这里让响应已经开始，便于观察恢复路径。刷新同一页签，应先请求 `/auth/me`，然后才能显示原待办；点击“继续上次提交”使用原键和原参数，成功后清除待办。保持代理运行，因为重启会重置它记住的故障键。创建响应的Location另在Postman核对，页面当前校验201与响应正文，不检查这个头。
+
+恢复记录的owner由 `/auth/me` 的userId和sessionId共同组成。为什么只保存userId还不够？一个页签刚确认甲，另一个页签就可能把共享Cookie换成乙；即使重新登录的还是甲，新会话也可能代表用户明确开始了另一段操作。页面因此保守地把同用户的新sessionId也视为身份变化，清除旧输入和待办，不自动重发。用户需要继续旧工作时，先按原操作键核对服务端结果，再决定下一次操作，不能把新登录当作“上一笔肯定没提交”。
+
+页面开始登录或点击退出时先清除本地内容，并用递增的本地序号忽略旧请求的迟到结果。失去可见性时先隐藏正文，返回页签后再次确认身份才显示；它不能瞬间感知其他页签何时更换Cookie。存储不可用时不发送无法先保存的新操作；清除失败会显示错误，也不能声称旧记录已从浏览器删除。下一节实现正式退出后，再检查退出请求204以及原会话之后401；仅看到输入清空，不能证明服务端会话已撤销。
 
 ## 38.3 看见会话，再分别撤销和退出
 
@@ -557,7 +600,7 @@ pm.variables.set("authBody", JSON.stringify({
 
 OpenAPI的 `components.securitySchemes` 增加 `{ sessionCookie: { type: 'apiKey', in: 'cookie', name: cookieName } }`，document顶层 `security: [{ sessionCookie: [] }]`；login、logout各自 `security: []`。`createOpenApiDocument(cookieName = 'epp_session')`接受实际Cookie名，app里调用 `createOpenApiDocument(sessionCookieName(config))`。认证接口按上表登记JSON请求、响应Schema和状态码，业务响应补401，写入补403，登录与改密补429，并说明private/no-store。Cookie不能像任意Authorization头一样由Swagger UI脚本直接设置；应在同源/docs调用登录，让浏览器处理Set-Cookie，再发业务请求。导出的默认文档描述HTTP回环Cookie名。
 
-运行check后，Postman发送会话列表。要观察两个设备，用两份独立Cookie jar：Postman是一份，浏览器同源/docs是另一份。浏览器访问与APP_ORIGIN完全相同的地址，展开POST /auth/login、Try it out，填写相同用户凭据和另一个label，Execute后清掉编辑器里的密码。不要分享含请求正文的界面。两个Postman标签页通常共享jar，不能冒充两台设备；同一jar重复登录只是换掉本地Cookie，服务端原行仍存在，可在列表撤销。
+运行check后，Postman发送会话列表。要观察两个设备，用两份独立Cookie jar：Postman是一份，浏览器的同源待提交页面是另一份。沿38.2把正式API的APP_ORIGIN设为3030页面源，在页面登录区填写相同用户的UUID与密码并登录，密码框随即清空；它的label为Write retry practice，与Postman请求可区分。不要分享含请求正文的界面。两个Postman标签页通常共享jar，不能冒充两台设备；同一jar重复登录只是换掉本地Cookie，服务端原行仍存在，可在列表撤销。
 
 回到Postman刷新列表，将浏览器那一行的管理ID填入targetSessionId，发送DELETE。Postman继续GET /auth/me仍200，原浏览器GET /auth/me变401。先不要重新登录，紧接着用下面的数据库投影确认只剩Postman那一行；把客户端结果和服务端行的变化对照，才能排除“删除了错误的一行”。当前设备也可被撤销，此时响应同时清Cookie，下一次必须重新登录。
 
@@ -599,6 +642,8 @@ COMMIT;
 RETURNING只应一行。再次GET /auth/me返回401，而SQL仍能看到这条过期行；逻辑失效不依赖清理任务已运行。本章在下次本人成功登录时删除过期行，没有全库后台清理任务。以后用户量增加，要按执行计划和保留需求安排清理，不让过期行无界堆积。
 
 此阶段可以暂停：关掉自己的API和DBeaver连接，保留表与业务数据。恢复时先核对目标、迁移，再登录。会话在数据库里，进程重启不会清空；开发模式随机游标签名密钥可能变化，所以旧分页游标失效与会话失效是两件事。
+
+正式退出接通后，回到3030页面验证一次：先保留待办，再点击“退出登录”。本地输入、待办与结果应立即清空，服务端退出成功返回204；随后在原页签刷新，/auth/me应401。若先前的写请求此时才结束，其迟到回调不能重新显示旧正文；业务是否已经提交仍按原操作键核对。若退出响应未能确认，页面会提示，这时不能把“本地已清空”记作“服务端已撤销”。重新登录同一用户也会得到新的sessionId，页面不会自动找回被清除的旧待办。
 
 ## 38.4 主动改密，为什么必须同时撤销全部会话
 
@@ -815,7 +860,7 @@ VERIFY通过以后，按[第25章的备份与独立恢复步骤](../../part-04-c
 
 - [Postman请求前脚本](https://learning.postman.com/docs/tests-and-scripts/write-scripts/pre-request-scripts)：在发送前准备局部JSON正文，避免把密码当作JSON语法片段。
 
-时间参考（估算）：阅读约130～155分钟；编码与跟做另加155～195分钟。按约8300字中文讲解、四百余行核心代码、两张机制图、四阶段接线、两个独立客户端、过期与改密竞争及产物验证估算；不含前章环境安装，不把等待或重复排错叠入阅读时间。
+时间参考（估算）：阅读约145～170分钟；编码与跟做另加175～220分钟。按约8300字中文讲解、四百余行核心代码、两张机制图、四阶段接线、两个独立客户端、待办会话绑定与换账号清理、过期与改密竞争及产物验证估算；不含前章环境安装，不把等待或重复排错叠入阅读时间。
 
 本章完成代码分支：`part-05/chapter-38`，起点：`part-05/chapter-37`。
 

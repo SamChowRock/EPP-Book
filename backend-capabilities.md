@@ -35,7 +35,7 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | 章节 | 要核对的结果 |
 | --- | --- |
 | [第 16 章](part-03-postgresql/chapter-16-json-file/chapter.md) | 沿用存储契约，用两个独立进程固定旧快照覆盖顺序；区分文件完整替换、更新保留与持久性，按原 ID 和已知输入恢复，判断进程内队列的边界。 |
-| [第 30 章](part-04-consistency/chapter-30-write-retry/outline.md)、[第 34 章](part-04-consistency/chapter-34-paging-upgrade/outline.md) | 重发创建与追加请求，检查业务记录是否重复。让新旧客户端同时访问列表，判定分页迁移何时可以收尾。 |
+| [第 30 章](part-04-consistency/chapter-30-write-retry/chapter.md)、[第 34 章](part-04-consistency/chapter-34-paging-upgrade/outline.md) | 重发创建与追加请求，检查业务记录是否重复。让新旧客户端同时访问列表，判定分页迁移何时可以收尾。 |
 | [第 41 章](part-05-identity/chapter-41-shared-limit/outline.md)、[第 50 章](part-06-background/chapter-50-login-integration/outline.md)、[第 54 章](part-06-background/chapter-54-mail-delivery/outline.md) | 从两个 API 观察同一登录额度。选读登录接线用原账号和收件箱验证身份延续；选读邮件交付按供应商消息和退信事件追到实际邮箱。 |
 | [第 61 章](part-07-profiles/chapter-61-object-reconcile/outline.md)、[第 65 章](part-08-maintenance/chapter-65-artifact-promotion/outline.md) | 按尝试 ID 对照私有桶与数据库的两份清单。另从制品摘要查回当时验过的运行包，在发布副本核对相同入口。 |
 | [第 67 章](part-08-maintenance/chapter-67-pg-maintenance/outline.md)、[第 68 章](part-08-maintenance/chapter-68-bad-data/outline.md) | 从长事务、旧行版本与表空间读数选择维护时机。让一条坏记录只影响相关读取，核对其余业务与修复后的历史。 |
@@ -107,6 +107,8 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 [第28章及支线28A](part-04-consistency/chapter-28-concurrency/chapter.md)从两次pending读取推导条件写入的裁决位置，以学习关系唯一约束防止同一候选重复确认，并在停写审核、失败迁移恢复与启动约束检查中保留旧事实。双连接实验区分行锁、建议锁、空行、等待策略、阻塞链与死锁；有限重试只重跑明确中止的完整事务，不把503或未知提交当成重发许可。版本支线进一步说明丢失更新、CAS、ABA和跨行前提，能据业务依赖选择条件、版本或协调对象。当前没有语义身份、命令重放和账号生命周期门闩，后续需按统一锁序扩展，不能把单候选唯一当成全部表达或操作的唯一。
 
 [第29章及支线29A](part-04-consistency/chapter-29-idempotency/chapter.md)从已提交但响应丢失推导操作身份、用户作用域与请求指纹，追加只含成功结果的回执表，不伪造旧历史。使用事务级操作锁与取锁后的独立读取协调重放，保留pending条件和学习关系唯一约束；业务与公开响应快照共同提交，明确两种409、锁等待、结果未知和重启恢复。结合故障代理、末步失败与图形请求核对结果，区分审计事实、运行尝试和敏感副本；支线以预约过期及邮件发送推导保留期限与外部副作用边界。当前仅采纳具备此契约，不宣称全部POST幂等、外部恰好一次或防篡改审计。
+
+[第30章](part-04-consistency/chapter-30-write-retry/chapter.md)把操作身份扩展到创建和修订追加：能区分相同文本的新意图、同键重试、当前详情与历史响应，设计可选头兼容、同事务回执及唯一冲突后的有效事务边界。页面在发送前保存待办，刷新后先确认主体，存储失败不发送；真实会话阶段比较预期会话并保留CSRF与资格检查，防止跨页签换账号后误发旧输入。用新键、后续修订、响应截断、换身份和回执末步失败核对判断。
 
 [第31章及支线31A](part-04-consistency/chapter-31-integration/chapter.md)把操作身份、候选状态、精确内容身份和学习来源放回同一提交链。版本化数据库函数统一旧数据回填与在线规范化，用户范围内的摘要唯一约束和表达身份锁协调不同候选；命中摘要再核对实际值，每次采纳保留独立来源。迁移选择未来复用代表，保留旧副本、引用与回执；公开投影不暴露内部比较字段。结合新旧记录、断点、锁等待和产物恢复核对行为，支线推导规则演进与历史身份。当前只处理保守精确相等，不宣称语义理解、自动合并、多形式或账号生命周期已完成。
 

@@ -104,6 +104,8 @@ printf '%s  portable.tgz\n' "$digest" | sha256sum -c -
 
 **让部署端自己找到原数据。** 一次从 Mac 回环转到 Debian 的连接，能让你访问 API。若反过来让 Debian 通过 Mac 接数据库，Mac 一离线，API 即使还有 PID 也读不到账号。先停第 69 章副本的写入者，按[在 Debian 接手已有的数据库、桶和收件箱](../../environment-setup.md#在-debian-接手已有的数据库桶和收件箱)，在同一个停写窗口迁移配对的数据，在部署端启动并核对 PostgreSQL（127.0.0.1:55471）、S3（127.0.0.1:18633）和练习 SMTP（127.0.0.1:1025）。安装程序和仅创建同名空桶都不会带回旧数据。数据服务启动后，在 70.3 用运行身份查原收据并从客户端实际取图；Mac 的旧桶随后保持停止，给客户端要用的本地 18633 留出端口。保留两端的恢复材料。
 
+第 30 章的素材写入回执也随原库交付。确认目标库已经应用 `20261116160000_capture_write_receipts`；若是补学第 30 章前保存的旧库，先由迁移身份对该副本执行正式 `migrate deploy`，不能只复制新应用。再以表所有者在目标库执行配套 `examples/deployment/runtime-grants.sql`（先设置脚本要求的 `expected_db`）。其中 `epp57_run` 对 `capture_write_receipts` 仅取得 SELECT、INSERT，与两张既有收据表一样没有 UPDATE、DELETE。否则 API 启动读表或首次带键写入会失败。不要通过恢复成表所有者运行来消除错误。
+
 已有独立常开的数据机时，可以沿用其私网通路；只有需要跨机转发的部署才另做[独立数据连接](../chapter-71-service-runtime/side-02-private-data-link.md)。以下步骤按三项依赖已在 Debian 上运行。
 
 回到 Mac 的打包页，从第 69 章的 .env.handoff 复制数据库连接。该文件原来只有 DATABASE_URL，需在副本补上下面的生产运行配置。在配置副本内将 DATABASE_URL 的主机端口改为 127.0.0.1:55471，使用 Debian 恢复时选定的库名和刚设置的 epp57_run 口令，特殊字符按 URL 分量编码。使用本轮配对桶的应用凭据；签名密钥沿用已保存的部署值，若此前只用过临时值，用 openssl rand -hex 32 新建并保存，旧游标需重新获取。确认 AVATAR_S3_ENDPOINT 为 `http://127.0.0.1:18633`，设 PORT=3358、APP_ORIGIN=`http://127.0.0.1:13358`。编辑完成后单独传输私有配置。
