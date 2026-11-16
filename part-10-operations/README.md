@@ -26,4 +26,4 @@
 - [支线 77B　让旧会话跨过禁止登录的时刻](chapter-77-rotate-credentials/side-02-connections.md)
 - [支线 78A　回到误操作之前，再把一条业务记录修回现在](chapter-78-backups/side-01-pitr.md)
 
-[第九篇导读](../part-09-deployment/README.md) · [上部独立交付](../upper-capstone/chapter-82-booking/outline.md) · [全书目录](../README.md)
+[第九篇导读](../part-09-deployment/README.md) · [中部独立交付](../middle-capstone/chapter-82-booking/outline.md) · [全书目录](../README.md)
