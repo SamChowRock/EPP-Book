@@ -28,14 +28,15 @@
 | 第 72 章 | [curl、浏览器及证书信任设置](#在独立使用设备验证入口)（独立使用设备，如另一台 Mac 上的 Chrome 与系统钥匙串） | 准备私网解析和受信根，再从浏览器登录、读写和收通知 |
 | 第 72 章证书诊断支线选做 | [Firefox ESR、libnss3-tools](#用-firefox-查看证书错误选做)（有图形会话的 Debian） | 用专用浏览器配置观察导入练习根证书前后的变化 |
 | 第 72 章公网回调选做 | [cloudflared](#为公网回调准备连接器选做)（仅选用 Cloudflare Tunnel 的常驻部署端） | 家庭主机主动连到公网入口，让平台能访问指定回调 |
-| 第九、十篇容器重点路线 | [Docker Engine、Buildx 与 Compose](#为容器部署准备引擎与-compose)（Debian 部署机；在 Mac 练习可选 Docker Desktop） | 构建目标平台镜像，管理卷、网络和 Compose，取证、更新并恢复原数据 |
-| 第 75 章 | [复用 PostgreSQL 18、curl 和 Mailpit](#让两个实例接到同一份练习数据) | 用同一份业务数据检查两个 API、后台进程和旧连接 |
-| 支线 76A | [PostgreSQL 18 物理备份、校验与启动工具](#为隔离恢复演练准备-postgresql-18)（数据库练习主机） | 选做按时间点恢复时使用，检查基础备份并在独立数据目录回放 WAL |
+| 第 73～79 章正文 | [Docker Engine、Buildx 与 Compose](#为容器部署准备引擎与-compose)（Debian 部署机；在 Mac 练习可选 Docker Desktop） | 构建目标平台镜像，管理卷、网络和 Compose，取证、更新并恢复原数据 |
+| 第 73 章镜像构建 | [ca-certificates、Python 3、make、g++](#为容器部署准备引擎与-compose)（Dockerfile 的镜像阶段） | CA 集合供运行时验证出站 TLS；后三项只在构建阶段支持原生模块编译，无须在操作 Mac 另装 |
+| 第 77 章 | [复用 PostgreSQL 18、curl 和 Mailpit](#让两个实例接到同一份练习数据) | 用同一份业务数据检查两个 API、后台进程和旧连接 |
+| 支线 78A | [PostgreSQL 18 物理备份、校验与启动工具](#为隔离恢复演练准备-postgresql-18)（数据库练习主机） | 选做按时间点恢复时使用，检查基础备份并在独立数据目录回放 WAL |
 
 <details>
 <summary>后续选做路线和下部还会用到什么？</summary>
 
-第九、十篇的容器重点路线使用 Docker 与 Compose，工具在进入该路线时准备。第 72 章沿用已经托管的私网 HTTPS 入口，从独立设备验收。容器日志先用 Engine 自带命令读取，图形入口可使用已安装的 Docker Desktop。第十一篇真实模型调用需要供应商账号、密钥和额度，第 90 章用到 pgvector，第十四篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
+第 73 章正文开始使用 Docker 与 Compose，接在已经完成的原生托管与 HTTPS 交付之后。第 72 章沿用已经托管的私网 HTTPS 入口，从独立设备验收。容器日志先用 Engine 自带命令读取，图形入口可使用已安装的 Docker Desktop。第十一篇真实模型调用需要供应商账号、密钥和额度，第 92 章用到 pgvector，第十四篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
 
 </details>
 
@@ -427,7 +428,7 @@ npm --version
 
 部署前准备 PostgreSQL 18 非空副本、与它配对的头像桶，以及邮件角色可达的私有 Mailpit。旧账号应已开通，留好原收据 ID。由迁移管理员建视图、数据库实例管理员建登录角色，各服务使用各自的凭据。Mac 上仍用 Postman 发请求、DBeaver 查数据。[第 71 章服务身份与验证](part-09-deployment/chapter-71-service-runtime/chapter.md)
 
-第 71 章在同一个 release 下分别核对受限 API 的工作目录、只读收据身份与配对桶。第 74 章才为到期对象安装 systemd 定时器，保留独立的桶观察身份，并使用允许停机的练习主机。[第 71 章](part-09-deployment/chapter-71-service-runtime/chapter.md) · [第 74 章](part-10-operations/chapter-74-maintenance-jobs/chapter.md)
+第 71 章在同一个 release 下分别核对受限 API 的工作目录、只读收据身份与配对桶。第 76 章才为到期对象安装 systemd 定时器，保留独立的桶观察身份，并使用允许停机的练习主机。[第 71 章](part-09-deployment/chapter-71-service-runtime/chapter.md) · [第 76 章](part-10-operations/chapter-76-maintenance-jobs/chapter.md)
 
 <a id="第-72-章给独立-https-入口签发与更换证书"></a>
 
@@ -478,7 +479,7 @@ command -v certutil
 
 ### 让两个实例接到同一份练习数据
 
-轮换从第 72 章交给使用者的 HTTPS 地址开始。保留证书、服务名称、客户端信任和现有会话。准备两个 API 监听、各自的工作目录、独立 PostgreSQL 18 集群副本、配对桶和私有 Mailpit。数据库登录权限属于整个集群，先核对副本端口、数据目录和库名。记录一张旧收据、一笔投递状态和可以续页的账号数据。定向请求实验的路由与外部验收分别见[第 75 章](part-10-operations/chapter-75-rotate-credentials/chapter.md)。
+轮换从第 72 章交给使用者的 HTTPS 地址开始。保留证书、服务名称、客户端信任和现有会话。准备两个 API 监听、各自的工作目录、独立 PostgreSQL 18 集群副本、配对桶和私有 Mailpit。数据库登录权限属于整个集群，先核对副本端口、数据目录和库名。记录一张旧收据、一笔投递状态和可以续页的账号数据。定向请求实验的路由与外部验收分别见[第 77 章](part-10-operations/chapter-77-rotate-credentials/chapter.md)。
 
 ### 为隔离恢复演练准备 PostgreSQL 18
 
@@ -492,7 +493,7 @@ pg_verifybackup --version
 pg_ctl --version
 ```
 
-三个程序都应显示 18.x。用明确指定的实例地址、端口和管理员连接运行 `SHOW data_directory`、`SHOW hba_file`，对照本轮隔离副本。基础备份需要允许复制连接的数据库角色，且这条连接在该副本的 pg_hba.conf 有匹配的 replication 规则。按本次实际使用的本地套接字或回环地址授权，重新加载该副本配置；普通业务登录成功只验证了业务库的连接规则。再按支线保存 WAL、校验备份并恢复到另一空目录，使用不同的端口。[支线 76A](part-10-operations/chapter-76-backups/side-01-pitr.md)
+三个程序都应显示 18.x。用明确指定的实例地址、端口和管理员连接运行 `SHOW data_directory`、`SHOW hba_file`，对照本轮隔离副本。基础备份需要允许复制连接的数据库角色，且这条连接在该副本的 pg_hba.conf 有匹配的 replication 规则。按本次实际使用的本地套接字或回环地址授权，重新加载该副本配置；普通业务登录成功只验证了业务库的连接规则。再按支线保存 WAL、校验备份并恢复到另一空目录，使用不同的端口。[支线 78A](part-10-operations/chapter-78-backups/side-01-pitr.md)
 
 ### 为公网回调准备连接器（选做）
 
@@ -519,9 +520,11 @@ Docker 服务应为 active，`version` 同时显示 Client 和 Server；Buildx �
 
 本书的 Debian 示例默认沿用 `sudo docker`。支线为便于阅读写成 `docker` 的命令，在 Debian 每次调用也加 `sudo`；Mac Desktop 使用普通用户的 `docker`。不要混用两种身份后只看 context 名，CLI 配置与仓库登录可能属于不同用户。容器内以 node 身份运行和谁能管理引擎是两项权限；加入 docker 组会得到管理 rootful 引擎的高权限，不能给 API、邮件等运行用户加组来解决文件读权问题。[Linux 安装后的权限说明](https://docs.docker.com/engine/install/linux-postinstall/)
 
+如果当前网络必须经过 HTTP 代理，终端里的 curl 能下载并不能证明引擎也能下载：CLI、Docker daemon 和构建阶段是不同的进程。按[官方 daemon 代理配置](https://docs.docker.com/engine/daemon/proxy/)为实际引擎配置可达的代理；再按[构建代理参数](https://docs.docker.com/build/building/variables/#proxy-arguments)把构建时所需代理传给安装依赖的步骤。使用 sudo 时还要确认客户端是否保留了所需代理环境。代理地址取自己的网络配置，不照抄他人的回环或虚拟机地址；不把代理凭据写进 Dockerfile 的 ENV 或项目配置。分别用 pull 和一次实际构建判断下载通路，不以换成未核验的镜像源代替排查。
+
 只在 Mac 做独立进程、卷与网络实验时，按处理器选择 [Docker Desktop 安装包](https://docs.docker.com/desktop/setup/install/mac-install/)，启动应用后在 Mac 终端运行 `docker context show`、`docker version`、`docker buildx version`、`docker compose version`，再运行 `docker run --rm hello-world`。在 Desktop 的 Containers 页面打开实验容器，可以查看 Logs、Inspect 与运行状态，再对照终端里的同一个容器 ID。关掉 Mac 后仍要交付服务时，镜像与持久数据须在持续在线的部署环境运行。
 
-进入 Compose 应用集成前，另准备已验证的 EPP Linux 镜像、三份受限角色配置、容器可达的数据库/SMTP/对象端点，以及练习 HTTPS 所用的公开根证书。它们来自前文已有交付，不由 hello-world 自动提供。独立实验用 `node:24-bookworm-slim` 观察机制；EPP 镜像须满足项目固定 Node 版本并记录目标平台与摘要。回到[第九篇容器路线](part-09-deployment/README.md#容器部署与运维重点路线)，再接[第十篇容器运维](part-10-operations/side-01-container-operations.md)。
+进入 Compose 应用集成前，另准备已验证的 EPP Linux 镜像、三份受限角色配置、容器可达的数据库/SMTP/对象端点，以及练习 HTTPS 所用的公开根证书。它们来自前文已有交付，不由 hello-world 自动提供。第 73 章使用 `node:24.22.1-bookworm-slim`，先拉取并记录实际摘要，再用于应用构建；不把可变标签当作固定交付凭据。Dockerfile 在 base 阶段安装 ca-certificates，在 build 阶段安装 Python 3、make、g++，用途是验证出站 TLS 和编译可能缺少预编译产物的原生依赖。最终 runtime 只复制生产依赖与完整 dist，通过镜像里的 Node 版本、argon2 和 sharp 实际运算检查这些依赖。回到[第 73 章镜像交付](part-09-deployment/chapter-73-container-image/chapter.md)，接着完成[第 74 章 Compose](part-09-deployment/chapter-74-compose-deployment/chapter.md)，再进入[第 75 章运行观测](part-10-operations/chapter-75-observability/chapter.md)。
 
 ## 7. 停下后怎样接着做
 

@@ -410,4 +410,4 @@ WHERE j.user_id = '本轮用户UUID'::uuid AND j.id = '浏览器显示的通知U
 
 阅读约 30～40 分钟。已有第 71 章部署、可路由私网和练习账号时，签发、配置及客户端交付另加 55～80 分钟。72.4 故障对照另加 15～25 分钟，后台改密核对另加 10～20 分钟。估时按正文、命令和一次顺利操作估算，首次环境准备另计。证书诊断与换证回退按需选读。
 
-配套检出命令 `git switch part-09/chapter-72` · [上一章 · 分配运行权限](../chapter-71-service-runtime/chapter.md) · [下一章 · 在用户报障前发现通知积压](../../part-10-operations/chapter-73-observability/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+配套检出命令 `git switch part-09/chapter-72` · [上一章 · 分配运行权限](../chapter-71-service-runtime/chapter.md) · [下一章 · 把应用和运行环境一起交付](../chapter-73-container-image/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

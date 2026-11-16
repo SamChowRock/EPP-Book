@@ -69,7 +69,7 @@ ls "$release/dist/config" "$release/dist/src/server.js" \
   "$release/dist/src/mail-worker.js" "$release/dist/src/account-admin.js"
 ```
 
-留意两次安装各自发生在哪里。第一轮在源码目录，Prisma CLI 负责生成客户端，tsc 负责编译，copy-assets 负责复制配置。第二轮仅安装生产依赖，交付目录内已有编译后的 Prisma 客户端，不需要再带 schema 或运行 generate。可以检查 `test ! -d "$release/node_modules/typescript"` 的退出码。现在只在这个临时目录内模拟漏件：
+留意两次安装各自发生在哪里。第一轮在源码目录，Prisma CLI 负责生成客户端，tsc 负责编译，copy-assets 负责复制配置。第二轮仅安装生产依赖，交付目录内已有编译后的 Prisma 客户端，不需要再带 schema 或运行 generate。可以用 `npm explain typescript` 查看最终依赖关系；某个顶层开发工具若同时满足生产包的可选 peer 关系，可能仍被安装，不能只凭目录是否存在判定产物。关键是交付入口实际运行已有编译产物，并且所需运行依赖完整。现在只在这个临时目录内模拟漏件：
 
 ```bash
 mv "$release/dist/config/service.json" "$release/dist/config/service.saved"
