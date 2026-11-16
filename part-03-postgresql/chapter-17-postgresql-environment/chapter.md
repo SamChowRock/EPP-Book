@@ -1,6 +1,6 @@
 # 第 17 章 PostgreSQL 运行环境：安装、连接与实例管理
 
-第二篇已经为存储替换留好了 `CaptureStore` 接口，也建立了配置校验、请求日志和资源关闭流程。接入 PostgreSQL 以后，需要把这些边界落实到外部依赖：连接哪个实例、使用什么权限、什么时候确认写入完成，以及连接失败时去哪里取证。
+第十六章已经用两个文件写入者区分了完整保存与修改保留；文件实验到此结束，不带入数据库主线。第二篇已经为存储替换留好了 `CaptureStore` 接口，也建立了配置校验、请求日志和资源关闭流程。接入 PostgreSQL 以后，需要把这些边界落实到外部依赖：连接哪个实例、使用什么权限、什么时候确认写入完成，以及连接失败时去哪里取证。
 
 本章先把 PostgreSQL 环境准备到可以反复开发和排错的程度：安装指定大版本，管理独立实例，建立开发角色，用 psql 与 DBeaver 核对连接，再处理启动、认证和目标库错误。下一章建表，第十九章展开 SQL，第二十章纳入 Prisma 迁移管理，第二十一章替换 Nest 存储。先掌握数据库侧的操作，接入 ORM 后才有办法独立判断问题落在哪一层。
 
@@ -464,4 +464,4 @@ psql -X -W -v ON_ERROR_STOP=1 \
 
 官方查阅：[psql 18](https://www.postgresql.org/docs/18/app-psql.html)、[客户端认证](https://www.postgresql.org/docs/18/client-authentication.html)、[事务入门](https://www.postgresql.org/docs/18/tutorial-transactions.html)。其余具体命令与客户端文档入口已附在对应操作处。
 
-[上一章：两次都写成功，JSON 文件里为什么少了一条素材](../chapter-16-json-file/outline.md) · [下一章：关系建模：为已有记录设计第一组表](../chapter-18-relational-modeling/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：两次都写成功，JSON 文件里为什么少了一条素材](../chapter-16-json-file/chapter.md) · [下一章：关系建模：为已有记录设计第一组表](../chapter-18-relational-modeling/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)

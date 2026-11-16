@@ -11,6 +11,7 @@
 | 第 2 章 | [Visual Studio Code](#打开项目并启动-api)、[Postman 桌面客户端](#发送并保存第一个请求)（Mac） | 在编辑器打开项目，在客户端发出并保存请求 |
 | 第 2～3 章 | [curl](#发送并保存第一个请求)、[Google Chrome](#观察请求如何经过代码)（Mac） | 用命令行复查 HTTP 结果，用浏览器连接 Node 调试器 |
 | 第 12 章 | [Swagger UI](#观察请求如何经过代码)（随项目安装） | 在 API 提供的文档页面试发请求 |
+| 第 16 章 | [沿用 Node、VS Code、Postman](#第-16-章在独立目录观察文件写入)（Mac） | 在私有临时目录重开 JSON，控制两个独立写入者；无新增软件 |
 | 第 17 章 | [Homebrew、PostgreSQL 18.x](#homebrew-与数据库程序)、[DBeaver Community](#用-dbeaver-确认连的是哪个库)（Mac） | 建立学习实例，用 SQL 查看数据 |
 | 第 25 章 | [pg_dump、pg_restore](#用备份建立练习副本)（PostgreSQL 18 自带） | 把原库备份并恢复到独立练习库 |
 | 第 42 章 | [Mailpit 1.33.0](#在本机收取注册邮件)（Mac） | 用本地收件箱完成注册验证，第 43 章继续用它收重置邮件 |
@@ -549,3 +550,9 @@ Docker 服务应为 active，`version` 同时显示 Client 和 Server；Buildx �
 | `psql` 版本不对，或 DBeaver 连不上 | 先查 `command -v psql` 是否位于 PostgreSQL 18 的目录；在第 17 章检查实例状态，再逐项核对 DBeaver 的主机、端口、库名、账号和密码。 |
 
 [返回全书目录](README.md)
+
+### 第 16 章：在独立目录观察文件写入
+
+沿用前章本机的 [Node 准备](#选择项目使用的-node)、[VS Code](#打开项目并启动-api)和 [Postman](#发送并保存第一个请求)。在独立练习副本执行 `nvm use`、`npm ci`、`npm run check`；确认 Node 为 24.22.1。先停前章 dev，避免 Inspector 9229 冲突。文件 API、readline 都由 Node 自带，无需安装数据库或文件锁包。
+
+在项目根目录用 `mktemp -d` 建立私有实验目录，保存其绝对路径。两个终端各自进入同一项目、选择 Node 并恢复该路径；Shell 变量不会自动跨窗口传递。按[第 16 章](part-03-postgresql/chapter-16-json-file/chapter.md)先显式初始化，再以 JSON_FILE 启动独立入口；app.ready 和 Postman 的 201／原 ID 详情 200 才证明入口可用。CLI 先编译开发产物，生产 build 排除实验目录。停止后保留实验数据，下一次从已知基线复制新文件继续，不覆盖损坏现场。
