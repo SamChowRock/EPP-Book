@@ -462,6 +462,9 @@ PORT=3030 TARGET_PORT=3000 SESSION_MODE=true CSRF_MODE=true \
 DROP_SUCCESS_ONCE=true node examples/write-retry/server.mjs
 ```
 
+若复验第34章分页页面，改用 `PORT=3034 TARGET_PORT=3000 SESSION_MODE=true CSRF_MODE=true node examples/paging-upgrade/server.mjs`，并先将API的APP_ORIGIN准确改为该页面源后重启。两个页面源只选本轮实际使用的一项；代理原样转发Origin，不改成API地址。分页GET不要求CSRF写入Token，但仍带当前Cookie和X-Expected-Session并受认证、资格及归属约束。页面登录／退出走本章相同的来源与CSRF规则，身份改变后丢弃旧分页结果。
+
+
 在Chrome打开 `http://127.0.0.1:3030`，使用VERIFY已有的、当前具备Web资格的账号登录。页面的登录POST只在JSON类型之外加 `X-EPP-Request: 1`，Origin由浏览器提供，不先取CSRF Token，也不发送旧X-Expected-Session。登录尚未建立会话，不能要求它拿到该会话的Token；但来源和显式请求头检查仍然执行。Set-Cookie由浏览器处理，不能拿Postman的登录状态代替。
 
 创建或追加时，页面先确认 `/auth/me` 与待办owner一致，再取 `/auth/csrf`；POST同时携带原 `Idempotency-Key`、原 `X-Expected-Session`、`X-CSRF-Token` 和 `X-EPP-Request: 1`。代理原样传递这些头及Cookie、Origin，不根据正文或额外身份头伪造用户。预期会话头表达“这份待办属于刚才确认的会话”，CSRF Token表达“这个写请求具备当前会话要求的浏览器防护证明”；操作键则标识同一次业务操作，三者用途不同。只有操作键、甚至同时有预期会话头，都不能替代CSRF校验。

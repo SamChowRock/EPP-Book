@@ -420,9 +420,13 @@ export class LearningQueries {
 
 其余detail、starMap方法中的旧 `ownedRecord` 全部换成 `this.ownedRecord`，旧常量换成 `this.userId`。只改列表、不改详情，会留下知道ID即可读取别人的路径。这里保留已经存在的归属规则；第39章再深入账号状态与权限，不需要为了章节顺序暂时制造泄漏。
 
-在 `captures.module.ts` 导入AuthModule、CURRENT_USER_ID与CaptureCommands，imports加入AuthModule，替换下面四个工厂，其他服务和ObservedCaptureStore的包装不变：
+在 `captures.module.ts` 导入AuthModule、CURRENT_USER_ID、CaptureCommands与CapturePages，imports加入AuthModule，替换下面五个工厂，其他服务和ObservedCaptureStore的包装不变：
 
 ```ts
+{ provide: CapturePages,
+  useFactory: (database: DatabaseService, state: ApplicationState, config: AppConfig, userId: string) =>
+    new CapturePages(database, state, config.cursorKey, userId),
+  inject: [DatabaseService, ApplicationState, APP_CONFIG, CURRENT_USER_ID] },
 { provide: CaptureCommands,
   useFactory: (database: DatabaseService, state: ApplicationState, userId: string) =>
     new CaptureCommands(database, state, userId),
@@ -438,6 +442,8 @@ export class LearningQueries {
   useFactory: (database: DatabaseService, userId: string) => new PrismaCaptureStore(database, userId),
   inject: [DatabaseService, CURRENT_USER_ID] },
 ```
+
+CapturePages沿用第34章的显式userId构造参数，同时限定SQL与游标scope；不得只改其中一处。用甲取得素材页cursor，再以乙登录续读，应400/INVALID_CURSOR；乙的新首页只含乙的素材，匿名仍401。分页GET需要身份校验，不因游标签名有效就跳过认证。第34章页面以 `SESSION_MODE=true` 接入真实Cookie，所有读取带预期会话并在收到结果后复核身份；切换身份清空旧结果和cursor。
 
 其中CaptureCommands是第30章带操作键写入的入口，也必须取得本请求的userId；只替换旧store，会让无键请求属于登录用户、带键请求仍使用固定用户。它与回执查询一起沿请求作用域传播，不在共享实例中修改一个可变“当前用户”。
 

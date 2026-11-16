@@ -188,9 +188,9 @@
 
 时间参考（估算）：阅读约125～150分钟，跟做另加70～95分钟；按正文、分页与签名代码、两张机制图、五张操作截图、图形请求、SQL日期边界、断点和产物恢复估算，支线单列于篇导读。
 
-#### [第 34 章 已有素材列表怎样从全量读取迁到分页](part-04-consistency/chapter-34-paging-upgrade/outline.md)
+#### [第 34 章 已有素材列表怎样从全量读取迁到分页](part-04-consistency/chapter-34-paging-upgrade/chapter.md)
 
-[章节提要](part-04-consistency/chapter-34-paging-upgrade/outline.md)
+[正文](part-04-consistency/chapter-34-paging-upgrade/chapter.md) · 阅读约115～140分钟，跟做另加100～130分钟
 
 #### [第 35 章 索引与执行计划：查询为什么变慢](part-04-consistency/chapter-35-indexes/chapter.md)
 

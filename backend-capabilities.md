@@ -35,7 +35,7 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | 章节 | 要核对的结果 |
 | --- | --- |
 | [第 16 章](part-03-postgresql/chapter-16-json-file/chapter.md) | 沿用存储契约，用两个独立进程固定旧快照覆盖顺序；区分文件完整替换、更新保留与持久性，按原 ID 和已知输入恢复，判断进程内队列的边界。 |
-| [第 30 章](part-04-consistency/chapter-30-write-retry/chapter.md)、[第 34 章](part-04-consistency/chapter-34-paging-upgrade/outline.md) | 重发创建与追加请求，检查业务记录是否重复。让新旧客户端同时访问列表，判定分页迁移何时可以收尾。 |
+| [第 30 章](part-04-consistency/chapter-30-write-retry/chapter.md)、[第 34 章](part-04-consistency/chapter-34-paging-upgrade/chapter.md) | 重发创建与追加请求，检查业务记录是否重复。保留旧全量契约，新增签名游标入口；逐项比较有序ID，失败后重读原页，说明实时集合为何不同于快照，并用消费者调用证据判定迁移何时可以收尾。 |
 | [第 41 章](part-05-identity/chapter-41-shared-limit/outline.md)、[第 50 章](part-06-background/chapter-50-login-integration/outline.md)、[第 54 章](part-06-background/chapter-54-mail-delivery/outline.md) | 从两个 API 观察同一登录额度。选读登录接线用原账号和收件箱验证身份延续；选读邮件交付按供应商消息和退信事件追到实际邮箱。 |
 | [第 61 章](part-07-profiles/chapter-61-object-reconcile/outline.md)、[第 65 章](part-08-maintenance/chapter-65-artifact-promotion/outline.md) | 按尝试 ID 对照私有桶与数据库的两份清单。另从制品摘要查回当时验过的运行包，在发布副本核对相同入口。 |
 | [第 67 章](part-08-maintenance/chapter-67-pg-maintenance/outline.md)、[第 68 章](part-08-maintenance/chapter-68-bad-data/outline.md) | 从长事务、旧行版本与表空间读数选择维护时机。让一条坏记录只影响相关读取，核对其余业务与修复后的历史。 |

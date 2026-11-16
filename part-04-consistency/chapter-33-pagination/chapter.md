@@ -468,4 +468,4 @@ FROM bounds;
 
 [上一章：构建可供客户端使用的查询接口](../chapter-32-queries/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)
 
-[下一章：已有素材列表怎样从全量读取迁到分页](../chapter-34-paging-upgrade/outline.md)
+[下一章：已有素材列表怎样从全量读取迁到分页](../chapter-34-paging-upgrade/chapter.md)

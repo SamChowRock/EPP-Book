@@ -15,6 +15,7 @@
 | 第 17 章 | [Homebrew、PostgreSQL 18.x](#homebrew-与数据库程序)、[DBeaver Community](#用-dbeaver-确认连的是哪个库)（Mac） | 建立学习实例，用 SQL 查看数据 |
 | 第 25 章 | [pg_dump、pg_restore](#用备份建立练习副本)（PostgreSQL 18 自带） | 把原库备份并恢复到独立练习库 |
 | 第 30 章 | [沿用Chrome、Postman、DBeaver与Node](#第-30-章在同一页签恢复待确认的提交)（Mac） | 通过回环页面和故障代理观察刷新恢复；固定身份夹具只用于独立VERIFY副本 |
+| 第 34 章 | [沿用Chrome、Postman、DBeaver与Node](#第-34-章比较旧列表与分页读取)（Mac） | 比较全量与分页、模拟一次续页失败；使用独立VERIFY和已有签名密钥 |
 | 第 42 章 | [Mailpit 1.33.0](#在本机收取注册邮件)（Mac） | 用本地收件箱完成注册验证，第 43 章继续用它收重置邮件 |
 | 第 44、47 章选做 | [微信开发者工具](#真实平台登录选做)（Mac） | 导入小程序，使用真实 AppID 联调 |
 | 第 51 章 | [邮件 Worker](#让独立进程寄信)（随项目运行） | 把入队后的邮件交给 Mailpit；第 55 章再启动通知角色 |
@@ -568,3 +569,13 @@ Docker 服务应为 active，`version` 同时显示 Client 和 Server；Buildx �
 在Chrome菜单“更多工具 → 开发者工具”的Network中观察创建、身份确认及重试；Application → Session storage可核对本页签待办是否在刷新后保留，仅使用虚构原文，截图前关闭Cookies和真实站点。不要换地址中的主机名或端口来模拟账号切换，那会改变存储所属的源。关闭页签不作为本章的持久恢复保证。
 
 固定身份夹具只用于身份篇之前的甲乙对照，不是登录系统。第38章之后改用正式API与 `SESSION_MODE=true`，第40章再开启 `CSRF_MODE=true`；实际页面源必须与APP_ORIGIN一致，登录与退出沿对应章节进行。故障模式默认关闭，练习开启时会截断每个键第一次成功响应，恢复时保持代理运行。
+
+### 第 34 章：比较旧列表与分页读取
+
+第33章已经安装数据库、客户端与Node，并准备CURSOR_HMAC_KEY。本章增加的是配套中的本地练习页面与转发脚本，没有新系统软件。API、页面与代理都运行在开发Mac，DBeaver连接独立VERIFY；用 `SELECT current_database(), current_user;` 对照预期实例和库名。不能在日常库为凑101条清空旧素材。
+
+从33跟写时先按[取得第34章辅助材料](part-04-consistency/chapter-34-paging-upgrade/chapter.md#用101条数据把错误显出来)准备SQL、页面、集合与测试；不把完成分支的src覆盖到跟写目录。准备好辅助文件或直接检出34完成状态后，`nvm use` 应显示24.22.1。运行 `npm ci`、`npm run db:verify -- migrate status` 和 `npm run check`；本章没有新增迁移，但已有结构必须齐全。在VS Code复制 `.env.database-verify` 为 `.env.paging-verify`，保留VERIFY的DATABASE_URL并加入前章已保存的CURSOR_HMAC_KEY；`git check-ignore .env.paging-verify` 应输出该路径。书中命令先unset同名继承值，再以这份文件启动原有开发脚本，避免自动载入DEV或生成另一把临时密钥。
+
+API在3000就绪后，另一终端运行 `PORT=3034 TARGET_PORT=3000 node examples/paging-upgrade/server.mjs`。Chrome地址栏输入 `http://127.0.0.1:3034`；默认既不截断旧列表，也不制造失败。先用Postman直连API确认能读取素材，再在页面输入本轮q。开发者工具的Network用于比较实际路径、页长、状态与续页；游标含查询上下文，截图前折叠URL参数，不打开Cookie或秘密配置。
+
+LEGACY_CAP和FAULT_NEXT_PAGE_ONCE只在正文对应的隔离实验显式开启，页面会标出模式。重启代理会重置它自己的“一次失败”记录，不会修改数据库。恢复正常对照时去掉两个开关，保留相同页面源。登录章节之后可以开启SESSION_MODE，40起再加CSRF_MODE并将API的APP_ORIGIN设置为页面源；这时用已有账号真实登录，不使用固定身份代替Cookie认证。
