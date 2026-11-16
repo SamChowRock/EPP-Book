@@ -182,7 +182,7 @@ env -u DATABASE_URL node --env-file=.env.perf examples/performance/service.mjs e
 
 > 同一构建已在本机安装生产依赖。API 使用约定端口、Origin、稳定的游标签名密钥和目标库，接班人从运行环境取得值。邮件 Worker 要知道库名与 SMTP 目的地，通知 Worker 用 notifications 角色，账号 CLI 按需运行。历史练习库保留旧收据及本轮 A、B，账号已恢复，原会话回查为 200。另一个交付检查库有探测用的固定账号。性能对照的两条池连接只属于实验 API。部署时应给每个常驻进程的池、短时 CLI 以及恢复操作预留连接。
 
-练习 API 临时生成的游标签名密钥适合这次新登录。真实交接如果每次启动都随机换密钥，已有签名游标将无法继续使用。交接里写密钥从哪里注入、由谁维护，值留在受控环境。涉及头像时还要交接私有桶、对象键与访问配置；数据库的引用、桶里的字节要在恢复演练中相互核对。把 Worker 指到还原的业务库也有后果：历史待办可能开始投递。现在可以关闭本轮的 SQL 会话和练习进程，保留已核对的收据与构建来源。第九篇从第 70 章的本机部署开始，要在停机、重新启动、迁移和恢复后，再证明这些条件仍然成立。
+练习 API 临时生成的游标签名密钥适合这次新登录。真实交接如果每次启动都随机换密钥，已有签名游标将无法继续使用。交接里写密钥从哪里注入、由谁维护，值留在受控环境。涉及头像时还要交接私有桶、对象键与访问配置；数据库的引用、桶里的字节要在恢复演练中相互核对。把 Worker 指到还原的业务库也有后果：历史待办可能开始投递。现在可以关闭本轮的 SQL 会话和练习进程，保留已核对的收据与构建来源。第九篇先让目标机接住这份程序和成对数据，再建立运行身份、托管和可信入口。保留 .env.handoff 的实际路径，部署端从它准备自己的连接配置。
 
 ## 附录：本章必要技术点速查
 
@@ -197,4 +197,4 @@ env -u DATABASE_URL node --env-file=.env.perf examples/performance/service.mjs e
 
 阅读约 24～34 分钟。已准备好本机 PostgreSQL 18 和练习账号时，独立判断、恢复副本、干净构建和双连接复现另加 40～55 分钟。首次安装与下载另计。
 
-[本章沿用的完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66) · [上一章：一条历史坏记录应该让多少服务停下来](../chapter-68-bad-data/outline.md) · [第八篇导读](../README.md) · [下一章：在本机直接部署服务](../../part-09-operations/chapter-70-native-deployment/chapter.md) · [全书目录](../../README.md)
+[本章沿用的完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66) · [上一章：一条历史坏记录应该让多少服务停下来](../chapter-68-bad-data/outline.md) · [第八篇导读](../README.md) · [下一章 · 把应用和数据交给目标环境](../../part-09-deployment/chapter-70-target-environment/chapter.md) · [全书目录](../../README.md)

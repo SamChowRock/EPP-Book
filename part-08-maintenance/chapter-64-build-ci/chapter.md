@@ -80,6 +80,24 @@ mv "$release/dist/config/service.saved" "$release/dist/config/service.json"
 
 第二行应以 1 退出，日志里 field 为 `config/service.json: unreadable`。这是读取文件时的失败，检测发生在校验生产密钥、连接数据库和监听 HTTP 之前。文件恢复后，下一次启动会推进到下一层检查。上文的手工目录可以先留着；它只包含构建产物和生产包，之后对照结束时按自己记下的准确目录清理。
 
+### 产物的位置与进程的工作目录
+
+默认配置相对编译模块读取，头像上传暂存则相对进程的工作目录创建。交付产物可以整份替换，运行配置与可写文件各自需要稳定位置。沿用上面的 release，在项目根的 Bash 记下 Node 的绝对路径，并准备两个独立目录。
+
+```bash
+node_bin=$(command -v node)
+runtime=$(mktemp -d)
+mkdir -m 700 "$runtime/config" "$runtime/work"
+```
+
+要实际启动时，先把该环境已核实的数据库、来源、签名密钥和桶配置放入 "$runtime/config/api.env"，权限设为 0600，再运行下面的命令。
+
+```bash
+(cd "$runtime/work" && env -i "$node_bin" --env-file="$runtime/config/api.env" "$release/dist/src/server.js")
+```
+
+这里的 cd 选择暂存文件落在哪里；绝对脚本路径选择程序；--env-file 选择运行配置。Node 环境文件不会覆盖父进程导出的同名变量，env -i 先清空外层环境，避免旧 DATABASE_URL 把程序送到另一份库。Node 用绝对路径，因此不依赖被清空的 PATH。默认的 dist/config/service.json 仍随模块定位，换 cwd 后应能读取。若实际启动了 API，按 Ctrl-C 等它退出，再进入下面的交付检查。[Node 的环境文件规则](https://nodejs.org/docs/latest-v24.x/api/cli.html#--env-filefile)
+
 **让交付检查自己跑完。** 要观察正常路径，先准备本机 PostgreSQL 18。用 DBeaver 连到已有学习实例，在数据库导航里为本轮创建独立空库，例如 epp_ch54_delivery，所有者选拥有 public 建表权限的练习角色，刷新连接确认库名。也可以按[第 17 章](../../part-03-postgresql/chapter-17-postgresql-environment/chapter.md)的建库步骤在 psql 中完成。仍保有第 63 章 VERIFY 的读者请留好那份库和旧收据。这里会引导空库、插入固定用户并启动能领取任务的 Worker，必须用本轮专用的空库。
 
 在项目根创建被 Git 忽略的 .env.delivery，按自己的主机、端口、角色和刚创建的库设置 DATABASE_URL。若沿用前章 .env.database-verify 的连接写法，要核对路径中的库名。库名参数另取自建库记录。从前章跟写时，此时加入[交付脚本](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-64/scripts/check-delivery.sh)和[运行检查](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-64/scripts/check-runtime.mjs)。交付脚本重复刚才的临时安装，在同一库引导旧迁移，最后从生产目录启动程序；退出时只清理自己创建的临时目录。它对数据库保留现场。
@@ -241,6 +259,6 @@ checkout 决定这次检查的源码，setup-node 读取项目指定版本。cac
 
 [npm 11 的 ci](https://docs.npmjs.com/cli/v11/commands/npm-ci/) · [Biome 配置](https://biomejs.dev/reference/configuration/) · [Prisma 生成器](https://www.prisma.io/docs/orm/prisma-schema/overview/generators) · [Mermaid 实体关系图](https://mermaid.js.org/syntax/entityRelationshipDiagram.html) · [VS Code 内置 Mermaid 预览](https://code.visualstudio.com/updates/v1_121/) · [GitHub Actions 的 PostgreSQL 服务](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers)
 
-阅读约 45～60 分钟，已有 PostgreSQL 18 时，从干净目录构建、运行、制造差异再恢复另加 65～90 分钟。有自己的 GitHub 仓库时配置并检查一次远程运行另加 10～18 分钟，网络下载与 runner 排队另计。按正文代码、两图和实操步骤估算。
+阅读约 48～64 分钟，已有 PostgreSQL 18 时，从干净目录构建、运行、制造差异再恢复另加 65～90 分钟。有自己的 GitHub 仓库时配置并检查一次远程运行另加 10～18 分钟，网络下载与 runner 排队另计。按正文代码、两图和实操步骤估算。
 
 [本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-64) · [上一章：为后台操作提供可靠的管理命令](../chapter-63-account-cli/chapter.md) · [下一章：把验过的那份运行制品从验收环境交给发布环境](../chapter-65-artifact-promotion/outline.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)

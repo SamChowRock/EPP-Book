@@ -19,18 +19,23 @@
 | 第 59 章 | [sharp 0.35.5、libvips](#让-api-生成并保存头像)（随项目安装） | 解码图片并生成 WebP 预览 |
 | 第 60 章 | [SeaweedFS 4.52](#启动私有存储)（Mac） | 给头像提供私有存储，重启后仍能读回原文件 |
 | 第 64 章 | [Biome、Prisma 生成器辅助包](#5-从开发目录交付一份可运行的服务)（随项目安装） | 检查代码和生成文件；远程运行 GitHub Actions 属选做 |
-| 第 70 章 | [Bash、launchd、iTerm2](#第-70-章在本机托管进程)（Mac） | 让宿主托管 API 和后台进程；iTerm2 用于复现书中终端界面 |
-| 第 71 章 | [OpenSSH](#第-71-章从另一台电脑接手)（Mac 客户端、部署机服务端） | 从 Mac 登录另一台机器并转发请求 |
-| 第 72 章；第 71 章选 Debian 时提前 | [Debian 13、systemd](#准备-debian-13-部署端)（部署机）；[Lima](#准备-debian-13-部署端)（选用 Mac 虚拟机路线） | 建立可独立管理用户和服务的 Linux 主机 |
-| 第 72 章 | [Linux 版 Node.js 24.22.1、npm](#第-72-章为三个服务分配身份)（部署机） | 以各自的系统用户运行 API、邮件和通知 |
-| 第 75 章 | [OpenSSL 3](#两端准备-openssl)、[nginx](#在-debian-准备-nginx)（OpenSSL 装在两端，nginx 装在 Debian） | 签发练习证书，由独立入口接收 HTTPS |
-| 第 75.3 节选做 | [Firefox ESR、libnss3-tools](#用-firefox-查看证书错误选做)（有图形会话的 Debian） | 用专用浏览器配置观察导入练习根证书前后的变化 |
-| 第 76 章 | [复用 PostgreSQL 18、curl 和 Mailpit](#让两个实例接到同一份练习数据) | 用同一份业务数据检查两个 API、后台进程和旧连接 |
+| 第 64 章 | [Bash](#用-bash-与可选-mac-托管)（Mac 自带）；[launchd、iTerm2](#用-bash-与可选-mac-托管)（选做） | Bash 运行独立目录里的 API；70B 用 launchd 在 Mac 托管，iTerm2 可复现书中界面 |
+| 第 70 章 | [OpenSSH](#从-mac-建立-ssh-连接)（Mac 客户端、部署机服务端） | 从 Mac 登录另一台机器并转发请求 |
+| 第 70 章起 | [Debian 13、systemd](#准备-debian-13-部署端)（部署机）；[Lima](#准备-debian-13-部署端)（选用 Mac 虚拟机路线） | 建立可独立管理用户和服务的 Linux 主机 |
+| 第 70 章部署端 | [PostgreSQL 18、SeaweedFS 4.52、Mailpit 1.33.0 和 lsof](#在-debian-接手已有的数据库桶和收件箱)（Debian；已有独立数据机时可复用） | 将第 69 章的非空练习副本交给部署环境，退出操作终端后仍可访问 |
+| 第 70 章起 | [Linux 版 Node.js 24.22.1、npm](#第-71-章为三个服务分配身份)（部署机） | 以各自的系统用户运行 API、邮件和通知 |
+| 第 72 章 | [OpenSSL 3](#两端准备-openssl)（管理 Mac 和部署 Debian）、[nginx](#在-debian-准备-nginx)（Debian） | 练习签发时核对名称和根指纹；由 nginx 在可达的私网地址接收页面、API 和头像请求 |
+| 第 72 章 | [curl、浏览器及证书信任设置](#在独立使用设备验证入口)（独立使用设备，如另一台 Mac 上的 Chrome 与系统钥匙串） | 准备私网解析和受信根，再从浏览器登录、读写和收通知 |
+| 第 72 章证书诊断支线选做 | [Firefox ESR、libnss3-tools](#用-firefox-查看证书错误选做)（有图形会话的 Debian） | 用专用浏览器配置观察导入练习根证书前后的变化 |
+| 第 72 章公网回调选做 | [cloudflared](#为公网回调准备连接器选做)（仅选用 Cloudflare Tunnel 的常驻部署端） | 家庭主机主动连到公网入口，让平台能访问指定回调 |
+| 第九、十篇容器重点路线 | [Docker Engine、Buildx 与 Compose](#为容器部署准备引擎与-compose)（Debian 部署机；在 Mac 练习可选 Docker Desktop） | 构建目标平台镜像，管理卷、网络和 Compose，取证、更新并恢复原数据 |
+| 第 75 章 | [复用 PostgreSQL 18、curl 和 Mailpit](#让两个实例接到同一份练习数据) | 用同一份业务数据检查两个 API、后台进程和旧连接 |
+| 支线 76A | [PostgreSQL 18 物理备份、校验与启动工具](#为隔离恢复演练准备-postgresql-18)（数据库练习主机） | 选做按时间点恢复时使用，检查基础备份并在独立数据目录回放 WAL |
 
 <details>
-<summary>第 77 章起还会用到什么？</summary>
+<summary>后续选做路线和下部还会用到什么？</summary>
 
-第 77～80 章可选 Docker 与 Compose，第 81 章准备 Caddy（家庭主机隧道路线另用 Cloudflare Tunnel），第 82 章容器日志支线使用 Dozzle。第十篇做真实模型调用时准备供应商账号、密钥和额度，第 97 章用到 pgvector，第十三篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
+第九、十篇的容器重点路线使用 Docker 与 Compose，工具在进入该路线时准备。第 72 章沿用已经托管的私网 HTTPS 入口，从独立设备验收。容器日志先用 Engine 自带命令读取，图形入口可使用已安装的 Docker Desktop。第十一篇真实模型调用需要供应商账号、密钥和额度，第 90 章用到 pgvector，第十四篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
 
 </details>
 
@@ -233,21 +238,21 @@ node database/chapter-51/store-probe.mjs buckets
 
 **带着已有数据交接。** 空库能检验交付文件是否齐全，已有账号和收据则能检验服务接到了哪一份数据。第 69 章用第 66 章的代码，将有历史数据的库恢复为交接副本，连接写入仅自己可读的 `.env.handoff`，空库仍由 `.env.delivery` 选中。分别为交接 API 与交付探测留出回环端口（如 3357 和 3356），另开两个连接到交接副本的 SQL 会话，才能在一个会话持锁时从另一个观察。[第 69 章维护交接](part-08-maintenance/chapter-69-review/chapter.md)
 
-<a id="第-70-章在本机托管进程"></a>
+<a id="用-bash-与可选-mac-托管"></a>
 
-### 在 Mac 托管 API 和后台进程
+### 用 Bash 启动服务，选做 Mac 托管
 
-第 70 章沿用交接副本、同一恢复点的头像桶、旧账号与旧收据。要看进程在关闭终端后能否继续工作，可用 macOS 自带的 launchd 托管它们。在已图形登录的 Mac 上打开终端。书中分标签页观察各角色，若要使用相同界面，首次执行 `brew install --cask iterm2` 安装 iTerm2。系统“终端”也能运行相同的 Bash 命令。[iTerm2 安装入口](https://formulae.brew.sh/cask/iterm2)
+第 64 章在独立工作目录验证产物，部署篇沿用第 69 章的程序与配置。若部署目标就是 Mac，支线 70B 用 macOS 自带的 launchd 托管它们。在已图形登录的 Mac 上打开终端。书中分标签页观察各角色，若要使用相同界面，首次执行 `brew install --cask iterm2` 安装 iTerm2。系统“终端”也能运行相同的 Bash 命令。[iTerm2 安装入口](https://formulae.brew.sh/cask/iterm2)
 
-在项目目录的 Zsh 先执行 `nvm use`，再输入 `/bin/bash`。这样子 shell 会继承已选 Node 的路径。在 Bash 中用 `echo "$BASH_VERSION"`、`node --version` 确认 shell 和 Node 24.22.1，用 `command -v launchctl plutil` 确认系统工具可用。项目脚本用 Node 生成任务文件，`plutil` 可以读文件，`launchctl` 将任务交给宿主管理。按正文把产物、配置、工作文件和日志放入各自的持久目录。启动邮件角色前，核对待发任务和 Mailpit 地址。[第 70 章本机部署](part-09-operations/chapter-70-native-deployment/chapter.md)
+在项目目录的 Zsh 先执行 `nvm use`，再输入 `/bin/bash`。这样子 shell 会继承已选 Node 的路径。在 Bash 中用 `echo "$BASH_VERSION"`、`node --version` 确认 shell 和 Node 24.22.1，即可开始第 64 章。选做 70B 时用 `command -v launchctl plutil` 确认系统工具可用。项目脚本用 Node 生成任务文件，`plutil` 可以读文件，`launchctl` 将任务交给宿主管理。按正文把产物、配置、工作文件和日志放入各自的持久目录。启动邮件角色前，核对待发任务和 Mailpit 地址。[第 64 章前台启动](part-08-maintenance/chapter-64-build-ci/chapter.md) · [70B 在 Mac 托管](part-09-deployment/chapter-70-target-environment/side-02-macos-supervision.md)
 
 ## 6. 从 Mac 接手另一台机器上的 EPP
 
-从第 71 章开始，请求仍在手边的 Mac 上发出，程序和日志可以在另一台机器上。下文把前者叫**操作端**，后者叫**部署端**。`127.0.0.1` 始终指运行当前命令的那台机器。给两个终端页分别标上机器名，切换时用 `hostname`、`id -un` 查看自己在哪里、以谁的身份操作。
+从第 70 章开始，请求仍在手边的 Mac 上发出，程序和日志可以在另一台机器上。下文把前者叫**操作端**，后者叫**部署端**。`127.0.0.1` 始终指运行当前命令的那台机器。给两个终端页分别标上机器名，切换时用 `hostname`、`id -un` 查看自己在哪里、以谁的身份操作。
 
 ### 准备 Debian 13 部署端
 
-第 71 章只练远程接手，已有可管理的 Mac 或 Linux 主机就能做。第 72 章开始要用 systemd 分别托管服务，书中选用 Debian 13。若想让同一台主机贯穿两章，可以在第 71 章前就把 Debian 准备好。
+第 70 章从干净的 Debian 13 部署机起步。你可以用已有练习主机，或从 Mac 上创建一台独立虚拟机。后续分权、交付、HTTPS 与运维都接着用这台主机。
 
 **只有一台 Mac**，可用 Lima 创建 Debian 虚拟机。下面在 Mac 终端执行。已有 Lima 时先查版本；首次创建名为 `epp-debian` 的实例时，Lima 会下载 Debian 13 镜像，为它建立虚拟磁盘。已有这个实例时直接用 `limactl start epp-debian` 启动原磁盘。[Lima 安装说明](https://lima-vm.io/docs/installation/) · [Debian 13 镜像模板](https://github.com/lima-vm/lima/blob/master/templates/debian-13.yaml)
 
@@ -272,23 +277,133 @@ sudo -v
 
 应看到 `ID=debian`、`VERSION_ID="13"`，PID 1 为 `systemd`。`sudo -v` 成功表示账号可通过 sudo 认证。如果 SSH 显示 inactive，用 `sudo systemctl enable --now ssh` 启动；若提示找不到 unit，先执行 `sudo apt-get update` 和 `sudo apt-get install openssh-server`。再查 `systemctl is-active ssh` 应为 `active`。[Debian OpenSSH 服务端](https://packages.debian.org/trixie/openssh-server)
 
-<a id="第-71-章从另一台电脑接手"></a>
+<a id="第-70-章从另一台电脑接手"></a>
 
 ### 从 Mac 建立 SSH 连接
 
-第 71 章若选用一台新的 Linux 虚拟机，先[准备 Debian 部署端](#准备-debian-13-部署端)。在 **Mac 操作端**用 `command -v ssh ssh-keygen scp` 和 `ssh -V` 确认系统自带的 OpenSSH 客户端。若第 71 章选另一台 Mac 做部署端，在那台机器的“系统设置 → 通用 → 共享 → 远程登录”允许练习账号登录。
+在 **Mac 操作端**用 `command -v ssh ssh-keygen scp` 和 `ssh -V` 确认系统自带的 OpenSSH 客户端。先从[Debian 部署端控制台](#准备-debian-13-部署端)取得主机身份，再发起首次登录。
 
 在首次连接前取得地址、端口、允许登录的账号，以及从部署机控制台或可信交接渠道取得的主机公钥指纹。Lima 用户可在 Mac 用 `limactl list --format '{{.SSHConfigFile}}' epp-debian` 找到实例的 SSH 配置，查看实际的 HostName、Port、User 和 IdentityFile。`limactl shell` 本身也经过 SSH。从 Lima 2.3 起，首次启动新实例时会把主机公钥保存在实例目录的 `ssh.known_hosts`；若实例由你在可信 Mac 上创建并确认过，可用 `ssh-keygen -lf` 加该文件路径读回已有指纹。接手别人的主机时，向管理者核对。[Lima 的 SSH 配置与主机公钥](https://lima-vm.io/docs/usage/ssh/)
 
-第 71 章把练习目标写入 Mac 的 `~/.ssh/epp71.conf`，起名 `epp-lab`。用 `ssh -F ~/.ssh/epp71.conf -G epp-lab` 检查展开后的目标，再用 `ssh -F ~/.ssh/epp71.conf epp-lab` 登录，比对首次提示的指纹。后文会简写为 `ssh epp-lab` 或 `scp … epp-lab:…`。要使用简写，在 Mac 的 `~/.ssh/config` 开头加入 `Include ~/.ssh/epp71.conf`；也可继续显式带 `-F ~/.ssh/epp71.conf`。若从别的主机切换到 Debian，更新连接参数并核对新主机指纹。[第 71 章远程连接与换钥](part-09-operations/chapter-71-remote-host/chapter.md)
+第 70 章把练习目标写入 Mac 的 `~/.ssh/epp71.conf`，起名 `epp-lab`。用 `ssh -F ~/.ssh/epp71.conf -G epp-lab` 检查展开后的目标，再用 `ssh -F ~/.ssh/epp71.conf epp-lab` 登录，比对首次提示的指纹。后文会简写为 `ssh epp-lab` 或 `scp … epp-lab:…`。要使用简写，在 Mac 的 `~/.ssh/config` 开头加入 `Include ~/.ssh/epp71.conf`；也可继续显式带 `-F ~/.ssh/epp71.conf`。若从别的主机切换到 Debian，更新连接参数并核对新主机指纹。[第 70 章远程连接与换钥](part-09-deployment/chapter-70-target-environment/chapter.md)
 
-能登录后，还要从这台主机找到第 70 章的 API、任务、日志和旧收据。如果是刚装好系统的空机，先按[第 70 章部署步骤](part-09-operations/chapter-70-native-deployment/chapter.md)接回非空库、核对旧收据并托管 API。换主机钥匙的实验使用专用的第二个监听，保留平时的登录入口。
+确认主机和账号后，在第 70 章传入目标平台的制品、接通隔离依赖，在前台验证一次读取。换主机钥匙的支线使用专用的第二个监听。[第 70 章](part-09-deployment/chapter-70-target-environment/chapter.md)
 
-<a id="第-72-章为三个服务分配身份"></a>
+### 在 Debian 接手已有的数据库、桶和收件箱
 
-### 在 Debian 为三个角色准备运行环境
+第 70 章要关闭操作 Mac 上的终端，Debian 上的 API 仍需读到昨天的账号和头像。本书用一台常驻的 Debian 练习机同时运行 PostgreSQL、SeaweedFS 和 Mailpit。管理端与浏览器可在同一台笔记本上。若用 Lima 在这台笔记本内模拟 Debian，退出 SSH 可以测试进程归属；关掉笔记本也会关掉虚拟机。要实际关掉操作机，部署机需独立供电和联网。已有独立数据主机的读者也可以保留它，[71B 的数据通路](part-09-deployment/chapter-71-service-runtime/side-02-private-data-link.md)说明怎样让 Debian 自行连接。
 
-第 72 章让 API、邮件和通知各用自己的系统用户。先在 Debian 执行 `systemctl --version`、`command -v useradd install`。创建用户、指定文件属主和安装系统级 unit 需要管理权限。服务还需要一个各账号都能执行的 Linux 版 Node，绝对路径固定在 `/opt/epp72/node/bin/node`。
+**先准备目标机。** 在第 70 章已核过指纹的 Debian SSH 页运行 `hostname`、`cat /etc/os-release` 和 `dpkg --print-architecture`。下面按 Debian 13 的 amd64 或 arm64 操作。PostgreSQL 用 18.x，SeaweedFS 用 4.52，邮件收进本机的 Mailpit 1.33.0。三个服务都只接受部署端回环连接。
+
+1. 从 PostgreSQL 官方 Debian 安装页启用 PGDG 软件源，安装 `postgresql-18` 和 `postgresql-client-18`。用 `/usr/lib/postgresql/18/bin/pg_restore --version` 确认主版本，`pg_lsclusters` 查看实例。给本书新建实例前先用 `ss -lnt` 检查 55471 空闲，确认没有同名 18/epp 练习实例；再运行 `sudo pg_createcluster 18 epp --port 55471 --start`。从 `sudo -u postgres psql -X -p 55471 -d postgres` 检查 `SHOW data_directory;`、`SHOW listen_addresses;` 和 `SHOW port;`，实际监听只应出现在部署端回环。已有自己的专用实例时，后文都用那一实例的端口。[PostgreSQL 在 Debian 的安装说明](https://www.postgresql.org/download/linux/debian/)
+2. 在 Debian 的新私有暂存目录下载对应架构的两个发行包，分别解压并安装 Linux 可执行文件。下面用固定版本的官方发行资产和公开摘要。另装 `lsof` 供第 60 章的原启动脚本检查端口。[SeaweedFS 4.52](https://github.com/seaweedfs/seaweedfs/releases/tag/4.52) · [Mailpit 1.33.0](https://github.com/axllent/mailpit/releases/tag/v1.33.0)
+
+```bash
+(
+  set -eu
+  stage=$(mktemp -d)
+  cd "$stage"
+  arch=$(dpkg --print-architecture)
+  case "$arch" in
+    arm64) weed_sha=b70a09540bf8aa2b9ea2a48b3b16abe27e162e90a0c3bf041f8d414caf52de8a
+           mail_sha=1d27c819e1a5dd2761ed9fd07022443e35a47793b2e92de5b49cf3656a649ef9 ;;
+    amd64) weed_sha=8b538c22d47d0c3fb6792adaa6b0c735a967401270a53427d5a476dcaca9b7ae
+           mail_sha=d0ec50080cbf3e7c1fa2cda2ee68125d7894175811084b1f8f47c6cfc6f487c8 ;;
+    *) exit 1 ;;
+  esac
+  curl -fL --retry 2 -o weed.tgz "https://github.com/seaweedfs/seaweedfs/releases/download/4.52/linux_${arch}.tar.gz"
+  curl -fL --retry 2 -o mail.tgz "https://github.com/axllent/mailpit/releases/download/v1.33.0/mailpit-linux-${arch}.tar.gz"
+  printf '%s  weed.tgz\n%s  mail.tgz\n' "$weed_sha" "$mail_sha" | sha256sum -c -
+  tar xf weed.tgz weed
+  tar xf mail.tgz mailpit
+  sudo install -d -m 0755 /opt/epp-data/bin
+  sudo install -m 0755 weed mailpit /opt/epp-data/bin/
+  /opt/epp-data/bin/weed version
+  /opt/epp-data/bin/mailpit version
+)
+```
+
+**从第 69 章的交接副本接手。** 在 Mac 上记录实际源库名、端口、当前的 avatarId 和已保存图的 SHA-256。停掉 API、邮件和通知进程及其他会向该库和桶写入的练习程序，等在途请求结束，保持 PG 在线。正常停止本轮 SeaweedFS，确认原 PID 已退出。以下的 `store` 填实际运行的 `.chapter51-store` 绝对路径，里面有原 s3.json、config 和 data。这个目录只用于书中的单机、同版本 mini 练习。将下列归档保存在权限 0700 的私有目录，其中包含桶凭据。
+
+```bash
+umask 077
+handoff=$(mktemp -d)
+pg_dump -h 127.0.0.1 -p "$source_port" -U "$owner" -W -d "$source_db" -Fc -f "$handoff/epp.dump"
+COPYFILE_DISABLE=1 tar --no-xattrs -czf "$handoff/store.tgz" -C "$store" .
+(cd "$handoff" && shasum -a 256 epp.dump store.tgz)
+```
+
+每一步成功再继续。在 Mac 的配套仓库根目录把 `database/chapter-51/start-store.sh` 和 `examples/deployment/runtime-grants.sql` 与上面两份归档一起通过 scp 交给 Debian 登录者的**新私有目录**。例如先执行 `ssh -F ~/.ssh/epp71.conf epp-lab 'umask 077; mkdir epp-data-in'`，再执行 `scp -F ~/.ssh/epp71.conf "$handoff/epp.dump" "$handoff/store.tgz" database/chapter-51/start-store.sh examples/deployment/runtime-grants.sql epp-lab:epp-data-in/`。进入 Debian 的 ~/epp-data-in，用 sha256sum 对照从源机独立记下的两个摘要。
+
+在 **Debian** 的全新 18/epp 实例建立一套专用库。以下用 epp_owner 作为迁移所有者，epp57_run 作为接手阶段临时使用的受限运行角色。先在上面的 postgres 会话用 `\du`、`\l` 查重。设置自己的数据库口令；将新运行口令写入部署端专用配置，保留已验的应用签名密钥。库名可以沿用源副本的名字，下面示例为 epp_ch72_handoff，全程用实际选择的同一名字。
+
+```sql
+CREATE ROLE epp_owner LOGIN;
+CREATE ROLE epp57_run LOGIN;
+\password epp_owner
+\password epp57_run
+CREATE DATABASE epp_ch72_handoff OWNER epp_owner;
+```
+
+在 Debian 登录用户的暂存目录依次执行。恢复在单事务中完成，当前所有者重新建立数据库对象，随后装回运行所需的最小授权。后续第 71 章会在同一实例中拆分 epp57_run。
+
+```bash
+db=epp_ch72_handoff
+pg_restore -h 127.0.0.1 -p 55471 -U epp_owner -W -d "$db" \
+  --exit-on-error --single-transaction --no-owner --no-privileges epp.dump
+psql -X -h 127.0.0.1 -p 55471 -U epp_owner -W -d "$db" \
+  -v expected_db="$db" -f runtime-grants.sql
+```
+
+**让数据服务留下来。** 在这台专用 Debian 上为桶与收件箱各建一个普通服务身份。先确认名称、路径和端口均空闲；接手续做时查看已有 unit 的身份和目录，别对已有库桶重新初始化。Mailpit 使用一个新练习收件箱，历史投递结论看恢复库；若旧通道仍被 unknown 消息占用，继续保持停发。
+
+```bash
+sudo apt-get install -y lsof
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin epp-store
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin epp-inbox
+sudo install -d -m 0755 /opt/epp-data/.chapter51-tools
+sudo ln -s /opt/epp-data/bin/weed /opt/epp-data/.chapter51-tools/weed
+sudo install -m 0755 start-store.sh /opt/epp-data/start-store.sh
+sudo install -d -m 0700 -o epp-store -g epp-store /opt/epp-data/.chapter51-store
+sudo -u epp-store tar --no-same-owner -xzf - -C /opt/epp-data/.chapter51-store < store.tgz
+```
+
+`start-store.sh` 从工作目录找二进制和数据；把整个存储目录交给 epp-store 后，它才能按原身份文件打开桶，并同时找到 Filer 元数据和 Volume 内容。在 /etc/systemd/system/epp-store.service 和 epp-inbox.service 分别写入下面两份定义。
+
+```ini
+[Unit]
+Description=EPP private avatar store
+[Service]
+User=epp-store
+WorkingDirectory=/opt/epp-data
+ExecStart=/bin/sh /opt/epp-data/start-store.sh
+Restart=on-failure
+UMask=0077
+[Install]
+WantedBy=multi-user.target
+```
+
+```ini
+[Unit]
+Description=EPP practice mail inbox
+[Service]
+User=epp-inbox
+StateDirectory=epp-inbox
+StateDirectoryMode=0700
+ExecStart=/opt/epp-data/bin/mailpit --smtp 127.0.0.1:1025 --listen 127.0.0.1:8025 --database /var/lib/epp-inbox/mail.db
+Restart=on-failure
+UMask=0077
+[Install]
+WantedBy=multi-user.target
+```
+
+运行 `sudo systemctl daemon-reload`、`sudo systemctl enable --now epp-store epp-inbox`。用 `systemctl status epp-store epp-inbox`、`ss -lnt` 查看进程和回环监听。若存储不起来，用 `sudo -u epp-store tail /opt/epp-data/.chapter51-store/weed.log` 找首个错误。回到第 70 章，以受限角色查原收据，用原会话从当前桶真正下载旧图、与源摘要比对。到第 71 章再让一封新邮件经过 1025 并在 8025 的收件界面按收件人核对。将目标库名、数据库与 S3 端口、SMTP 与网页端口和原记录交给各自的应用进程。此后可以关闭操作机；数据文件及三个服务都在部署机上。
+
+<a id="第-71-章为三个服务分配身份"></a>
+
+### 安装部署端共用的 Linux Node
+
+第 70 章首次启动服务时需要目标平台的 Node。第 71 章再让 API、邮件和通知各用自己的系统用户。先在 Debian 执行 `systemctl --version`、`command -v useradd install`。创建用户、指定文件属主和安装系统级 unit 需要管理权限。服务还需要一个各账号都能执行的 Linux 版 Node，绝对路径固定在 `/opt/epp72/node/bin/node`。
 
 在 **Debian 部署端**用 `uname -m` 查看架构，`aarch64` 选 Linux arm64，`x86_64` 选 Linux x64。从官方 v24.22.1 发布目录下载对应的 `.tar.xz` 和同目录的 `SHASUMS256.txt`。将两者放在同一练习目录，在该目录的 Bash 执行下面的命令。已有指定路径和版本时，直接做最后的路径与版本检查。[Node.js 24.22.1 官方发行文件](https://nodejs.org/dist/v24.22.1/)
 
@@ -308,17 +423,19 @@ node -p 'process.version + " " + process.platform + " " + process.arch'
 npm --version
 ```
 
-`command -v node` 应指向 `/opt/epp72/node/bin/node`，版本、平台和架构应为 `v24.22.1 linux arm64` 或 `v24.22.1 linux x64`。在部署目录中用这份 Node 按锁文件安装生产依赖，这样 sharp 才会取得与 Linux 和当前 CPU 匹配的原生组件。
+`command -v node` 应指向 `/opt/epp72/node/bin/node`，版本、平台和架构应为 `v24.22.1 linux arm64` 或 `v24.22.1 linux x64`。若收到含生产依赖的完整 Linux 归档，先核对系统、CPU、Node 版本和整包摘要，再解开使用。在目标平台补装依赖的路径中，按锁安装后须重新封包并验收，记录这个平台的摘要。
 
-部署前准备 PostgreSQL 18 非空副本、与它配对的头像桶，以及邮件角色可达的私有 Mailpit。旧账号应已开通，留好原收据 ID。由迁移管理员建视图、数据库实例管理员建登录角色，各服务使用各自的凭据。Mac 上仍用 Postman 发请求、DBeaver 查数据。[第 72 章服务身份与验证](part-09-operations/chapter-72-service-roles/chapter.md)
+部署前准备 PostgreSQL 18 非空副本、与它配对的头像桶，以及邮件角色可达的私有 Mailpit。旧账号应已开通，留好原收据 ID。由迁移管理员建视图、数据库实例管理员建登录角色，各服务使用各自的凭据。Mac 上仍用 Postman 发请求、DBeaver 查数据。[第 71 章服务身份与验证](part-09-deployment/chapter-71-service-runtime/chapter.md)
 
-这套环境会连续用三章。第 73 章新增 systemd 的一次性服务和计时器，保留一个能独立读取桶内对象的观察身份；仅在可以停机的练习实例上做关机对照。第 74 章把同一套产物交给第二个运行目录，留好原会话、收据里的两个 ID 和配对桶。保持操作端访问地址固定，用 Chrome 实读签名对象，转发前核对两端的端口，邮件仍送到练习收件箱。[第 73 章调度与恢复](part-09-operations/chapter-73-maintenance-jobs/chapter.md) · [第 74 章切换运行环境](part-09-operations/chapter-74-portable-release/chapter.md)
+第 71 章在同一个 release 下分别核对受限 API 的工作目录、只读收据身份与配对桶。第 74 章才为到期对象安装 systemd 定时器，保留独立的桶观察身份，并使用允许停机的练习主机。[第 71 章](part-09-deployment/chapter-71-service-runtime/chapter.md) · [第 74 章](part-10-operations/chapter-74-maintenance-jobs/chapter.md)
 
-<a id="第-75-章给独立-https-入口签发与更换证书"></a>
+<a id="第-72-章给独立-https-入口签发与更换证书"></a>
 
 ### 给原来的 HTTP 服务接上 HTTPS
 
-第 74 章中，Mac 通过 SSH 转发访问 Debian 上的 HTTP API。到了第 75 章，同一个客户端要访问 `https://api.epp.test:8443`：SSH 可以把字节送到 Debian，但原 API 在 `[::1]:3374` 等待的是 HTTP 请求。为保留已经交付的 API，并能单独更换证书，在部署端增加 nginx。它在回环端口 8443 完成 TLS 握手，再把请求通过 HTTP 交给原 API。操作端仍用 curl 发请求，沿用已核过指纹的 `epp-lab`。两端各留出回环端口 8443，用 `date -u` 核对时钟。[第 75 章名称、信任与换证](part-09-operations/chapter-75-tls-trust/chapter.md)
+第 71 章的数据库、桶和私有收件箱已经能在管理者退出后继续提供服务。使用者要在自己的浏览器打开 EPP，也要能从 API 签发的地址读到实际头像。选一台使用设备能直接到达的 Debian 主机；使用虚拟机时，需要让来宾接入这台设备可达的私网。部署端用 `hostname`、`ip -br -4 addr` 查主机与私网地址，用 `ss -lnt` 确认 API 在同机 `[::1]:3374`，预定的私网 8443、9443 可供 nginx 使用。管理 Mac 可沿用已核过指纹的 SSH 别名管理 Debian。使用设备直接访问私网地址。各机用 `date -u` 对照时间，避免证书或短时签名因时钟偏差失效。[第 72 章：把 EPP 放到使用者能访问的 HTTPS 地址](part-09-deployment/chapter-72-service-access/chapter.md)
+
+在 Debian、管理 Mac 和独立使用端的私网 DNS 或各自的 hosts 中，将 `api.epp.test` 指向部署机实际私网 IP。Debian 用 `getent ahostsv4 api.epp.test` 检查，Mac 用 `dscacheutil -q host -a name api.epp.test` 检查。若任意一台仍解析到回环，先修好它的记录。8443 在该名称下接收页面和 API 请求，9443 为浏览器和 API 共同提供私有对象入口。[72.1 的解析步骤](part-09-deployment/chapter-72-service-access/chapter.md#721-先让客户端按名字找到目标)
 
 #### 两端准备 OpenSSL
 
@@ -328,29 +445,27 @@ npm --version
 
 #### 在 Debian 准备 nginx
 
-在部署端 Bash 用 `command -v nginx` 查找程序。普通用户的 PATH 可能没包含系统管理目录，也可试 `/usr/sbin/nginx -v`。已有程序就直接检查下面的 SSL 模块。若还没有，书中在部署用户自己的目录解开 Debian 软件包，拿其中的程序单独启动练习入口。下面三行只需首次准备时逐行执行。解包成功后再设置 PATH，重新登录时只需恢复变量和 PATH。[Debian nginx 软件包](https://packages.debian.org/trixie/nginx) · [APT 下载命令](https://manpages.debian.org/trixie/apt/apt-get.8.en.html)
+在 Debian Bash 先用 `/usr/sbin/nginx -v` 检查系统版。还没有时，用 `sudo apt-get update`、`sudo apt-get install nginx` 安装程序和依赖。系统包可能同时启用默认站点，请用 `ss -lnt` 核对当前监听。书中另用普通部署账号自己的持久工作目录、配置文件和高位端口。在部署会话里核对二进制和 TLS 模块，记下正文所用的绝对路径。[Debian nginx 软件包](https://packages.debian.org/trixie/nginx)
 
 ```bash
-nginx_tools="$HOME/epp75-nginx-tools"
-(mkdir -m 700 "$nginx_tools" && cd "$nginx_tools" && apt-get download nginx && dpkg-deb -x ./nginx_*.deb unpacked)
-export PATH="$nginx_tools/unpacked/usr/sbin:$PATH"
+nginx_bin=/usr/sbin/nginx
+"$nginx_bin" -v
+"$nginx_bin" -V 2>&1 | grep -o -- '--with-http_ssl_module'
 ```
 
-若选用已安装的系统版，先让当前 Bash 能找到它（`export PATH="/usr/sbin:$PATH"`）。在同一个部署端终端执行：
+最后一行应输出 `--with-http_ssl_module`。以前按练习说明单独解过 Debian 软件包的读者，也可把 nginx_bin 设为那份持久目录下的绝对路径并做同样的检查。第 72 章在 Debian 使用 nginx-private.conf，把访问范围限定到练习网。8443 的两个精确路径提供页面和脚本，其余业务请求转发到同机 3374。9443 使用同一名称的证书，把带原 Host 和签名参数的请求送往原桶，默认上游为回环 18633；单独数据机路线按 71B 的通路填写上游。
 
-```bash
-command -v nginx
-nginx -v
-nginx -V 2>&1 | grep -o -- '--with-http_ssl_module'
-```
+入口需要证书，按 72.2 生成并核对公开根、服务证书和完整链。随后在 72.3 把已核指纹的公开根安装到 Debian，给 epp72-api 服务设置 `NODE_EXTRA_CA_CERTS=/etc/epp72/practice-root.crt`，在 API 配置使用真实的 HTTPS Origin 和对象地址，预检 nginx 候选并托管入口，重启 API 使 Node 从进程启动时就能读取额外的根。管理端用自己的 curl 指定这份根，从私网名称请求本人资料，匿名收到 EPP 的 `401 AUTH_REQUIRED` 后准备交接。若要定位存储故障，可按 72.4 用部署者的练习账号上传新图并从 9443 实际下载，比对 avatarId 与文件字节。日常交付时，使用者在第 72 章用自己的账号完成浏览器端的首次发布与读回。[72.3 入口与存储配置](part-09-deployment/chapter-72-service-access/chapter.md#723-接通同源页面api-和头像存储)
 
-书中练习使用 nginx 1.26.3，最后一行应输出 `--with-http_ssl_module`。若解出的程序启动时提示缺共享库，可在这台练习机用 `sudo apt-get update`、`sudo apt-get install nginx` 安装程序和依赖，再用 `/usr/sbin/nginx -V` 检查系统版。系统包可能启动默认站点；第 75 章使用自己的练习目录、配置和回环 8443。在正文的 `nginx_bin` 中使用刚才检查过的路径。
+#### 在独立使用设备验证入口
 
-入口按正文启动后，从 Mac 用 curl 指定练习根、按正确名称访问且不带 Cookie。收到 EPP 的 **401 AUTH_REQUIRED**，说明这次证书验证通过，而且请求已经到了原 API。后面再用已有账号登录，检验换证前后能否读到同一笔业务。
+准备一台能连同一练习私网、装有浏览器的使用设备。Mac 可沿用前文的 Chrome，也可用系统 Safari。若需安装 Chrome，沿用[首次安装与启动步骤](#观察请求如何经过代码)。拿到的文件应是**公开根证书**。在其所在目录用 `openssl x509 -in root.crt -noout -fingerprint -sha256` 读出完整指纹，另行与管理端核对。在这台练习 Mac 的「钥匙串访问」里选登录钥匙串，导入这份根，打开证书的「信任」，将 SSL 设为始终信任，再重新打开浏览器。Firefox 独立配置也可在其「证书颁发机构」中导入该根，允许它标识网站。练习结束时按指纹移除本次导入的根。[72.2 交接证书与浏览器信任](part-09-deployment/chapter-72-service-access/chapter.md#722-签一张带正确名称的练习证书)
+
+部署者在 72.5 安装两份公开文件并退出管理会话后，使用端先用 `curl --noproxy '*' --cacert ./root.crt https://api.epp.test:8443/profile/me` 取得匿名的业务响应，再在浏览器打开 `https://api.epp.test:8443/handoff/`。应看到没有证书警告的登录表单，在 Network 中确认 HTML 和脚本均为 200。第 72 章从这张表单继续，用自己的会话保存素材、从 9443 打开头像并收到通知。[72.5 交接地址](part-09-deployment/chapter-72-service-access/chapter.md#725-把这个-https-地址交给下一班) · [第 72 章使用者验收](part-09-deployment/chapter-72-service-access/chapter.md)
 
 #### 用 Firefox 查看证书错误（选做）
 
-如果想亲自看到第 75.3 节两张错误页，可以在**有图形会话的 Debian** 上安装 Firefox ESR 和 `libnss3-tools`，后者提供 `certutil`。这样可以只改变本次浏览器配置的信任，再与 curl 对照。只有终端的 Lima 虚拟机可以用前面的 curl 完成名称、证书链和换证练习。[Debian NSS 工具包](https://packages.debian.org/trixie/libnss3-tools)
+如果想亲自看到证书诊断支线里的两张错误页，可以在**有图形会话的 Debian** 上安装 Firefox ESR 和 `libnss3-tools`，后者提供 `certutil`。这样可以只改变本次浏览器配置的信任，再与 curl 对照。只有终端的 Lima 虚拟机可以用前面的 curl 完成名称、证书链和换证练习。[Debian NSS 工具包](https://packages.debian.org/trixie/libnss3-tools)
 
 ```bash
 sudo apt-get update
@@ -359,11 +474,54 @@ firefox-esr --version
 command -v certutil
 ```
 
-在 Debian 确认版本和 `certutil` 路径后，按正文创建专用 Firefox 配置，核对练习根指纹，观察导入前后的页面。撤销信任时先保留 nginx 在线，再用同一浏览器配置访问原地址，才能看到证书再次被拒绝。[第 75.3 节浏览器对照](part-09-operations/chapter-75-tls-trust/chapter.md#753-用两个客户端复现名称和信任差异)
+在 Debian 确认版本和 `certutil` 路径后，按正文创建专用 Firefox 配置，核对练习根指纹，观察导入前后的页面。撤销信任时先保留 nginx 在线，再用同一浏览器配置访问原地址，才能看到证书再次被拒绝。[浏览器证书诊断](part-09-deployment/chapter-72-service-access/side-01-certificate-diagnostics.md)
 
 ### 让两个实例接到同一份练习数据
 
-第 75 章结束时已经恢复了原来的 HTTP 入口。第 76 章用同一练习账号和回环来源，把请求分别送到两个 API。为两个进程各留一个监听端口和可写目录，用操作端原有的 curl 选择目标；远程部署时继续用 SSH 转发。准备私有 Mailpit，并保存旧收据、邮件占用和一份可用于续页的账号数据。数据库轮换要改集群范围的登录权限，所以应使用独立的 PostgreSQL 18 集群副本。确认其端口、数据目录和原实例不同，再让各进程连接副本。[第 76 章的操作与验证](part-09-operations/chapter-76-rotate-credentials/chapter.md)
+轮换从第 72 章交给使用者的 HTTPS 地址开始。保留证书、服务名称、客户端信任和现有会话。准备两个 API 监听、各自的工作目录、独立 PostgreSQL 18 集群副本、配对桶和私有 Mailpit。数据库登录权限属于整个集群，先核对副本端口、数据目录和库名。记录一张旧收据、一笔投递状态和可以续页的账号数据。定向请求实验的路由与外部验收分别见[第 75 章](part-10-operations/chapter-75-rotate-credentials/chapter.md)。
+
+### 为隔离恢复演练准备 PostgreSQL 18
+
+在持有隔离集群数据目录的数据库练习主机操作。Mac 可复用[第 17 章的 PostgreSQL 18 安装](#homebrew-与数据库程序)。使用 Linux 时，在已安装 PostgreSQL 18 的练习主机找同一套服务器程序的 bin 目录。将其放到当前 shell 的 PATH 前，再用运行该练习集群的系统账号依次检查：
+
+```bash
+hostname
+id -un
+pg_basebackup --version
+pg_verifybackup --version
+pg_ctl --version
+```
+
+三个程序都应显示 18.x。用明确指定的实例地址、端口和管理员连接运行 `SHOW data_directory`、`SHOW hba_file`，对照本轮隔离副本。基础备份需要允许复制连接的数据库角色，且这条连接在该副本的 pg_hba.conf 有匹配的 replication 规则。按本次实际使用的本地套接字或回环地址授权，重新加载该副本配置；普通业务登录成功只验证了业务库的连接规则。再按支线保存 WAL、校验备份并恢复到另一空目录，使用不同的端口。[支线 76A](part-10-operations/chapter-76-backups/side-01-pitr.md)
+
+### 为公网回调准备连接器（选做）
+
+使用已有公网 HTTPS 主机时直接核对回调域名、证书与路由。选用 Cloudflare Tunnel 时，先准备自己有管理权的域名与 Cloudflare 账号。在常驻 Debian 部署端运行 `dpkg --print-architecture`，按官方入口选择匹配的 Linux 架构与安装方式，运行 `cloudflared --version` 验证。按控制台指引建立隧道，在部署端执行该隧道专用的运行命令，连接凭据只留在受限配置中。确认连接器在线，再将测试子域和所需路径指向 EPP 上游。若回源使用 HTTPS，须让连接器验证正确的源站名称和签发者。从外部网络验证实际回调，结束练习后撤下临时公网路由。[下载与安装](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/) · [创建隧道与路由](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/get-started/create-remote-tunnel/)
+
+### 为容器部署准备引擎与 Compose
+
+第 70 章已能在目标平台运行生产产物。容器路线还要将 Node、系统库和生产依赖一起交付，并管理进程替换后的数据与网络。Docker Engine 运行 Linux 容器，CLI 发管理请求，Buildx 构建镜像，Compose 管理一组角色。安装在将要运行容器的部署端；Mac Desktop 用于本机机制实验时属于另一个引擎。
+
+在 Debian 的 SSH 终端运行 `hostname`、`cat /etc/os-release`、`uname -m`，核对已进入第 70 章的 Debian 13 练习机和目标架构。打开 [Docker Debian 安装页](https://docs.docker.com/engine/install/debian/)，按“Install using the apt repository”准备官方签名密钥和 apt 来源；若机器已有其他容器服务，先核对包冲突与现有资源，再安排安装。配置好来源后在这台机执行：
+
+```bash
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl status docker --no-pager
+sudo docker context show
+sudo docker version
+sudo docker buildx version
+sudo docker compose version
+sudo docker run --rm hello-world
+```
+
+Docker 服务应为 active，`version` 同时显示 Client 和 Server；Buildx 与 Compose 各自显示版本。最后一次运行需要下载镜像，输出 hello-world 的成功说明后退出。若服务未启动，先用 `sudo systemctl start docker` 再复查；出现权限拒绝、无法连接引擎或下载失败时，分别查操作身份、服务/context、网络与仓库。记录此次 Engine、Compose 版本和架构，后续按这组版本核对配置支持。
+
+本书的 Debian 示例默认沿用 `sudo docker`。支线为便于阅读写成 `docker` 的命令，在 Debian 每次调用也加 `sudo`；Mac Desktop 使用普通用户的 `docker`。不要混用两种身份后只看 context 名，CLI 配置与仓库登录可能属于不同用户。容器内以 node 身份运行和谁能管理引擎是两项权限；加入 docker 组会得到管理 rootful 引擎的高权限，不能给 API、邮件等运行用户加组来解决文件读权问题。[Linux 安装后的权限说明](https://docs.docker.com/engine/install/linux-postinstall/)
+
+只在 Mac 做独立进程、卷与网络实验时，按处理器选择 [Docker Desktop 安装包](https://docs.docker.com/desktop/setup/install/mac-install/)，启动应用后在 Mac 终端运行 `docker context show`、`docker version`、`docker buildx version`、`docker compose version`，再运行 `docker run --rm hello-world`。在 Desktop 的 Containers 页面打开实验容器，可以查看 Logs、Inspect 与运行状态，再对照终端里的同一个容器 ID。关掉 Mac 后仍要交付服务时，镜像与持久数据须在持续在线的部署环境运行。
+
+进入 Compose 应用集成前，另准备已验证的 EPP Linux 镜像、三份受限角色配置、容器可达的数据库/SMTP/对象端点，以及练习 HTTPS 所用的公开根证书。它们来自前文已有交付，不由 hello-world 自动提供。独立实验用 `node:24-bookworm-slim` 观察机制；EPP 镜像须满足项目固定 Node 版本并记录目标平台与摘要。回到[第九篇容器路线](part-09-deployment/README.md#容器部署与运维重点路线)，再接[第十篇容器运维](part-10-operations/side-01-container-operations.md)。
 
 ## 7. 停下后怎样接着做
 
