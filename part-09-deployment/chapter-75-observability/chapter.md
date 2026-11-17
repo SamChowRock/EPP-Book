@@ -37,6 +37,8 @@ docker inspect --format 'reference={{.Config.Image}} image={{.Image}}' "$api_id"
 
 ## 75.2 分开检查入口、资源与业务
 
+[第 66 章](../../part-08-maintenance/chapter-66-performance/chapter.md)已经区分 CPU 计算、连接池排队和数据库锁等待。本节先确定故障位于哪个部署组件；定位到应用或查询后，回到那套计时与采样方法，不凭容器资源数字直接猜测瓶颈。
+
 先从原客户端重发请求，区分 TLS 错误、nginx 502 与 EPP 业务 JSON。502 表示代理没取得可用上游响应，还不能断言 API 程序有错。容器部署继续比较内外两跳：
 
 ```bash
@@ -117,4 +119,4 @@ WHERE status = 'pending';
 
 按日志、SQL 与资源命令量估算，阅读约 22～30 分钟；已有隔离部署时，停工、取证和恢复另加 25～40 分钟。检查器的实现与接收端接入按所用系统另计。
 
-[上一章 · 用 Compose 接手应用部署](../../part-09-deployment/chapter-74-compose-deployment/chapter.md) · [下一章 · 定时维护](../chapter-76-maintenance-jobs/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[上一章 · 用 Compose 接手应用部署](../chapter-74-compose-deployment/chapter.md) · [下一章 · 定时维护](../chapter-76-maintenance-jobs/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

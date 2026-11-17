@@ -1,12 +1,12 @@
 # 支线 70B　在 Mac 托管服务并追查意外退出
 
-部署目标是 Mac 时，在本机准备运行身份、配置和工作目录，然后把实际启动命令交给 launchd。以下从第 69 章已验的 release 起步，所需变量都在本支线建立。首次按[Mac 环境说明](../../environment-setup.md#用-bash-与可选-mac-托管)确认 Bash、launchctl、plutil 可用。
+部署目标是 Mac 时，在本机准备运行身份、配置和工作目录，然后把实际启动命令交给 launchd。以下从第 69 章已验的 release 起步，所需变量都在本支线建立。首次按[Mac 环境说明](../../environment-setup.md#用-bash-启动服务选做-mac-托管)确认 Bash、launchctl、plutil 可用。
 
 ## 为已验程序准备独立工作目录
 
 拿出第 69 章的交接记录，保留原 release 的绝对路径、构建来源、交接库的地址和库名、已开通账号的 userId 和暂停收据的 operationId。若原目录已清理，有同平台已验的包就按记录核摘要并解开；两者都没有时才按[69.2 的装配和 69.3 的入口核验](../../part-08-maintenance/chapter-69-review/chapter.md#692-在副本重建一次超时的重放)重建。本次再查原收据，是为了验证稍后换上的数据库登录也能从目标库读到它。
 
-在 Mac 的[本章配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)根目录，普通练习账号先运行 `nvm use`，再输入 `/bin/bash`。系统终端或 iTerm2 均可。配套根用于取授权脚本，下面的 release 指向**上章实际验过的程序**。先恢复变量，重开 Bash 窗口时也从这一段接起。[本机运行环境](../../environment-setup.md#用-bash-与可选-mac-托管)
+在 Mac 的[本章配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)根目录，普通练习账号先运行 `nvm use`，再输入 `/bin/bash`。系统终端或 iTerm2 均可。配套根用于取授权脚本，下面的 release 指向**上章实际验过的程序**。先恢复变量，重开 Bash 窗口时也从这一段接起。[本机运行环境](../../environment-setup.md#用-bash-启动服务选做-mac-托管)
 
 ```bash
 umask 077
@@ -256,7 +256,7 @@ mktemp 创建本次专用目录，避免覆盖上一轮。等新的 app.ready �
 
 通知 Worker 可以沿用这个选择：重启后从库里找该做的工作。邮件 Worker 多了一方，SMTP 对端。进程退出时，远端可能已收完信，数据库里却还没有最终应答。当前实现会保留发送占用并退出，重新运行也不能替对端补出一份回执。本章允许先恢复 API 和站内通知，让维护者查过通道再明确开邮件。代价是普通配置错误导致的邮件退出也要人来处理。一次办完就退出的管理 CLI 继续按需运行。
 
-启动后台角色之前，在练习账号的 Bash 核对 [Mailpit 的 SMTP 与网页端口](../../environment-setup.md#第-43-章用-mailpit-收信)。为两份私有配置准备文件：先执行 `touch "$deploy/config/"{mail,notifications}.env`、`chmod 600 "$deploy/config/"{mail,notifications}.env`，再从 api.env 只抄 NODE_ENV、DATABASE_URL、DB_POOL_MAX 到两份文件。mail.env 加 LOCAL_SMTP_PORT 指向 Mailpit 的 SMTP 端口，本练习收件端在 Mac 回环。通知只需公共三项。已有事故占用的库可以观察原状态；要试投新邮件，选通道开放且允许消耗待办的独立练习副本。
+启动后台角色之前，在练习账号的 Bash 核对 [Mailpit 的 SMTP 与网页端口](../../environment-setup.md#在本机收取注册邮件)。为两份私有配置准备文件：先执行 `touch "$deploy/config/"{mail,notifications}.env`、`chmod 600 "$deploy/config/"{mail,notifications}.env`，再从 api.env 只抄 NODE_ENV、DATABASE_URL、DB_POOL_MAX 到两份文件。mail.env 加 LOCAL_SMTP_PORT 指向 Mailpit 的 SMTP 端口，本练习收件端在 Mac 回环。通知只需公共三项。已有事故占用的库可以观察原状态；要试投新邮件，选通道开放且允许消耗待办的独立练习副本。
 
 <details>
 <summary>同一台 Mac 再启动一版，连接和磁盘够用吗？</summary>

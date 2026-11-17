@@ -4,7 +4,7 @@
 
 一位用户连续换了两次头像。新图已经出现在个人资料里，旧图仍在桶中。[第 60 章](../../part-07-profiles/chapter-60-avatar-storage/chapter.md)留下了一条清理命令。假设把它设为每分钟运行一次，18:11 恰好关机了。接班人需要补敲一次命令，还是先去数一数库里还有多少旧图？如果另一位同事也开始清理，两个人会碰到同一个对象吗？
 
-沿用[第 71 章的 Linux 练习机与服务身份](../../part-09-deployment/chapter-71-service-runtime/chapter.md)，按[部署端准备](../../environment-setup.md#准备-debian-13-部署端)确认当前的 Linux 主机与 systemd，再准备一份可改动的非空练习库、与它**成对复制**的私有桶，以及能在这个副本登录的旧账号。仅复制库、仍连着原桶，清理会删到原服务正在使用的字节。[第 62 章的交接实验](../../part-07-profiles/chapter-62-review/chapter.md)可以回查这个故障。下面的库名 `epp_ch73_handoff`、端点 `http://127.0.0.1:18633` 和桶名 `avatars` 是一组练习值，按自己的建库、端口转发和建桶记录替换。API、观察连接、调试进程和计时器都要到达这一对副本。从部署交接单取回原表、旧账号和请求集合，本章没有迁移。
+沿用[第 71 章的 Linux 练习机与服务身份](../chapter-71-service-runtime/chapter.md)，按[部署端准备](../../environment-setup.md#准备-debian-13-部署端)确认当前的 Linux 主机与 systemd，再准备一份可改动的非空练习库、与它**成对复制**的私有桶，以及能在这个副本登录的旧账号。仅复制库、仍连着原桶，清理会删到原服务正在使用的字节。[第 62 章的交接实验](../../part-07-profiles/chapter-62-review/chapter.md)可以回查这个故障。下面的库名 `epp_ch73_handoff`、端点 `http://127.0.0.1:18633` 和桶名 `avatars` 是一组练习值，按自己的建库、端口转发和建桶记录替换。API、观察连接、调试进程和计时器都要到达这一对副本。从部署交接单取回原表、旧账号和请求集合，本章没有迁移。
 
 沿第 74 章接管后的 Compose 服务继续时，保留该服务，把本轮演练放在独立的库和桶副本上。下面仍用部署端 Debian 的 timer 唤起清理命令；宿主可按下文解开同平台验收过的整包，无需重装线上 API。为宿主清理身份准备能到达副本的地址：PG 可以只发布到宿主回环，S3 可以沿用副本的受信 HTTPS 入口。若它用练习根，给宿主清理进程设置 NODE_EXTRA_CA_CERTS，核对清理用户能读取该公开证书。容器内部的服务名通常不能在宿主解析，容器的 127.0.0.1 也与宿主不同。按实际通路替换清理配置和命令中独立核对的三个目标，先验当前头像领取零笔、观察身份仍能取到同一键，再接上排期。
 
@@ -69,7 +69,7 @@ console.log('Deleted or already absent:', deleted, 'Failed:', failed);
 if (failed) process.exitCode = 1;
 ```
 
-这次清理程序加了逐项日志，上次归档的摘要不会标识这份新程序。按[第 65 章的制品验收与晋级](../../part-08-maintenance/chapter-65-artifact-promotion/outline.md)，在与目标相容的构建环境运行 `nvm use`、`npm ci`、`npm run ci:check`，确认 TS 已进入 dist。封包前把同一版的 `database/chapter-51/clean.mjs` 及其导入的 `scripts/verify-database.mjs` 按这两个相对路径放进待打包目录，一同交付 dist、清单、锁文件、.npmrc 和本平台生产依赖。只交付 dist 会找不到清理脚本。等下文的受限身份备好，先从新解开的验收副本选仍当前的 Q 跑单笔命令，预期领取零行，Q 仍可读。验好后记录该包摘要。在目标机新建 root 管理的 `/opt/epp73/release`，核摘要、解包，以[第 71 章的受限身份](../../part-09-deployment/chapter-71-service-runtime/chapter.md#712-把运行身份目录和配置交给系统)运行。生产 Node 可沿用 `/opt/epp72/node/bin/node`。
+这次清理程序加了逐项日志，上次归档的摘要不会标识这份新程序。按[第 65 章的制品验收与晋级](../../part-08-maintenance/chapter-65-artifact-promotion/outline.md)，在与目标相容的构建环境运行 `nvm use`、`npm ci`、`npm run ci:check`，确认 TS 已进入 dist。封包前把同一版的 `database/chapter-51/clean.mjs` 及其导入的 `scripts/verify-database.mjs` 按这两个相对路径放进待打包目录，一同交付 dist、清单、锁文件、.npmrc 和本平台生产依赖。只交付 dist 会找不到清理脚本。等下文的受限身份备好，先从新解开的验收副本选仍当前的 Q 跑单笔命令，预期领取零行，Q 仍可读。验好后记录该包摘要。在目标机新建 root 管理的 `/opt/epp73/release`，核摘要、解包，以[第 71 章的受限身份](../chapter-71-service-runtime/chapter.md#712-把运行身份目录和配置交给系统)运行。生产 Node 可沿用 `/opt/epp72/node/bin/node`。
 
 **用哪个账号删除？** 清理 SQL 需要读当前头像指针、锁住写入记录、修改两列。它不需要登录用户、读邮箱、改当前指针或在数据库中删除记录。在隔离实例上用管理员建立新的普通角色 `CREATE ROLE epp_cleanup LOGIN;`，用 psql 的 `\password epp_cleanup` 隐藏输入独立口令。连接本轮库，以有权授权的所有者执行下列 SQL。配套 `examples/maintenance/grants.sql` 先对照 `\set expected_db epp_ch73_handoff` 和实际库名，匹配后才在同一事务发放这些权限。
 

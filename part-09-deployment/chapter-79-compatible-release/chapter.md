@@ -30,6 +30,8 @@
 
 ## 79.4 用两种托管方式完成程序替换
 
+[第 65 章](../../part-08-maintenance/chapter-65-artifact-promotion/outline.md)已经建立按摘要验收、晋级和保留旧制品的方法。这里从已验过的新旧产物开始，把程序切换与前面判定的数据兼容区间接起来。
+
 原生部署保留第 71 章的分权单元。把新版放到新的只读 release 目录，按第 65 章核对同平台产物和摘要，保留旧目录。用受限系统用户验证新入口可执行、配置可读、工作目录可写。不要覆盖正在运行的 release；进程可能仍在读取旧文件，使一次运行混用两份内容。
 
 在 Debian 修改目标单元的 ExecStart，使它指向新的绝对路径，其他身份、工作目录和停止预算保持本轮已验证值。先执行 `sudo systemd-analyze verify /etc/systemd/system/epp72-api.service` 检查定义，再用 `sudo systemctl daemon-reload` 让管理器读取新定义，最后 `sudo systemctl restart epp72-api`。reload 不会替换已有进程，restart 才进入停止与重启。观察旧进程排空、app.stopped、新 PID 和 app.ready，再通过原 HTTPS 入口读旧数据、写入并复读一笔新记录。若超过停止期限被强制结束，不能将命令结束当作平滑切换。

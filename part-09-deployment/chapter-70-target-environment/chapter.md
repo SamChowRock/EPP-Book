@@ -2,7 +2,7 @@
 
 第 69 章交出了一份已验的程序和带历史的练习数据。现在把它们交给 Debian。源码相同，原生依赖可能属于另一个平台；配置中的回环地址到了另一台机器，也会指向另一份服务。先在目标机前台运行同一个入口，确认程序能读取交接的数据，下一章再建立专用运行身份并交给系统托管。
 
-沿用第 69 章的 release，从[部署配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)取得授权与存储工具。Mac 是操作端，Debian 13 是部署端。首次安装按[Debian 环境说明](../../environment-setup.md#准备-debian-13-部署端)核对系统、架构和 sudo，再按[两端 SSH 准备](../../environment-setup.md#第-70-章从另一台电脑接手)取得参数。保留独立控制台。
+沿用第 69 章的 release，从[部署配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)取得授权与存储工具。Mac 是操作端，Debian 13 是部署端。首次安装按[Debian 环境说明](../../environment-setup.md#准备-debian-13-部署端)核对系统、架构和 sudo，再按[两端 SSH 准备](../../environment-setup.md#从-mac-建立-ssh-连接)取得参数。保留独立控制台。
 
 ## 70.1 先识别将要接手的主机
 
@@ -74,7 +74,7 @@ ssh -F ~/.ssh/epp71.conf epp-lab 'umask 077; mkdir "$HOME/epp71"' &&
   scp -F ~/.ssh/epp71.conf "$stage/portable.tgz" epp-lab:epp71/
 ```
 
-记下摘要。远端 mkdir 若报告目录已存在，先核对上次安装，另取空路径。运行时也要匹配目标平台。首次在 **Debian** 安装时按[目标架构选择和验证 Node 24.22.1](../../environment-setup.md#第-71-章为三个服务分配身份)操作。在部署端运行下面的命令，将 digest 填成 Mac 取得的 64 位摘要。
+记下摘要。远端 mkdir 若报告目录已存在，先核对上次安装，另取空路径。运行时也要匹配目标平台。首次在 **Debian** 安装时按[目标架构选择和验证 Node 24.22.1](../../environment-setup.md#安装部署端共用的-linux-node)操作。在部署端运行下面的命令，将 digest 填成 Mac 取得的 64 位摘要。
 
 ```bash
 cd "$HOME/epp71"

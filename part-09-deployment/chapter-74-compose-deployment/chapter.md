@@ -271,4 +271,4 @@ dc ps -a api
 
 阅读约 45～55 分钟；已有原生部署与镜像时，数据通路、角色接管和一轮重建验收另加 60～90 分钟，镜像下载与数据迁移另计。
 
-[上一章 · 镜像交付](../chapter-73-container-image/chapter.md) · [下一章 · 观察运行中的服务](../../part-10-operations/chapter-75-observability/chapter.md) · [本篇导读](../README.md) · [本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-74)
+[上一章 · 镜像交付](../chapter-73-container-image/chapter.md) · [下一章 · 观察运行中的服务](../chapter-75-observability/chapter.md) · [本篇导读](../README.md) · [本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-74)

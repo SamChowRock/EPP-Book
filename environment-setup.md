@@ -4,6 +4,8 @@
 
 ## 1. 需要准备哪些软件
 
+第九篇第 70～81 章依次准备原生托管、容器、运行维护、备份、发布与故障恢复所需工具；第 80～81 章沿用已有工具，在独立恢复目标与事故副本操作。具体主机、身份与安装验证仍按下表和各章入口核对。
+
 | 读到哪里 | 软件与安装位置 | 用它完成什么 |
 | --- | --- | --- |
 | 第 2 章 | [Xcode Command Line Tools、Git](#准备-mac-命令行)（Mac） | 在终端使用开发工具，取得章节代码 |
@@ -27,11 +29,11 @@
 | 第 60 章 | [SeaweedFS 4.52](#启动私有存储)（Mac） | 给头像提供私有存储，重启后仍能读回原文件 |
 | 第 61 章 | [沿用 Node、PostgreSQL 客户端、DBeaver、Postman、Chrome 与 SeaweedFS](#为头像核对建立独立观察身份)（Mac） | 配对非空副本，用独立只读身份分页清点；无新增软件 |
 | 第 64 章 | [Biome、Prisma 生成器辅助包](#5-从开发目录交付一份可运行的服务)（随项目安装） | 检查代码和生成文件；远程运行 GitHub Actions 属选做 |
-| 第 64 章 | [Bash](#用-bash-与可选-mac-托管)（Mac 自带）；[launchd、iTerm2](#用-bash-与可选-mac-托管)（选做） | Bash 运行独立目录里的 API；70B 用 launchd 在 Mac 托管，iTerm2 可复现书中界面 |
+| 第 64 章 | [Bash](#用-bash-启动服务选做-mac-托管)（Mac 自带）；[launchd、iTerm2](#用-bash-启动服务选做-mac-托管)（选做） | Bash 运行独立目录里的 API；70B 用 launchd 在 Mac 托管，iTerm2 可复现书中界面 |
 | 第 70 章 | [OpenSSH](#从-mac-建立-ssh-连接)（Mac 客户端、部署机服务端） | 从 Mac 登录另一台机器并转发请求 |
 | 第 70 章起 | [Debian 13、systemd](#准备-debian-13-部署端)（部署机）；[Lima](#准备-debian-13-部署端)（选用 Mac 虚拟机路线） | 建立可独立管理用户和服务的 Linux 主机 |
 | 第 70 章部署端 | [PostgreSQL 18、SeaweedFS 4.52、Mailpit 1.33.0 和 lsof](#在-debian-接手已有的数据库桶和收件箱)（Debian；已有独立数据机时可复用） | 将第 69 章的非空练习副本交给部署环境，退出操作终端后仍可访问 |
-| 第 70 章起 | [Linux 版 Node.js 24.22.1、npm](#第-71-章为三个服务分配身份)（部署机） | 以各自的系统用户运行 API、邮件和通知 |
+| 第 70 章起 | [Linux 版 Node.js 24.22.1、npm](#安装部署端共用的-linux-node)（部署机） | 以各自的系统用户运行 API、邮件和通知 |
 | 第 72 章 | [OpenSSL 3](#两端准备-openssl)（管理 Mac 和部署 Debian）、[nginx](#在-debian-准备-nginx)（Debian） | 练习签发时核对名称和根指纹；由 nginx 在可达的私网地址接收页面、API 和头像请求 |
 | 第 72 章 | [curl、浏览器及证书信任设置](#在独立使用设备验证入口)（独立使用设备，如另一台 Mac 上的 Chrome 与系统钥匙串） | 准备私网解析和受信根，再从浏览器登录、读写和收通知 |
 | 第 72 章证书诊断支线选做 | [Firefox ESR、libnss3-tools](#用-firefox-查看证书错误选做)（有图形会话的 Debian） | 用专用浏览器配置观察导入练习根证书前后的变化 |
@@ -44,7 +46,7 @@
 <details>
 <summary>后续选做路线和下部还会用到什么？</summary>
 
-第 73 章正文开始使用 Docker 与 Compose，接在已经完成的原生托管与 HTTPS 交付之后。第 72 章沿用已经托管的私网 HTTPS 入口，从独立设备验收。容器日志先用 Engine 自带命令读取，图形入口可使用已安装的 Docker Desktop。第十一篇真实模型调用需要供应商账号、密钥和额度，第 92 章用到 pgvector，第十四篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
+第 73 章正文开始使用 Docker 与 Compose，接在已经完成的原生托管与 HTTPS 交付之后。第 72 章沿用已经托管的私网 HTTPS 入口，从独立设备验收。容器日志先用 Engine 自带命令读取，图形入口可使用已安装的 Docker Desktop。第十篇真实模型调用需要供应商账号、密钥和额度，第 92 章用到 pgvector，第十三篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
 
 </details>
 
@@ -186,8 +188,6 @@ SELECT current_database(), current_user,
 
 定向撤权使用新建非所有者数据库角色，按正文用psql隐藏提示设置密码，并执行随书逐对象授权SQL；先验证角色可以正常登录和读取，启动API后才撤计数表权限，结束必须恢复。本轮不对日常库或超级用户做撤权实验。进入[第41章正文](part-05-identity/chapter-41-shared-limit/chapter.md)。
 
-<a id="第-43-章用-mailpit-收信"></a>
-
 ### 在本机收取注册邮件
 
 第 42 章使用虚构的练习邮箱。Mailpit 同时开两个入口：API 把邮件发到 SMTP 端口，你在浏览器从网页端口查看它。下载 Mailpit 1.33.0 的 macOS 压缩包（Apple Silicon 选 `darwin-arm64`，Intel 选 `darwin-amd64`），解压后在放有 `mailpit` 的目录打开终端。先确认版本，再启动服务。[Mailpit 发行文件](https://github.com/axllent/mailpit/releases/tag/v1.33.0)
@@ -307,8 +307,6 @@ node database/chapter-51/store-probe.mjs buckets
 
 **带着已有数据交接。** 空库能检验交付文件是否齐全，已有账号和收据则能检验服务接到了哪一份数据。第 69 章用第 66 章的代码，将有历史数据的库恢复为交接副本，连接写入仅自己可读的 `.env.handoff`，空库仍由 `.env.delivery` 选中。分别为交接 API 与交付探测留出回环端口（如 3357 和 3356），另开两个连接到交接副本的 SQL 会话，才能在一个会话持锁时从另一个观察。[第 69 章维护交接](part-08-maintenance/chapter-69-review/chapter.md)
 
-<a id="用-bash-与可选-mac-托管"></a>
-
 ### 用 Bash 启动服务，选做 Mac 托管
 
 第 64 章在独立工作目录验证产物，部署篇沿用第 69 章的程序与配置。若部署目标就是 Mac，支线 70B 用 macOS 自带的 launchd 托管它们。在已图形登录的 Mac 上打开终端。书中分标签页观察各角色，若要使用相同界面，首次执行 `brew install --cask iterm2` 安装 iTerm2。系统“终端”也能运行相同的 Bash 命令。[iTerm2 安装入口](https://formulae.brew.sh/cask/iterm2)
@@ -345,8 +343,6 @@ sudo -v
 ```
 
 应看到 `ID=debian`、`VERSION_ID="13"`，PID 1 为 `systemd`。`sudo -v` 成功表示账号可通过 sudo 认证。如果 SSH 显示 inactive，用 `sudo systemctl enable --now ssh` 启动；若提示找不到 unit，先执行 `sudo apt-get update` 和 `sudo apt-get install openssh-server`。再查 `systemctl is-active ssh` 应为 `active`。[Debian OpenSSH 服务端](https://packages.debian.org/trixie/openssh-server)
-
-<a id="第-70-章从另一台电脑接手"></a>
 
 ### 从 Mac 建立 SSH 连接
 
@@ -468,8 +464,6 @@ WantedBy=multi-user.target
 
 运行 `sudo systemctl daemon-reload`、`sudo systemctl enable --now epp-store epp-inbox`。用 `systemctl status epp-store epp-inbox`、`ss -lnt` 查看进程和回环监听。若存储不起来，用 `sudo -u epp-store tail /opt/epp-data/.chapter51-store/weed.log` 找首个错误。回到第 70 章，以受限角色查原收据，用原会话从当前桶真正下载旧图、与源摘要比对。到第 71 章再让一封新邮件经过 1025 并在 8025 的收件界面按收件人核对。将目标库名、数据库与 S3 端口、SMTP 与网页端口和原记录交给各自的应用进程。此后可以关闭操作机；数据文件及三个服务都在部署机上。
 
-<a id="第-71-章为三个服务分配身份"></a>
-
 ### 安装部署端共用的 Linux Node
 
 第 70 章首次启动服务时需要目标平台的 Node。第 71 章再让 API、邮件和通知各用自己的系统用户。先在 Debian 执行 `systemctl --version`、`command -v useradd install`。创建用户、指定文件属主和安装系统级 unit 需要管理权限。服务还需要一个各账号都能执行的 Linux 版 Node，绝对路径固定在 `/opt/epp72/node/bin/node`。
@@ -496,9 +490,7 @@ npm --version
 
 部署前准备 PostgreSQL 18 非空副本、与它配对的头像桶，以及邮件角色可达的私有 Mailpit。旧账号应已开通，留好原收据 ID。由迁移管理员建视图、数据库实例管理员建登录角色，各服务使用各自的凭据。Mac 上仍用 Postman 发请求、DBeaver 查数据。[第 71 章服务身份与验证](part-09-deployment/chapter-71-service-runtime/chapter.md)
 
-第 71 章在同一个 release 下分别核对受限 API 的工作目录、只读收据身份与配对桶。第 76 章才为到期对象安装 systemd 定时器，保留独立的桶观察身份，并使用允许停机的练习主机。[第 71 章](part-09-deployment/chapter-71-service-runtime/chapter.md) · [第 76 章](part-10-operations/chapter-76-maintenance-jobs/chapter.md)
-
-<a id="第-72-章给独立-https-入口签发与更换证书"></a>
+第 71 章在同一个 release 下分别核对受限 API 的工作目录、只读收据身份与配对桶。第 76 章才为到期对象安装 systemd 定时器，保留独立的桶观察身份，并使用允许停机的练习主机。[第 71 章](part-09-deployment/chapter-71-service-runtime/chapter.md) · [第 76 章](part-09-deployment/chapter-76-maintenance-jobs/chapter.md)
 
 ### 给原来的 HTTP 服务接上 HTTPS
 
@@ -547,7 +539,7 @@ command -v certutil
 
 ### 让两个实例接到同一份练习数据
 
-轮换从第 72 章交给使用者的 HTTPS 地址开始。保留证书、服务名称、客户端信任和现有会话。准备两个 API 监听、各自的工作目录、独立 PostgreSQL 18 集群副本、配对桶和私有 Mailpit。数据库登录权限属于整个集群，先核对副本端口、数据目录和库名。记录一张旧收据、一笔投递状态和可以续页的账号数据。定向请求实验的路由与外部验收分别见[第 77 章](part-10-operations/chapter-77-rotate-credentials/chapter.md)。
+轮换从第 72 章交给使用者的 HTTPS 地址开始。保留证书、服务名称、客户端信任和现有会话。准备两个 API 监听、各自的工作目录、独立 PostgreSQL 18 集群副本、配对桶和私有 Mailpit。数据库登录权限属于整个集群，先核对副本端口、数据目录和库名。记录一张旧收据、一笔投递状态和可以续页的账号数据。定向请求实验的路由与外部验收分别见[第 77 章](part-09-deployment/chapter-77-rotate-credentials/chapter.md)。
 
 ### 为隔离恢复演练准备 PostgreSQL 18
 
@@ -561,7 +553,7 @@ pg_verifybackup --version
 pg_ctl --version
 ```
 
-三个程序都应显示 18.x。用明确指定的实例地址、端口和管理员连接运行 `SHOW data_directory`、`SHOW hba_file`，对照本轮隔离副本。基础备份需要允许复制连接的数据库角色，且这条连接在该副本的 pg_hba.conf 有匹配的 replication 规则。按本次实际使用的本地套接字或回环地址授权，重新加载该副本配置；普通业务登录成功只验证了业务库的连接规则。再按支线保存 WAL、校验备份并恢复到另一空目录，使用不同的端口。[支线 78A](part-10-operations/chapter-78-backups/side-01-pitr.md)
+三个程序都应显示 18.x。用明确指定的实例地址、端口和管理员连接运行 `SHOW data_directory`、`SHOW hba_file`，对照本轮隔离副本。基础备份需要允许复制连接的数据库角色，且这条连接在该副本的 pg_hba.conf 有匹配的 replication 规则。按本次实际使用的本地套接字或回环地址授权，重新加载该副本配置；普通业务登录成功只验证了业务库的连接规则。再按支线保存 WAL、校验备份并恢复到另一空目录，使用不同的端口。[支线 78A](part-09-deployment/chapter-78-backups/side-01-pitr.md)
 
 ### 为公网回调准备连接器（选做）
 
@@ -592,7 +584,7 @@ Docker 服务应为 active，`version` 同时显示 Client 和 Server；Buildx �
 
 只在 Mac 做独立进程、卷与网络实验时，按处理器选择 [Docker Desktop 安装包](https://docs.docker.com/desktop/setup/install/mac-install/)，启动应用后在 Mac 终端运行 `docker context show`、`docker version`、`docker buildx version`、`docker compose version`，再运行 `docker run --rm hello-world`。在 Desktop 的 Containers 页面打开实验容器，可以查看 Logs、Inspect 与运行状态，再对照终端里的同一个容器 ID。关掉 Mac 后仍要交付服务时，镜像与持久数据须在持续在线的部署环境运行。
 
-进入 Compose 应用集成前，另准备已验证的 EPP Linux 镜像、三份受限角色配置、容器可达的数据库/SMTP/对象端点，以及练习 HTTPS 所用的公开根证书。它们来自前文已有交付，不由 hello-world 自动提供。第 73 章使用 `node:24.22.1-bookworm-slim`，先拉取并记录实际摘要，再用于应用构建；不把可变标签当作固定交付凭据。Dockerfile 在 base 阶段安装 ca-certificates，在 build 阶段安装 Python 3、make、g++，用途是验证出站 TLS 和编译可能缺少预编译产物的原生依赖。最终 runtime 只复制生产依赖与完整 dist，通过镜像里的 Node 版本、argon2 和 sharp 实际运算检查这些依赖。回到[第 73 章镜像交付](part-09-deployment/chapter-73-container-image/chapter.md)，接着完成[第 74 章 Compose](part-09-deployment/chapter-74-compose-deployment/chapter.md)，再进入[第 75 章运行观测](part-10-operations/chapter-75-observability/chapter.md)。
+进入 Compose 应用集成前，另准备已验证的 EPP Linux 镜像、三份受限角色配置、容器可达的数据库/SMTP/对象端点，以及练习 HTTPS 所用的公开根证书。它们来自前文已有交付，不由 hello-world 自动提供。第 73 章使用 `node:24.22.1-bookworm-slim`，先拉取并记录实际摘要，再用于应用构建；不把可变标签当作固定交付凭据。Dockerfile 在 base 阶段安装 ca-certificates，在 build 阶段安装 Python 3、make、g++，用途是验证出站 TLS 和编译可能缺少预编译产物的原生依赖。最终 runtime 只复制生产依赖与完整 dist，通过镜像里的 Node 版本、argon2 和 sharp 实际运算检查这些依赖。回到[第 73 章镜像交付](part-09-deployment/chapter-73-container-image/chapter.md)，接着完成[第 74 章 Compose](part-09-deployment/chapter-74-compose-deployment/chapter.md)，再进入[第 75 章运行观测](part-09-deployment/chapter-75-observability/chapter.md)。
 
 ## 7. 停下后怎样接着做
 
@@ -623,7 +615,6 @@ Docker 服务应为 active，`version` 同时显示 Client 和 Server；Buildx �
 沿用前章本机的 [Node 准备](#选择项目使用的-node)、[VS Code](#打开项目并启动-api)和 [Postman](#发送并保存第一个请求)。在独立练习副本执行 `nvm use`、`npm ci`、`npm run check`；确认 Node 为 24.22.1。先停前章 dev，避免 Inspector 9229 冲突。文件 API、readline 都由 Node 自带，无需安装数据库或文件锁包。
 
 在项目根目录用 `mktemp -d` 建立私有实验目录，保存其绝对路径。两个终端各自进入同一项目、选择 Node 并恢复该路径；Shell 变量不会自动跨窗口传递。按[第 16 章](part-03-postgresql/chapter-16-json-file/chapter.md)先显式初始化，再以 JSON_FILE 启动独立入口；app.ready 和 Postman 的 201／原 ID 详情 200 才证明入口可用。CLI 先编译开发产物，生产 build 排除实验目录。停止后保留实验数据，下一次从已知基线复制新文件继续，不覆盖损坏现场。
-
 
 ### 第 30 章：在同一页签恢复待确认的提交
 

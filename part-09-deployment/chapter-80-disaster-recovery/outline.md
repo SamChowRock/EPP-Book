@@ -24,4 +24,4 @@
 
 从接报计时到第二台设备能完成约定的读写并取回数据，比较实际耗时与第 78 章的 RTO。列明恢复点之后哪些写入能证明保留、哪些只能给出损失区间，以及仍暂停的外部工作和下一位接班人需要的证据。账号处置后防止旧数据复活的门禁在下部综合篇接入。
 
-[上一章 · 发布 迁移与回退](../chapter-79-compatible-release/chapter.md) · [下一章 · 运维回顾：接手一次原因未知的报障](../chapter-81-operations-review/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[上一章 · 发布 迁移与回退](../chapter-79-compatible-release/chapter.md) · [下一章 · 第九篇回顾：接手一次原因未知的报障](../chapter-81-operations-review/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
