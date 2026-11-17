@@ -106,6 +106,8 @@ printf '%s  portable.tgz\n' "$digest" | sha256sum -c -
 
 第41章的 `auth_rate_buckets` 也随原库和迁移交付。旧副本若尚未应用 `20261116170000_shared_auth_rate_limit`，先由迁移身份追加，再执行本章运行授权；`epp57_run` 需要这张表的SELECT、INSERT、UPDATE、DELETE，最后一项用于有界过期清理。更换主机不清空计数表；保持相同的来源解析时，原来源窗口继续生效。代理或地址表示改变可能命中另一来源键，两个API接到不同数据库副本也不会共享额度。
 
+第50章统一版本还包含 `wechat_identities`、`users.mini_enabled` 和 `sessions.channel`。未配置微信也要先应用这一迁移，因为API启动探针会确认模型；本章 `epp57_run` 另获映射表SELECT、INSERT，不为平台开关扩大到UPDATE、DELETE。原Cookie仍是web渠道，历史mini资格默认关闭。
+
 第 30 章的素材写入回执也随原库交付。确认目标库已经应用 `20261116160000_capture_write_receipts`；若是补学第 30 章前保存的旧库，先由迁移身份对该副本执行正式 `migrate deploy`，不能只复制新应用。再以表所有者在目标库执行配套 `examples/deployment/runtime-grants.sql`（先设置脚本要求的 `expected_db`）。其中 `epp57_run` 对 `capture_write_receipts` 仅取得 SELECT、INSERT，与两张既有收据表一样没有 UPDATE、DELETE。否则 API 启动读表或首次带键写入会失败。不要通过恢复成表所有者运行来消除错误。
 
 已有独立常开的数据机时，可以沿用其私网通路；只有需要跨机转发的部署才另做[独立数据连接](../chapter-71-service-runtime/side-02-private-data-link.md)。以下步骤按三项依赖已在 Debian 上运行。

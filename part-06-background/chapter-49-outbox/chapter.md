@@ -4,7 +4,7 @@
 
 从[第 43 章的注册与找回密码实现](../../part-05-identity/chapter-43-registration/chapter.md)继续，代码起点为密码路线。[第 43 章配套分支](https://github.com/SamChowRock/epp-public/tree/part-05/chapter-43)
 
-读过[第 48 章的同步发送实验](../../part-05-identity/chapter-48-review/chapter.md#485-邮件请求返回以后谁接着做)即可接这里。我们要让用户在原来的页面填同一个邮箱，继续用原来的确认接口，却能在 API 已经关闭时用另一个进程寄出那封信。阅读约 60～75 分钟，跟做另加 85～115 分钟。
+读过[第 48 章的同步发送实验](../../part-05-identity/chapter-48-review/chapter.md#485-邮件请求返回以后谁接着做)即可接这里。我们要让用户在原来的页面填同一个邮箱，继续用原来的确认接口，却能在 API 已经关闭时用另一个进程寄出那封信。阅读约 65～80 分钟，跟做另加 85～115 分钟。
 
 ## 49.1 在旧请求中找出两次写入之间的空隙
 
@@ -317,13 +317,23 @@ async function issue(purpose, email) {
 
 这里每个用例生成自己的地址，调用这个辅助函数时该用途、地址只有一条 pending。专门验证换代的用例要保留新旧两个 ID 分别处理。冷却用例还要数该地址的任务，重复申请后仍只有一条。原先让 SMTP 挂起以占满请求名额的用例也要拆开：让发送对象抛错，按 ID 得到 unknown、再处理得到 empty；另发两个尚未完成的申请，检查第三个申请因名额用尽被拒。最后在 `t.after` 中按本轮收件地址删除发件箱行，再按既有顺序清理意图、账号等数据并关闭应用。
 
-沿用前章原版测试时，可将[第 49 章测试改动](recovery-42.patch)的原始文本保存为项目根目录的 `recovery-42.patch`，然后在该目录执行：
+在 `test/recovery.test.mjs` 顶部导入 `sendOne`，fixture 只用数据库、会话和应用状态构造 RecoveryService，再把投递对象交给 dispatch；不再向 RecoveryService 注入 SMTP。清理只按本轮生成的地址匹配发件箱，放在清理意图之前：
 
-```bash
-git apply --check recovery-42.patch && git apply recovery-42.patch
+```js
+import { sendOne } from '../dist/src/verification-outbox.js';
+// fixture 内，原 app、database、db、sessions、emails、messages 保持：
+const recovery = new RecoveryService(database, sessions, app.get(ApplicationState));
+const transport = delivery ?? {
+  async send(email, purpose, token, issuedAt, expiresAt) {
+    messages.push({ email, purpose, token, issuedAt, expiresAt });
+  },
+};
+async function dispatch(id) { return sendOne(database, transport, id); }
+// t.after 的既有清理流程中，先于 verificationIntent.deleteMany：
+await db.verificationOutbox.deleteMany({ where: { recipient: { in: emails } } });
 ```
 
-补丁只改 `test/recovery.test.mjs`，包括上面的衔接和换代、过期、并发处理同一消息的用例。如果已使用本章配套测试，直接运行即可。若检查未通过，打开补丁按函数对照本地改动，保留自己增加的用例。
+fixture 返回值追加 dispatch，issue 使用上面的新实现。故障用例按该地址取得消息ID，断言 `dispatch(id)` 第一次为 unknown、第二次为 empty；冷却用例核对同地址消息仍只有一条。换代用例保留 old/current 两个ID，旧项得到 obsolete，两次并发派发 current 的结果排序后应是 accepted、empty，消息数组只有一封。把另一条意图显式置为过期后，派发也应 obsolete 且不增邮件。完整用例可对照[本章的 recovery.test.mjs](https://github.com/SamChowRock/epp-public/blob/part-06/chapter-49/test/recovery.test.mjs)，保留自己已有的独立用例，按每项业务结果检查新接线。已使用本章完成代码时，直接运行测试。
 
 需要跑全章回归时，先停止连接测试库的 API 和寄信程序，沿用已迁移到本章且包含前章虚构样本的独立测试库。若是刚 bootstrap 的空练习库，注册链本身可以直接使用；前章素材回归还要有固定练习用户。仅在新建的测试库核对库名后执行下句。已有该 ID 时先检查它的状态和用途，不要重置其密码或开通真实账号。
 
@@ -353,6 +363,6 @@ ON CONFLICT (id) DO NOTHING;
 
 语句的锁定范围与跳过已锁行可查 [PostgreSQL 18 SELECT](https://www.postgresql.org/docs/18/sql-select.html#SQL-FOR-UPDATE-SHARE)，冲突更新与返回值可查 [PostgreSQL 18 INSERT](https://www.postgresql.org/docs/18/sql-insert.html)。本章完成代码对应 `part-06/chapter-49`，从第 43 章的密码路线派生。
 
-[第五篇回顾](../../part-05-identity/chapter-48-review/chapter.md) · [第六篇导读](../README.md) · [下一章：选读：让小程序登录与事务发件箱在同一服务工作](../chapter-50-login-integration/outline.md)
+[第五篇回顾](../../part-05-identity/chapter-48-review/chapter.md) · [第六篇导读](../README.md) · [下一章：选读：让小程序登录与事务发件箱在同一服务工作](../chapter-50-login-integration/chapter.md)
 
 [核心路线继续第 51 章](../chapter-51-worker/chapter.md)

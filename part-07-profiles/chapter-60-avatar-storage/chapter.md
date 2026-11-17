@@ -4,7 +4,7 @@
 
 从[第 59 章完成代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-59)继续。先在本机独立跑通一个私有桶，再把原账号接入。可以在 60.3 停下，此时能自行验明权限，也能通过重启检查对象是否还在。后一段用两个已开通的练习账号、同一数据库和同一桶完成发布、访问和故障处置。
 
-阅读约 75～95 分钟；沿用两个练习账号时，本机安装、编码、发布与故障实验另加 110～155 分钟。首次下载发行包的网络等待因环境而异。
+阅读约 85～105 分钟；沿用两个练习账号时，本机安装、编码、发布与故障实验另加 110～155 分钟。首次下载发行包的网络等待因环境而异。
 
 若要验证旧会话兼容，先在尚未修改的第 59 章项目（或单独的第 59 章副本）按原配置启动旧 API，05 登录、20 记下当前身份与昵称设置，保留 Cookie，然后停掉旧 API 和对原库写入的 Worker。这样后面备份时会包含刚才建立的会话。已有保存的样本可以直接继续；空库读者从 60.4 的 bootstrap 入口准备两个账号。
 
@@ -459,15 +459,69 @@ export class AvatarPublication {
   }
 ```
 
-跟写时这七个第 59 章已有文件要一起调整：共享准入、控制器、AuthModule、HTTP 方法白名单、JSON 读体例外、日志路由名和 OpenAPI。读体例外只放行预览和发布的二进制 POST；可见性 PATCH 继续解析 JSON。新增契约与存储服务已在前面写完。正文随附[基于第 59 章原文件的接线补丁](avatar-routes.patch)，它不包含迁移、三个新服务文件或脚本。在配套代码项目根将下方路径改为补丁的实际位置。已经使用完整第 60 章代码时直接运行 check。
+跟写时七个已有文件要一起调整。先在 `src/avatar-upload.ts` 保留原媒体类型、大小及两个名额的检查，把“先读文件再回调”改为“准入后把读取动作交给业务”：
 
-```bash
-git apply --check /实际位置/avatar-routes.patch
-git apply /实际位置/avatar-routes.patch
-npm run check
+```ts
+type ReceiveFile = <T>(
+  processFile: (filename: string, format: 'png' | 'jpeg') => Promise<T>,
+) => Promise<T>;
+
+// withAvatarUpload<T> 的第二参数改为 work，返回 Promise<T>；
+// 原媒体类型、长度和 activeUploads 上限检查保持在 activeUploads++ 之前。
+activeUploads++;
+try {
+  return await work(async processFile => {
+    const directory = await privateDirectory();
+    try {
+      const filename = join(directory, 'input');
+      await receive(request, filename, drain);
+      return await processFile(filename, type === 'image/png' ? 'png' : 'jpeg');
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+} finally {
+  activeUploads--;
+}
 ```
 
-如果跟写文件与第 59 章快照有差异，先按补丁里的路径逐处对照，保留自己的修改；两次执行 apply 会得到上下文不匹配。对照发布控制器可见，持有 Cookie 的账号由会话决定，文件名和请求体里都没有可由客户端改写的属主。能访问自己的临时预览仍不能绕过数据库里的发布资格。
+新签名是 `withAvatarUpload<T>(request: IncomingMessage, work: (receiveFile: ReceiveFile) => Promise<T>, drain?: AbortSignal): Promise<T>`。这样发布可以先 reserve，再调用 receiveFile；预览不预订，也仍占同一组名额。回调不调用 receiveFile 时，不会提前读入文件或创建临时目录。
+
+`AvatarController` 类的装饰器改为 `@Controller()`，构造器注入 `private readonly state: ApplicationState` 和 `private readonly avatars: AvatarPublication`。上面两个方法共用私有 upload，它继续传播排空信号并把全部工作交给 state.track：
+
+```ts
+private async upload<T>(request: Request, response: Response, query: unknown,
+  work: Parameters<typeof withAvatarUpload<T>>[1]) {
+  const drain = new AbortController();
+  const unsubscribe = this.state.onDrain(() => drain.abort());
+  if (this.state.draining) drain.abort();
+  try {
+    parseInput(EmptyObjectSchema, query);
+    return await this.state.track(() => withAvatarUpload(request, work, drain.signal));
+  } catch (error) {
+    if (!response.destroyed && !response.headersSent) response.setHeader('Connection', 'close');
+    throw error;
+  } finally { unsubscribe(); }
+}
+```
+
+同一控制器再注册四个方法：GET `profile/avatar` 调用 `avatars.read(requireSession(request))`；GET `profiles/:userId/avatar` 用 `SchemaPipe(UserIdSchema)` 检查ID再调用带目标ID的 read；GET `profile/avatar/visibility` 调用 getVisibility；PATCH 同路径用 `SchemaPipe(AvatarVisibility)` 解析 `{visible}` 再调用 visibility。查询参数均用 EmptyObjectSchema 拒绝额外字段，所有调用由 state.track 管理；前两项响应检查 AvatarLink，后两项检查 AvatarVisibility。相关装饰器、契约和服务按本节文件名导入，完整控制器见[本章源码](https://github.com/SamChowRock/epp-public/blob/part-07/chapter-60/src/avatar.controller.ts)。
+
+`AuthModule` 导入 AvatarObjects、AvatarPublication，并在原 providers 中注册这两个类，保留 ProfileService、小程序及恢复服务的原装配。它们使用前面已经写出的构造器依赖，不新建第二份上传名额。
+
+`src/http-boundary.ts` 在公开资料匹配旁加入 `const publicAvatar = /^\/profiles\/([^/]+)\/avatar$/.exec(url.pathname)`，路径ID的百分号拒绝检查同时包含这个匹配。方法白名单新增 `/profile/avatar` 的 GET/POST、`/profile/avatar/visibility` 的 GET/PATCH、publicAvatar 的 GET。保持预览只允许 POST。`src/capture-body.ts` 的二进制例外明确限制为这两个上传 POST，其余 PATCH 继续解析 JSON：
+
+```ts
+if ((request.method === 'POST'
+  && ['/profile/avatar/preview', '/profile/avatar'].includes(request.path))
+  || (request.method !== 'POST' && request.method !== 'PATCH')) {
+  next(); return;
+}
+```
+
+`src/request-observation.ts` 把带用户ID的路径归一成 `/profiles/:userId/avatar`，把自己的头像和可见性路径加入固定名称清单，不记录实际用户ID或签名链接。`src/openapi.ts` 复用 JPEG/PNG binary requestBody，登记 PublishedAvatar、AvatarLink、AvatarVisibility Schema；发布返回 PublishedAvatar，读取返回 AvatarLink，可见性读写返回 AvatarVisibility。保留上传的408/413/415/422/429、发布的409 AVATAR_SUPERSEDED和存储失败503。通用503补齐使用 `??=`，不能覆盖具体头像路径已有的失败描述；这些Web专用路由只列sessionCookie授权。完整契约见[本章OpenAPI源码](https://github.com/SamChowRock/epp-public/blob/part-07/chapter-60/src/openapi.ts)。
+
+运行 `npm run check` 后分别发预览、发布、本人取链接、公开取链接及可见性PATCH，沿日志核对固定路由名与状态。对照发布控制器可见，持有Cookie的账号由会话决定，文件名和请求体里都没有可由客户端改写的属主；能访问自己的临时预览仍不能绕过数据库里的发布资格。跟写成果与完成代码有差异时按函数对照，保留自己的修改，并用同一组请求核对行为。
 
 **把账号接到桶上。** 保持 weed 前台运行。在 API 终端清除可能盖住环境文件的外层变量；.env.test 中的 TEST_DATABASE_URL 已指向本轮验证副本。密码等旧配置可沿用，S3 凭据只从 app.env 读取。库名用你在 60.4 实际恢复的名字。
 

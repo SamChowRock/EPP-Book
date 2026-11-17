@@ -261,7 +261,7 @@ Cookie写请求继续要求CSRF Token，Bearer写请求不取这个Token：浏�
 
 不为支持小程序就关闭第40章的浏览器来源保护，也不把微信Referer加入“免认证白名单”。业务授权仍用已验证的userId查询所属记录。令牌传递解决“当前请求是谁”，资源条件解决“他是否能读这一条”，这两步都保留。
 
-`privateResponses` 增加 `Vary: Authorization`，继续 `private, no-store`；mini退出不设置或清除浏览器Cookie。会话列表新增channel，仍不返回token或摘要。OpenAPI把通用业务声明为Cookie或Bearer二选一，Web专用路由只列Cookie；CSRF头仅对有效Cookie写请求必需。同步 `httpBoundary` 的方法白名单、`requestObservation` 的固定路由标签和共享登录限流路径，不能只增加Controller却漏掉前置边界。
+`privateResponses` 增加 `Vary: Authorization`，继续 `private, no-store`；mini退出不设置或清除浏览器Cookie。会话列表新增channel，仍不返回token或摘要。OpenAPI把通用业务声明为Cookie或Bearer二选一，Web专用路由只列Cookie；CSRF头仅对有效Cookie写请求必需。同步 `httpBoundary` 的方法白名单、`requestObservation` 的固定路由标签和共享登录限流路径，不能只增加Controller却漏掉前置边界。 `mini/link` 会证明密码，因此在 `src/browser-security.ts` 的 `authRateLimit` 路径数组加入 `/auth/mini/link`，与 `/auth/login`、`/auth/password` 及 `RECOVERY_PATHS` 共用第41章来源桶。先由两个API交替累计十次Web登录与关联错误密码，第十一次关联应429；计数表不可用时先503，不能继续进入密码证明。`mini/login` 不做密码证明，仍使用下文平台交换的并发预算，不扣该密码来源桶。
 
 ### 重置密码之后，微信还能登录吗
 
@@ -388,7 +388,7 @@ success(res) {
 
 WXML放已有账号ID和密码输入框、关联／登录／读取／退出四个按钮及状态文本，按钮共享busy，防止重复点击制造多余会话。读取调用 `/captures?limit=5`，只显示本页数量，不把它描述为总量；退出等待204才清空内存令牌。退出结果未知时保留令牌用于再次撤销，关闭应用丢弃本地秘密不等于服务端会话已经删除。
 
-开发工具Network可以分辨失败在哪里：根本没有发出wx.request，检查域名、协议和设备地址；API有请求ID和401，检查凭证；403检查账号和资格；409检查已有映射；429看本地预算；503区分未配置与上游不可用。观察请求时不要截图或导出含code、密码、Authorization和响应token的面板。
+开发工具Network可以分辨失败在哪里：根本没有发出wx.request，检查域名、协议和设备地址；API有请求ID和401，检查凭证；403检查账号和资格；409检查已有映射；429按AUTH_RATE_LIMIT、AUTH_BUSY或PLATFORM_BUSY区分共享次数、本机密码占位和平台交换预算；503区分AUTH_RATE_UNAVAILABLE、未配置与上游不可用。观察请求时不要截图或导出含code、密码、Authorization和响应token的面板。
 
 ## 44.5 用旧记录验证映射，用失败路径验证边界
 
@@ -486,6 +486,8 @@ GROUP BY channel ORDER BY channel;
 ## 知识支线
 
 [44A：同一个人、两份账号——跨应用身份与账号合并](side-01-account-linking.md)改变AppID、绑定关系和恢复条件，推导什么时候能关联、什么时候需要合并，以及为什么UnionID不能直接代替业务用户主键。
+
+完成本篇后，小程序历史先保留在自己的练习库。第 49 章先在密码主线建立发件箱，再到[第 50 章](../../part-06-background/chapter-50-login-integration/chapter.md)让两种历史分别升级到统一服务；旧映射、原会话和原素材都需按身份核对。
 
 ## 附录：本章必要技术点速查
 

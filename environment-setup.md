@@ -19,6 +19,7 @@
 | 第 41 章 | [沿用Node、PostgreSQL、psql、Postman、DBeaver与浏览器](#第-41-章让两个-api-共用登录额度)（Mac） | 两个正式API接同一VERIFY，观察末格竞争及计数表撤权；无新增软件 |
 | 第 42 章 | [Mailpit 1.33.0](#在本机收取注册邮件)（Mac） | 用本地收件箱完成注册验证，第 43 章继续用它收重置邮件 |
 | 第 44、47 章选做 | [微信开发者工具](#真实平台登录选做)（Mac） | 导入小程序，使用真实 AppID 联调 |
+| 第 50 章选读 | [沿用Git、PostgreSQL客户端、DBeaver、Postman、Mailpit与浏览器](#第-50-章分别升级两种历史)（Mac） | 分别备份恢复两种非空历史；可选8350观察页只持有本机私有配置，无新增软件 |
 | 第 51 章 | [邮件 Worker](#让独立进程寄信)（随项目运行） | 把入队后的邮件交给 Mailpit；第 55 章再启动通知角色 |
 | 第 59 章 | [sharp 0.35.5、libvips](#让-api-生成并保存头像)（随项目安装） | 解码图片并生成 WebP 预览 |
 | 第 60 章 | [SeaweedFS 4.52](#启动私有存储)（Mac） | 给头像提供私有存储，重启后仍能读回原文件 |
@@ -203,6 +204,12 @@ SELECT current_database(), current_user,
 - **微信小程序（第 44、47 章）**　在 Mac 安装微信开发者工具，用有开发资格的微信账号登录，导入配套代码的 `mini-program/` 并填写真实 AppID。与后端核对 AppID，AppSecret 只放在服务端。真机预览时，手机需要能访问已在平台登记的 HTTPS 请求域名；手机上的 `127.0.0.1` 指向手机自己。[开发者工具下载](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html) · [小程序接入](part-05-identity/chapter-44-mini-program/chapter.md) · [扫码确认](part-05-identity/chapter-47-mini-confirm/chapter.md)
 - **OIDC（第 45 章）**　本机自带实验提供方。接入真实提供方时，注册服务端 Web 客户端，取得 issuer、Client ID 和 Client Secret，逐字登记 EPP 的 HTTPS 回调地址。准备用于验证登录和关联的两个测试账号。[提供方配置](part-05-identity/chapter-45-oidc/chapter.md)
 - **微信网站登录（第 46 章）**　准备已审核且已开通登录权限的网站应用，核对其授权回调域。后端使用这份网站应用的 AppID 和 AppSecret。用电脑访问 HTTPS 网站，再用手机微信扫码。[网站应用联调](part-05-identity/chapter-46-wechat-website/chapter.md)
+
+### 第 50 章分别升级两种历史
+
+先完成[备份与恢复工具验证](#用备份建立练习副本)和[Mailpit准备](#在本机收取注册邮件)。仍在Mac操作，不需要另一台主机或新平台账号。关闭旧API与发送者后，分别把44、49历史恢复到新的VERIFY；DBeaver用current_database()核对每个副本。第三个空库只用于bootstrap结构对照，不能代替非空升级。
+
+可选观察页使用随书Node脚本，固定监听127.0.0.1:8350，连接启动时指定的本机API。先确认8350空闲，在项目之外用umask 077创建0600私有配置，填写原Cookie、素材ID及选做mini令牌；浏览器只显示实际状态和摘要。未选择mini时省略其令牌，未配置观察与API认证失败分开显示。[第50章操作与退出](part-06-background/chapter-50-login-integration/chapter.md#503-原凭据原素材与原消息一起验收)
 
 ### 让独立进程寄信
 

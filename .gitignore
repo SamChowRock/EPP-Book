@@ -1,0 +1,3 @@
+# Exercise references are runnable source branches, not patch artifacts.
+*.patch
+*.diff

@@ -6,7 +6,7 @@
 
 本章安排一个完整的小改造：只对新建记录收紧长度规则，保留此前合法记录的读取能力；再换一种内存存储表示，核对替换没有改变行为。它会触及第十二章的输入与输出区分、第十章的存储契约和第十四章的观测，而不是再增加一个业务路由。
 
-配套分支为 `part-02/chapter-15`。主服务沿用 `part-02/chapter-14`；本章的变更只在个人隔离工作目录中实现，参考补丁和请求集合随第十五章提供。第三篇继续接入数据库时，主线仍使用原来的 2000 单元规则和 Map 存储，不要求带入这次练习。
+配套分支为 `part-02/chapter-15`。主服务沿用 `part-02/chapter-14`；本章的变更只在个人隔离工作目录中实现，请求集合随第十五章提供，完整参考源码另有独立分支。第三篇继续接入数据库时，主线仍使用原来的 2000 单元规则和 Map 存储，不要求带入这次练习。
 
 ## 15.1 从启动到响应，重建一条有证据的执行路径
 
@@ -69,14 +69,14 @@ Nest 负责按声明组装对象、匹配路由、提取参数、调用管线并
 
 ### 给独立实现一个清楚的起点
 
-先停止正在运行的开发服务，保留自己跟写或克隆的原项目。沿第七章的方法，另建资料目录；这一步同时取得本章补丁和请求集合，不假定原项目已经有它们：
+先停止正在运行的开发服务，保留自己跟写或克隆的原项目。沿第七章的方法，另建资料目录；这一步取得本章请求集合和练习说明，不假定原项目已经有它们：
 
 ```bash
 git clone --single-branch --branch part-02/chapter-15 \
   https://github.com/SamChowRock/epp-public.git ../epp-chapter-14-materials
 ```
 
-克隆成功后继续；失败或目录已存在时先处理原因，不继续下一条。已有练习按下文恢复，不重新应用补丁。
+克隆成功后继续；失败或目录已存在时先处理原因，不继续下一条。已有练习按下文恢复，不重新建立参考目录。
 
 ```bash
 cd ../epp-chapter-14-materials
@@ -87,7 +87,7 @@ git worktree add -b practice/chapter-14 ../epp-chapter-14-practice origin/part-0
 
 显式 fetch 成功后才创建 worktree；`origin/part-02/chapter-14` 是本机保存的远程章节记录，不依赖本地同名分支。review_root 保存资料目录的位置，只在当前 shell 中保留；后续对照参考继续使用这个终端，另一个终端负责运行 dev。确认创建成功后再进入新目录。分支或目录已存在时，先核对它保存的工作，换一个新名字；不要强制覆盖，也不要把别人的练习清掉重来。
 
-如果分两次完成练习，重开终端后先进入本次保留的资料或练习目录，用 `git worktree list` 找回第十五章资料目录和自己的练习目录；回到前者重新执行 `review_root=$(pwd)`，再进入后者继续。不必再次执行 worktree add，已有修改仍在练习目录中。恢复时先核对当前目录、`git status --short` 和启动端口，避免把参考补丁应用到自己的未完成实现上。
+如果分两次完成练习，重开终端后先进入本次保留的资料或练习目录，用 `git worktree list` 找回第十五章资料目录和自己的练习目录；回到前者重新执行 `review_root=$(pwd)`，再进入后者继续。不必再次执行 worktree add，已有修改仍在练习目录中。恢复时先核对当前目录、`git status --short` 和启动端口，避免进入另一份项目后误改自己的实现。
 
 ```bash
 cd ../epp-chapter-14-practice
@@ -101,7 +101,7 @@ PORT=3008 LOG_LEVEL=debug npm run dev
 
 从第十五章资料目录导入 `requests/review.postman_collection.json`；它不在第十四章基线目录中。集合已经保存普通输入、1200/1201单元、600/601个表情、纯空白、列表和详情八条请求，baseUrl 默认3008，不需要手敲长字符串或 curl。成功创建后，将响应 id 填入此集合的 captureId，详情请求才会读取刚创建的记录。
 
-先完成自己的第一版，再对照下面的推导。参考补丁的作用是帮助找出遗漏的边界，不是替代第一次独立判断。
+先完成自己的第一版，再对照下面的推导。参考源码的作用是帮助找出遗漏的边界，不是替代第一次独立判断。
 
 ### 收紧输入为什么不能顺手收紧输出
 
@@ -193,7 +193,7 @@ ArrayCaptureStore,
 
 ### 用旧记录与直接业务调用补上 HTTP 看不到的事实
 
-内存服务自动重启会清空数据，不能拿“重启后没有旧记录报错”证明读取兼容。我们需要在同一进程中放入一条此前合法的1500单元记录，再通过 Service 和公开响应投影读取它。在自己的练习目录新增 `examples/review-contract.mjs`；参考补丁也包含同一脚本：
+内存服务自动重启会清空数据，不能拿“重启后没有旧记录报错”证明读取兼容。我们需要在同一进程中放入一条此前合法的1500单元记录，再通过 Service 和公开响应投影读取它。在自己的练习目录新增 `examples/review-contract.mjs`；完整参考源码也包含同一脚本：
 
 ```js
 import { randomUUID } from 'node:crypto';
@@ -236,19 +236,18 @@ for (const Store of [MemoryCaptureStore, ArrayCaptureStore]) {
 
 ### 对照参考，同时保留自己的成果
 
-如果需要运行参考实现，回到最初的代码目录，另建一个目录，不在自己的实现上直接叠加补丁：
+如果需要运行参考实现，先停止自己那份开发服务，再回到资料目录，另建一个完整参考目录：
 
 ```bash
 cd "$review_root"
-git worktree add -b practice/chapter-14-reference ../epp-chapter-14-reference origin/part-02/chapter-14
+git clone --single-branch --branch codex/reference/chapter-15-array-store \
+  https://github.com/SamChowRock/epp-public.git ../epp-chapter-15-reference
 ```
 
-创建成功后执行：
+目标目录须尚不存在；克隆成功后执行：
 
 ```bash
-cd ../epp-chapter-14-reference
-git apply --check "$review_root/examples/chapter-14-review.patch"
-git apply "$review_root/examples/chapter-14-review.patch"
+cd ../epp-chapter-15-reference
 nvm use
 npm ci
 npm run check
@@ -256,7 +255,7 @@ node examples/review-contract.mjs
 PORT=3008 LOG_LEVEL=debug npm run dev
 ```
 
-先停止自己那份开发服务，再启动参考；两者的调试端口与业务端口相同。只有 apply --check 成功后才执行 apply；检查失败时先核对基线与本地改动，不跳过检查继续启动。apply --check 只检查补丁能否应用，不证明行为正确；后面的构建、直接调用和图形请求各自提供不同证据。如果自己的方案不同，只对照结果与责任划分，不必把文件名和实现细节改成一模一样。
+[参考源码](https://github.com/SamChowRock/epp-public/tree/codex/reference/chapter-15-array-store)已经接通数组存储和新的输入规则。自己的成果仍在原练习目录；两份服务的 Inspector 和业务端口相同，不能同时启动。构建、直接调用和图形请求各自提供不同证据。如果自己的方案不同，只对照结果与责任划分，不必把文件名和实现细节改成一模一样。
 
 使用图形集合逐条 Send。普通原文、1200单元和600个表情应成功；1201单元、601个表情和纯空白应失败。失败后查看列表，数量不应增加。已有有效原文的空格应保留，Location、X-Request-Id 与详情仍正常。保存源码会重启清空内存，比较数量前先建立这次新进程的基线，不拿上一次运行的数据作对照。
 
@@ -276,7 +275,7 @@ return { ...capture, createdAt: 'not-a-date' };
 
 这次观察把错误转换、输出校验和副作用重新接到一起：Filter 能给调用方一致错误，不能替存储回滚；没有拿到201，也不能直接重试创建并假定不会重复。当前 POST 每次都生成新 ID，自动重放会产生第二条记录。后面讨论事务与幂等时，要解决的是这个实质问题，而不只是给错误加一个更漂亮的消息。
 
-恢复 Controller，等待重启，再用保存的请求复验正常201。两次临时故障都不保留到参考补丁、主线分支或交付产物。日志不记录故障异常里的任意 message，诊断依赖稳定事件和请求编号；需要查看异常细节时用开发断点，不把原始对象写到共享日志里。
+恢复 Controller，等待重启，再用保存的请求复验正常201。两次临时故障都不保留到参考源码、主线分支或交付产物。日志不记录故障异常里的任意 message，诊断依赖稳定事件和请求编号；需要查看异常细节时用开发断点，不把原始对象写到共享日志里。
 
 ### 启动失败与请求失败的观察入口不同
 
@@ -348,7 +347,7 @@ cp -R dist "$release_dir/dist" &&
 | 名称 | 本章用途 | 必要注意点 |
 | --- | --- | --- |
 | git worktree add | 建立有明确基线的个人练习 | 不自动带入原目录未提交文件；目录与分支不强制覆盖 |
-| git apply --check／apply | 对照隔离参考改造 | 可应用不等于行为正确；不叠在个人成果上 |
+| 独立克隆参考源码 | 对照数组存储与契约改造 | 运行结果与责任划分都要核对；保留个人成果 |
 | 创建 Schema／响应 Schema | 分别表达新输入与已有数据 | 收紧写入不应无意破坏读取；文档同步体现差异 |
 | CAPTURE_STORE／useFactory | 替换实现并保留观测包装 | 方法签名相同不保证排序、副本、失败与成本一致 |
 | X-Request-Id／结构化事件 | 对照一次请求中的存储与响应 | 没有响应编号的启动失败要查进程事件 |

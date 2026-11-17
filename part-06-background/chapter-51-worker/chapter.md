@@ -2,13 +2,13 @@
 
 [第 49 章](../chapter-49-outbox/chapter.md)结束时，可以把 API 关掉，再从另一个终端寄出已经登记的邮件。现在把操作顺序反过来：寄信程序先启动，在空队列里查了一次就退出；十秒后用户才请求重置密码。数据库会保存这项工作，用户却要一直等到有人再敲一次命令。可靠地记住工作，只解决了一半问题。
 
-本章从配套分支 `part-06/chapter-49` 继续。沿用 PostgreSQL、Mailpit、verification_intents、verification_outbox 和一次性函数 `sendOne`。要交付的变化很具体：把 API 和寄信程序各启动一次，以后每次获准签发的注册或重置意图都可以由正在运行的 Worker 接手；关掉 API，Worker 可以投递已经提交的工作；关掉 Worker，API 可以继续受理申请。最后让一封信正发送到一半时再关机，核对哪些承诺还能兑现。
+本章从[第 50 章统一完成代码](https://github.com/SamChowRock/epp-public/tree/part-06/chapter-50)继续。没有选择小程序实践时，先按[50.4 的短路径](../chapter-50-login-integration/chapter.md#进入下一章)在第 49 章非空副本补齐结构、核对原会话和消息；无需配置微信。沿用 PostgreSQL、Mailpit、verification_intents、verification_outbox 和一次性函数 `sendOne`。要交付的变化很具体：把 API 和寄信程序各启动一次，以后每次获准签发的注册或重置意图都可以由正在运行的 Worker 接手；关掉 API，Worker 可以投递已经提交的工作；关掉 Worker，API 可以继续受理申请。最后让一封信正发送到一半时再关机，核对哪些承诺还能兑现。
 
-阅读约 70～85 分钟，实现、迁移、双进程调试及联调另加 100～130 分钟，按本章代码与操作步骤估算。
+阅读约 75～90 分钟，实现、迁移、双进程调试及联调另加 100～130 分钟，按本章代码与操作步骤估算。
 
 ## 51.1 谁来发现下一条待办
 
-在已按第 49 章准备的独立 VERIFY 上，先不启寄信程序。打开 DBeaver，在这个库的 SQL 编辑器里查 `SELECT current_database()`，再查 `SELECT status, count(*) FROM public.verification_outbox GROUP BY status`。上章的 accepted、obsolete、unknown、attempting 都可能还在；接下来要启动的程序只选择已到 available_at 的 pending，但它会处理**目标库的所有符合条件的行**。计数为 2 还无法判断排队的是谁的信。此时库还是第 49 章结构，先单独执行配套 `database/chapter-43/01-observe.sql` 中按 available_at、id 排序的查询，末尾的控制表查询留到升级后。按查询结果对照每条的 message_id、收件人和用途。只在全部到期待办都属于本地练习时继续。没有现成练习库时先按第 49.2 节完成独立空库或恢复副本的准备。本章会追加一张只有一行的通道控制表，旧邮件的状态与令牌摘要保留。
+在已按第 49 章准备的独立 VERIFY 上，先不启寄信程序。打开 DBeaver，在这个库的 SQL 编辑器里查 `SELECT current_database()`，再查 `SELECT status, count(*) FROM public.verification_outbox GROUP BY status`。上章的 accepted、obsolete、unknown、attempting 都可能还在；接下来要启动的程序只选择已到 available_at 的 pending，但它会处理**目标库的所有符合条件的行**。计数为 2 还无法判断排队的是谁的信。此时库已有第 50 章统一结构，但还没有本章的邮件通道控制表，先单独执行配套 `database/chapter-43/01-observe.sql` 中按 available_at、id 排序的查询，末尾的控制表查询留到升级后。按查询结果对照每条的 message_id、收件人和用途。只在全部到期待办都属于本地练习时继续。没有现成练习库时先按第 49.2 节完成独立空库或恢复副本的准备。本章会追加一张只有一行的通道控制表，旧邮件的状态与令牌摘要保留。
 
 面对“十秒后才来的工作”，最简单的改动是在现有 API 里加一个计时器，定期调用 sendOne。对于只跑一个进程、可以容忍维护期间停发的小工具，这很经济。但上线新版 HTTP 接口需要重启进程，即使邮件适配器没变，也得决定如何中断发送。反过来，一封邮件的慢应答可能占住数据库连接以外的网络资源；投递侧异常退出时，用户依然需要登录、查素材和发起恢复。如果 HTTP 增加到三个实例，每个实例的定时器也会启动，这等于同时把寄信执行者增加到三个。一个模块内的布尔变量管不到另两个进程。
 
@@ -369,11 +369,37 @@ RETURNING id;
 
 如果断言中途失败，残留的占用会让下一个用例也得到 paused。在 `fixture` 的 `t.after` 里先按本轮收件地址查出任务 ID，只清除 `pausedBy` 命中这些 ID 的占用，再删本轮发件箱行。并发处理同一条有效消息的用例仍应只记录一封被接受的邮件；另一调用在占用期间可能得到 paused，在占用清除后可能得到 empty。
 
-从第 49 章原版测试继续时，把[第 51 章测试改动](recovery-43.patch)的原始文本保存为项目根目录的 `recovery-43.patch`，在项目根目录运行下句。本章配套测试已包含这些改动。若检查未通过，按补丁中的三个位置合并本地用例。
+在 `test/recovery.test.mjs` 的 fixture 清理中，先取得本轮消息ID，只解除它们自己的通道占用，再执行原发件箱删除：
 
-```bash
-git apply --check recovery-43.patch && git apply recovery-43.patch
+```js
+const jobs = await db.verificationOutbox.findMany({
+  where: { recipient: { in: emails } }, select: { id: true },
+});
+await db.verificationMailControl.updateMany({
+  where: { pausedBy: { in: jobs.map(job => job.id) } },
+  data: { pausedBy: null },
+});
+// 后接原 verificationOutbox、意图、账号与连接清理。
 ```
+
+在失败投递用例保存第二个地址 `secondEmail`，A 得到 unknown 后用它找到 B。把暂停与定向恢复写成下面这些断言；其中 job 是 A，second 是 B：
+
+```js
+assert.equal(await dispatch(second.id), 'paused');
+assert.equal((await db.verificationOutbox.findUniqueOrThrow({
+  where: { id: second.id },
+})).status, 'pending');
+assert.equal((await db.verificationMailControl.updateMany({
+  where: { id: 1, pausedBy: second.id }, data: { pausedBy: null },
+})).count, 0);
+assert.equal(await dispatch(second.id), 'paused');
+assert.equal((await db.verificationMailControl.updateMany({
+  where: { id: 1, pausedBy: job.id }, data: { pausedBy: null },
+})).count, 1);
+assert.equal(await dispatch(job.id), 'empty');
+```
+
+并发用例将原 accepted/empty 精确二元结果改成“恰好一次 accepted，另一项 paused 或 empty”，保持一封邮件的断言。完整 fixture 与三个用例见[第51章测试源码](https://github.com/SamChowRock/epp-public/blob/part-06/chapter-51/test/recovery.test.mjs)，按函数对照本地修改；完成分支已包含这些实现。
 
 需要回归时，停两个应用和调试器，使用已部署第 51 章迁移、通道空闲的独立测试库。空库的固定虚构样本见[第 49.4 节](../chapter-49-outbox/chapter.md#494-让另一个进程寄出一封仍然有效的信)。核对 `.env.test` 中的 TEST_DATABASE_URL，运行 `unset TEST_DATABASE_URL` 再运行 `npm test`。如果发现已有占用，先按上面的故障恢复步骤核对，不让清理函数替其他任务解除暂停。
 
@@ -398,6 +424,6 @@ git apply --check recovery-43.patch && git apply recovery-43.patch
 
 关于关闭时的钩子可查 [Nest 生命周期](https://docs.nestjs.com/fundamentals/lifecycle-events)，信号处理可查 [Node.js 24 进程文档](https://nodejs.org/docs/latest-v24.x/api/process.html#signal-events)。本章完成代码对应 `part-06/chapter-51`。
 
-[上一章：选读：让小程序登录与事务发件箱在同一服务工作](../chapter-50-login-integration/outline.md) · [第六篇导读](../README.md)
+[上一章：选读：让小程序登录与事务发件箱在同一服务工作](../chapter-50-login-integration/chapter.md) · [第六篇导读](../README.md)
 
 [下一章：安全领取任务与识别过期执行者](../chapter-52-claims/chapter.md)

@@ -10,7 +10,16 @@
 
 从第十三章跟做时，按正文完成三个可暂停的阶段：14.1 验证配置解析；14.3 接通请求日志并验证正常、失败请求；14.4 接入关闭协调后再做资源实验。每个阶段都能类型检查、构建并运行，不必先把整章接齐。修改一组相互依赖的文件时先停止 dev，完成该阶段检查后再启动。
 
-配套 `examples/chapter-13-stages/` 保存这三段累计过程的增量补丁，按 01→02→03 顺序对照；正文仍给出关键实现。补丁仅用于干净的第十三章起点，不直接叠加到自己的未完成改动上。各阶段的检查与预期结果紧接在对应实现后。
+各阶段都有完整源码，供完成自己的实现后对照：
+
+| 停点 | 可直接运行的源码分支 | 此时具备的能力 |
+| --- | --- | --- |
+| 14.1 | [codex/reference/chapter-14-configuration](https://github.com/SamChowRock/epp-public/tree/codex/reference/chapter-14-configuration) | 统一解析配置，尚未接入后两阶段 |
+| 14.3 | [codex/reference/chapter-14-observation](https://github.com/SamChowRock/epp-public/tree/codex/reference/chapter-14-observation) | 保留配置，并接通请求日志 |
+| 14.4 | [part-02/chapter-14](https://github.com/SamChowRock/epp-public/tree/part-02/chapter-14) | 完整关闭协调与资源实验 |
+
+需要直接运行某阶段时，沿第七章的独立克隆方法，把 `--branch` 换成表中的完整分支名，并选尚不存在的目录。停止原开发服务后，在新目录执行 `nvm use`、`npm ci`、`npm run check`，再启动 `npm run dev`。每个目录已经是该阶段完整项目；自己的未完成改动继续保留在原目录。各阶段的检查与预期结果紧接在对应实现后，配套 `examples/chapter-13-stages/README.md` 也列出这些入口。
+
 ## 14.1 把启动输入变成一份可注入的配置
 
 ### 配置读取结束以后，谁可以继续作决定

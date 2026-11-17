@@ -178,33 +178,47 @@ npm run check
 
 ### 用成品复现B，再恢复C
 
-如果从第二十三章逐步实现，就先保持24.2的B代码。若直接使用第二十四章完成分支，配套 `database/chapter-21/reader-only.patch` 把输入Schema和Service暂时退到1000，输出保持2000。先停dev，在项目根目录执行：
+如果从第二十三章逐步实现，就先保持24.2的B代码。直接使用第二十四章完成分支的读者，则使用[独立的 B 源码](https://github.com/SamChowRock/epp-public/tree/codex/reference/chapter-24-reader-b)：它把输入Schema和Service限制在1000，输出保持2000，数据库历史与C完全相同。先停止当前dev，保留C目录。在C项目根目录记录路径，再克隆B：
 
 ```bash
-git apply --check database/chapter-21/reader-only.patch
-git apply database/chapter-21/reader-only.patch
+writer_dir=$(pwd)
+git clone --single-branch --branch codex/reference/chapter-24-reader-b \
+  https://github.com/SamChowRock/epp-public.git ../epp-ch24-reader-b
+```
+
+目标目录必须尚不存在；成功后继续。两份程序必须连接本章同一个实验库，才能比较同一条记录。先在C目录用编辑器核对私有 `.env` 中的 `DATABASE_URL`，确认它就是当前实验库。若C一直只通过进程环境提供连接、尚无 `.env`，先按[环境指南的开发连接配置](../../environment-setup.md#给开发迁移和测试各自选库)在C目录创建私有 `.env`，保存当前同一实验库的 `DATABASE_URL`，并设置 `DB_QUERY_DEBUG=false`；执行 `chmod 600 "$writer_dir/.env"` 后再继续。不要把示例地址直接当作当前库，不把凭据粘到请求或截图。随后把这份已核对的C配置复制到新B目录；这样两版都能在清除继承的进程环境后，从各自 `.env` 加载同一连接：
+
+```bash
+cp "$writer_dir/.env" ../epp-ch24-reader-b/.env
+chmod 600 ../epp-ch24-reader-b/.env
+cd ../epp-ch24-reader-b
+reader_dir=$(pwd)
+nvm use
+npm ci
+npm run prisma:generate
 npm run check
+unset DATABASE_URL DB_QUERY_DEBUG
 npm run dev
 ```
 
-检查失败说明当前文件与补丁起点不一致，先打开差异定位，不能强制覆盖自己的修改。正常启动后，在VS Code重新连接Inspector；Postman发送1000单元应成功，1001应400。GET和DBeaver都应仍是最后一次成功的值。这里拒绝发生在输入边界，不是数据库CHECK，因为数据库已经允许更长。
+这里不执行迁移，也不创建新业务库；之前24.2已完成同一库的结构放宽。两个目录各自保留源码，重开终端时按实际绝对路径重新设置 `writer_dir` 和 `reader_dir`。正常启动后，在VS Code重新连接Inspector；Postman发送1000单元应成功，1001应400。GET和DBeaver都应仍是最后一次成功的值。这里拒绝发生在输入边界，不是数据库CHECK，因为数据库已经允许更长。
 
 ![Postman：B 阶段拒绝 1001 单元，错误路径指向 chineseIntent](images/postman-reader-rejects-1001.jpg)
 
 注意响应中的 `VALIDATION_ERROR` 与字段说明“at most 1000 code units”。截图中的请求端口属于 B 实例；复现时使用自己当前 B 的地址，不能只改请求名称却仍发往 C。Body 中的变量由上述 Pre-request 脚本产生。
 
-直接使用成品的读者，停dev后反向应用同一补丁，恢复C：
+直接使用成品的读者，在B终端按Ctrl+C并确认退出，再回到保存的C目录启动：
 
 ```bash
-git apply -R --check database/chapter-21/reader-only.patch
-git apply -R database/chapter-21/reader-only.patch
+cd "$writer_dir"
 npm run check
+unset DATABASE_URL DB_QUERY_DEBUG
 npm run dev
 ```
 
-从第二十三章逐步编写的读者，此时直接按24.2把输入Schema参数和Service的长度条件、错误文本改为2000，check后重启；没有应用补丁就不需要撤回补丁。后面复现B同理，只把这两处写入限制暂时改回1000，观察结束再恢复2000。
+从第二十三章逐步编写的读者，此时按24.2把输入Schema参数和Service的长度条件、错误文本改为2000，check后重启；后面复现B时只把这两处写入限制改回1000，观察结束再恢复2000。
 
-这不是数据库回滚。迁移仍在，新CHECK仍为2000；反向补丁只是撤销我们刚才施加的临时代码改动。按顺序发送1001、2000、2001单元：前两次200，最后400。失败后重新GET，值应为2000单元，不是2001也不是空值。POST创建路径也应接受新范围；只有PATCH成功不能证明创建校验同步了。
+两个成品目录之间切换的是运行进程，迁移、新CHECK和数据都保留。再次观察B时，先停C，执行 `cd "$reader_dir"`、`npm run dev`；之后回C同理。Postman使用当前实例的地址，Inspector也须连接新进程。按顺序发送1001、2000、2001单元：前两次200，最后400。失败后重新GET，值应为2000单元，不是2001也不是空值。POST创建路径也应接受新范围；只有PATCH成功不能证明创建校验同步了。
 
 ![Postman：C 阶段接受 2000 单元，返回同一条记录](images/postman-writer-accepts-2000.jpg)
 
@@ -269,9 +283,9 @@ NODE_ENV=production PORT=3001 node --env-file=.env.production --enable-source-ma
 
 先核对地址确实指向 A，再对照完整记录 ID。响应使用 `INTERNAL_ERROR`，没有将内部校验堆栈暴露给客户端；图中的 500 本身不能证明数据库失败，须结合前面的 SQL 结果和后面的 B 读取成功定位到读取契约。
 
-启动A只用于本地虚构数据的读取对照，不接收业务写入，不用它覆盖长意图。观察后在A终端Ctrl+C，看到正常停止；回到原第二十四章目录继续，不在旧工作目录应用reader-only补丁。切回旧Git分支既不会自动退数据库，也不会自动把新数据变回旧格式。
+启动A只用于本地虚构数据的读取对照，不接收业务写入，不用它覆盖长意图。观察后在A终端Ctrl+C，看到正常停止；回到原第二十四章目录继续，旧目录仍保留A的源码。切回旧Git分支既不会自动退数据库，也不会自动把新数据变回旧格式。
 
-再停止C、应用reader-only补丁并启动B。此时B仍拒绝1001单元的新输入，但详情和列表都能返回保存的2000单元。看似“不让提交，却可以返回”，实际上是在允许读取既有事实的同时限制新写入。这与第十五章收紧新建规则时保留旧值读取的思路相通；本章增加了持久化与多版本共存，因此需要把发布顺序也纳入判断。
+再停止C，回到前面保存的B目录并启动B。此时B仍拒绝1001单元的新输入，但详情和列表都能返回保存的2000单元。看似“不让提交，却可以返回”，实际上是在允许读取既有事实的同时限制新写入。这与第十五章收紧新建规则时保留旧值读取的思路相通；本章增加了持久化与多版本共存，因此需要把发布顺序也纳入判断。
 
 ![Postman：B 读取同一长值记录恢复为 200](images/postman-reader-recovers.jpg)
 
@@ -296,7 +310,7 @@ DDL失败时沿用第二十三章证据链：查看首个数据库错误和阻�
 
 有长值以后，回退A需要另一个明确的数据兼容决策，不能靠 `slice(0, 1000)`、SQL截短或删除记录悄悄解决。截短会改写用户含义，按UTF-16截断还可能破坏代理项；恢复A是程序目标，不构成修改用户事实的授权。本章选择保留数据库和数据，回到可读2000的B，再修复C。
 
-B/C对照结束后，停B、反向撤回补丁，check并启动C。保留实验记录，重启服务后再GET相同ID，长值和原字段应该还在；null清空请求只在你确实希望清空本章实验意图时手动发送。生产产物同样单独构建，以环境配置运行 `npm start`，不带Inspector，默认docs关闭；迁移由持有固定CLI及历史的步骤执行，不能塞进每个服务实例的启动里。已有最小 `npm test` 可继续运行，沿用第二十二章 `.env.test` 中显式配置的 `TEST_DATABASE_URL`，只连接独立校验库；它不能代替本章的真实数据库和版本对照。
+B/C对照结束后，停B，回到保存的C目录，check并启动C。保留实验记录，重启服务后再GET相同ID，长值和原字段应该还在；null清空请求只在你确实希望清空本章实验意图时手动发送。生产产物同样单独构建，以环境配置运行 `npm start`，不带Inspector，默认docs关闭；迁移由持有固定CLI及历史的步骤执行，不能塞进每个服务实例的启动里。已有最小 `npm test` 可继续运行，沿用第二十二章 `.env.test` 中显式配置的 `TEST_DATABASE_URL`，只连接独立校验库；它不能代替本章的真实数据库和版本对照。
 
 ## 24.4 单行正确之后，下一步为什么是一致性
 
@@ -321,12 +335,12 @@ B/C对照结束后，停B、反向撤回补丁，check并启动C。保留实验�
 | `DROP/ADD CONSTRAINT` | 在事务内替换长度CHECK | 删除约束不删除列；锁与扫描成本仍需评估 |
 | `migrate deploy/status/diff` | 分别应用历史、核对记录、比较支持的结构 | 不生成业务数据，也不独自证明API兼容 |
 | `git clone --single-branch --branch` | 在独立目录取得第二十三章代码，用于构建旧产物 | 不依赖原项目的Git配置；目标目录不可占用；克隆成功后再构建，旧目录不运行迁移 |
-| `git apply --check`／`-R` | 复现并撤销B阶段补丁 | 只改变代码；先停dev，检查失败先核对差异 |
+| B、C 独立源码目录 | 切换正在运行的读取者与写入者 | 先停当前进程，连接同一实验库；迁移和数据保持 |
 | `pm.variables.set`／`JSON.stringify` | 在Postman生成长度准确的JSON正文 | 每次请求前生成；不自动发其他请求或清理 |
 | 程序／结构／数据版本 | 决定实际兼容与恢复目标 | Git回退不会撤销已写入数据；长值存在后保留兼容读取 |
 
-官方入口：[Prisma v7 migrate dev](https://www.prisma.io/docs/cli/v7/migrate/dev)、[迁移自定义](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/customizing-migrations)、[PostgreSQL 18 ALTER TABLE](https://www.postgresql.org/docs/18/sql-altertable.html)、[字符串函数](https://www.postgresql.org/docs/18/functions-string.html)、[Git apply](https://git-scm.com/docs/git-apply)、[Git clone](https://git-scm.com/docs/git-clone)、[Postman请求前脚本](https://learning.postman.com/docs/tests-and-scripts/write-scripts/pre-request-scripts/)。
+官方入口：[Prisma v7 migrate dev](https://www.prisma.io/docs/cli/v7/migrate/dev)、[迁移自定义](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/customizing-migrations)、[PostgreSQL 18 ALTER TABLE](https://www.postgresql.org/docs/18/sql-altertable.html)、[字符串函数](https://www.postgresql.org/docs/18/functions-string.html)、[Git clone](https://git-scm.com/docs/git-clone)、[Postman请求前脚本](https://learning.postman.com/docs/tests-and-scripts/write-scripts/pre-request-scripts/)。
 
-本章完成代码分支：`part-03/chapter-24`。正式意图上限为2000；配套reader-only补丁只用于本章B阶段，结束时恢复最终源代码。
+本章完成代码分支：`part-03/chapter-24`。正式意图上限为2000；`codex/reference/chapter-24-reader-b` 只用于本章B阶段，结束时回到C目录运行。
 
 [上一章：Migration：给已有记录增加中文意图](../chapter-23-migrations/chapter.md) · [下一章：关系演进：从覆盖输入到保留修订历史](../../part-04-consistency/chapter-25-revisions/chapter.md) · [第三篇导读](../README.md) · [返回全书目录](../../README.md)
