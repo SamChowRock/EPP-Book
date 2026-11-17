@@ -104,7 +104,7 @@ printf '%s  portable.tgz\n' "$digest" | sha256sum -c -
 
 **让部署端自己找到原数据。** 一次从 Mac 回环转到 Debian 的连接，能让你访问 API。若反过来让 Debian 通过 Mac 接数据库，Mac 一离线，API 即使还有 PID 也读不到账号。先停第 69 章副本的写入者，按[在 Debian 接手已有的数据库、桶和收件箱](../../environment-setup.md#在-debian-接手已有的数据库桶和收件箱)，在同一个停写窗口迁移配对的数据，在部署端启动并核对 PostgreSQL（127.0.0.1:55471）、S3（127.0.0.1:18633）和练习 SMTP（127.0.0.1:1025）。安装程序和仅创建同名空桶都不会带回旧数据。数据服务启动后，在 70.3 用运行身份查原收据并从客户端实际取图；Mac 的旧桶随后保持停止，给客户端要用的本地 18633 留出端口。保留两端的恢复材料。
 
-第41章的 `auth_rate_buckets` 也随原库和迁移交付。旧副本若尚未应用 `20261116170000_shared_auth_rate_limit`，先由迁移身份追加，再执行本章运行授权；`epp57_run` 需要这张表的SELECT、INSERT、UPDATE、DELETE，最后一项用于有界过期清理。更换主机不重开当前来源窗口，两个API若接到不同数据库副本也不会共享额度。
+第41章的 `auth_rate_buckets` 也随原库和迁移交付。旧副本若尚未应用 `20261116170000_shared_auth_rate_limit`，先由迁移身份追加，再执行本章运行授权；`epp57_run` 需要这张表的SELECT、INSERT、UPDATE、DELETE，最后一项用于有界过期清理。更换主机不清空计数表；保持相同的来源解析时，原来源窗口继续生效。代理或地址表示改变可能命中另一来源键，两个API接到不同数据库副本也不会共享额度。
 
 第 30 章的素材写入回执也随原库交付。确认目标库已经应用 `20261116160000_capture_write_receipts`；若是补学第 30 章前保存的旧库，先由迁移身份对该副本执行正式 `migrate deploy`，不能只复制新应用。再以表所有者在目标库执行配套 `examples/deployment/runtime-grants.sql`（先设置脚本要求的 `expected_db`）。其中 `epp57_run` 对 `capture_write_receipts` 仅取得 SELECT、INSERT，与两张既有收据表一样没有 UPDATE、DELETE。否则 API 启动读表或首次带键写入会失败。不要通过恢复成表所有者运行来消除错误。
 
