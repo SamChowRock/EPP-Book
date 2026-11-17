@@ -1,73 +1,77 @@
 # 第九篇 部署、运行与持续交付
 
-第八篇已经得到可以交付的程序。本篇把它交给目标环境，并持续维护同一套服务：先完成原生托管与可信入口，再演进到镜像和 Compose，随后处理运行观测、定时维护、凭据轮换、备份与兼容升级，最后完成异机恢复与独立故障接班。
+第八篇已经得到可以交付的程序。本篇把它交给目标环境，并持续维护同一套服务：先核验制品、完成跨环境晋级，再建立原生托管与可信入口，再演进到镜像和 Compose，随后处理运行观测、定时维护、凭据轮换、备份与兼容升级，最后完成异机恢复与独立故障接班。
 
-第 70～72 章建立原生部署，保留账号、素材、头像与后台工作的实际证据；第 73～74 章用容器接管同一服务。第 75～77 章继续解决长期运行中怎样发现失败、补回欠账和替换身份；第 78 章先验证恢复材料，第 79 章才在带旧数据的副本发布并回退。第 80 章拿走原主机，验证恢复与外部结果对账；第 81 章不再预告故障原因，由接班人独立取证、处置和交还服务，以此收束本篇。
+第 68 章先在已有本机的两套隔离环境之间交接同一份制品，验证摘要与验收记录，不要求提前完成 Debian 部署。第 69～71 章再建立原生部署，保留账号、素材、头像与后台工作的实际证据；第 72～73 章用容器接管同一服务。第 74～76 章继续解决长期运行中怎样发现失败、补回欠账和替换身份；第 77 章先验证恢复材料，第 78 章才在带旧数据的副本发布并回退。第 79 章拿走原主机，验证恢复与外部结果对账；第 80 章不再预告故障原因，由接班人独立取证、处置和交还服务，以此收束本篇。
 
-构建与制品晋级沿用第 64～65 章，CPU、查询和等待的定位沿用第 66 章。这里把它们用于真实部署，不重新建立另一套构建或性能课程。进入第 80～81 章时，先备好第 78 章的恢复材料和第 79 章的版本记录，再根据故障条件决定恢复顺序。
+构建与持续集成沿用第 64 章，CPU、查询和等待的定位沿用第 65 章；制品的验收、晋级与旧版保留在本篇第 68 章接续。这里把它们用于真实部署，不重新建立另一套构建或性能课程。进入第 79～80 章时，先备好第 77 章的恢复材料和第 78 章的版本记录，再根据故障条件决定恢复顺序。
 
-## [第 70 章 把应用和数据交给目标环境](chapter-70-target-environment/chapter.md)
+## [第 68 章 把验过的那份运行制品从验收环境交给发布环境](chapter-68-artifact-promotion/outline.md)
+
+把第八篇验过的程序封成同平台归档，以摘要关联验收记录，在本机第二套隔离环境使用同一份内容，并保留可实际运行的旧版。数据规则变化后的兼容与回退在第 78 章展开。
+
+## [第 69 章 把应用和数据交给目标环境](chapter-69-target-environment/chapter.md)
 
 阅读约 20～28 分钟。已有 Debian 和交接数据时，传包、配置与前台验证另加 30～45 分钟。空机安装数据服务和迁移另加 45～85 分钟，下载与复制等待按实际数据量另计。
 
-- [支线 70A　SSH 报主机密钥变化时怎样重新接手](chapter-70-target-environment/side-01-host-key.md)
-- [支线 70B　在 Mac 托管服务并追查意外退出](chapter-70-target-environment/side-02-macos-supervision.md)
+- [支线 69A　SSH 报主机密钥变化时怎样重新接手](chapter-69-target-environment/side-01-host-key.md)
+- [支线 69B　在 Mac 托管服务并追查意外退出](chapter-69-target-environment/side-02-macos-supervision.md)
 
-## [第 71 章 让 API 和后台进程以各自身份持续运行](chapter-71-service-runtime/chapter.md)
+## [第 70 章 让 API 和后台进程以各自身份持续运行](chapter-70-service-runtime/chapter.md)
 
-阅读约 35～48 分钟。已有上一章的 Debian 前台部署时，迁移、分权、托管、断线重连与一轮缺权恢复另加 65～95 分钟。71C 跟写实现和双会话实验另计。
+阅读约 35～48 分钟。已有上一章的 Debian 前台部署时，迁移、分权、托管、断线重连与一轮缺权恢复另加 65～95 分钟。70C 跟写实现和双会话实验另计。
 
-- [支线 71A　能读资料，为什么预览头像仍会失败](chapter-71-service-runtime/side-01-runtime-diagnostics.md)
-- [支线 71B　数据库和桶在另一台机器上，谁维持连接](chapter-71-service-runtime/side-02-private-data-link.md)
-- [支线 71C　列授权怎样改变应用访问数据库的方式](chapter-71-service-runtime/side-03-database-roles.md)
+- [支线 70A　能读资料，为什么预览头像仍会失败](chapter-70-service-runtime/side-01-runtime-diagnostics.md)
+- [支线 70B　数据库和桶在另一台机器上，谁维持连接](chapter-70-service-runtime/side-02-private-data-link.md)
+- [支线 70C　列授权怎样改变应用访问数据库的方式](chapter-70-service-runtime/side-03-database-roles.md)
 
-## [第 72 章 让客户端通过可信入口访问服务](chapter-72-service-access/chapter.md)
+## [第 71 章 让客户端通过可信入口访问服务](chapter-71-service-access/chapter.md)
 
-阅读约 30～40 分钟。已有第 71 章部署、可路由私网和练习账号时，签发、配置及客户端交付另加 55～80 分钟。72.4 故障对照另加 15～25 分钟，后台改密核对另加 10～20 分钟。估时按正文、命令和一次顺利操作估算，首次环境准备另计。证书诊断与换证回退按需选读。
+阅读约 30～40 分钟。已有第 70 章部署、可路由私网和练习账号时，签发、配置及客户端交付另加 55～80 分钟。71.4 故障对照另加 15～25 分钟，后台改密核对另加 10～20 分钟。估时按正文、命令和一次顺利操作估算，首次环境准备另计。证书诊断与换证回退按需选读。
 
-- [支线 72A　定位浏览器的证书错误](chapter-72-service-access/side-01-certificate-diagnostics.md)
-- [支线 72B　验证签发链并演练换证回退](chapter-72-service-access/side-02-certificate-rotation.md)
+- [支线 71A　定位浏览器的证书错误](chapter-71-service-access/side-01-certificate-diagnostics.md)
+- [支线 71B　验证签发链并演练换证回退](chapter-71-service-access/side-02-certificate-rotation.md)
 
-## [第 73 章 把应用和运行环境一起交付](chapter-73-container-image/chapter.md)
+## [第 72 章 把应用和运行环境一起交付](chapter-72-container-image/chapter.md)
 
 从原生托管已经解决的启动、权限与退出问题出发，定位运行库仍随宿主变化的缺口，再用镜像保存同平台运行环境。实际构建完整 Dockerfile，核对原生模块计算、普通身份、可写目录和停止信号。阅读约 30～38 分钟，构建与机制实验另加 25～40 分钟，首次下载另计。
 
-## [第 74 章 用 Compose 接管已有服务、数据与网络](chapter-74-compose-deployment/chapter.md)
+## [第 73 章 用 Compose 接管已有服务、数据与网络](chapter-73-compose-deployment/chapter.md)
 
-保留第 72 章的库、桶与 HTTPS 来源，把三个角色交给 Compose。先解释卷与网络，再建立容器到原生数据服务的私网通路，分角色配置、停止重建，最后从同一客户端验收旧数据。阅读约 45～55 分钟，已有原生部署与镜像时操作另加 60～90 分钟。
+保留第 71 章的库、桶与 HTTPS 来源，把三个角色交给 Compose。先解释卷与网络，再建立容器到原生数据服务的私网通路，分角色配置、停止重建，最后从同一客户端验收旧数据。阅读约 45～55 分钟，已有原生部署与镜像时操作另加 60～90 分钟。
 
-## [第 75 章 通知已经积压，怎样在人来报障之前发现](chapter-75-observability/chapter.md)
+## [第 74 章 通知已经积压，怎样在人来报障之前发现](chapter-74-observability/chapter.md)
 
 阅读约 22～30 分钟，隔离取证与恢复另加 25～40 分钟；检查器的实现与接收端接入另计。
 
-## [第 76 章 定时维护漏跑或同时启动两次以后怎么办](chapter-76-maintenance-jobs/chapter.md)
+## [第 75 章 定时维护漏跑或同时启动两次以后怎么办](chapter-75-maintenance-jobs/chapter.md)
 
 按原生与容器调度定义、SQL 和三幅运行现场估计，阅读约 36～48 分钟。已有 Linux 练习机、可登录的副本和配对桶时，原生配置、断点、五分钟等待与恢复另加 50～75 分钟，容器调度接手与失败复查另加 20～30 分钟；首次复制环境和可选的整机关机演练另计。
 
-## [第 77 章 让 API 和后台进程更换凭据与签名密钥](chapter-77-rotate-credentials/chapter.md)
+## [第 76 章 让 API 和后台进程更换凭据与签名密钥](chapter-76-rotate-credentials/chapter.md)
 
-阅读约 31～43 分钟，已有 HTTPS 副本、账号及受限角色时，原生入口试切、后台对账与撤权另加 55～80 分钟，容器候选配置、逐角色重建与身份核对另加 20～30 分钟。支线 77A 的定向故障另加 25～40 分钟，77B 的旧连接对照另加 10～15 分钟。
+阅读约 31～43 分钟，已有 HTTPS 副本、账号及受限角色时，原生入口试切、后台对账与撤权另加 55～80 分钟，容器候选配置、逐角色重建与身份核对另加 20～30 分钟。支线 76A 的定向故障另加 25～40 分钟，76B 的旧连接对照另加 10～15 分钟。
 
-## [第 78 章 备份保存的是完整恢复能力](chapter-78-backups/chapter.md)
+## [第 77 章 备份保存的是完整恢复能力](chapter-77-backups/chapter.md)
 
 阅读约 22～30 分钟，小型副本恢复另加 40～65 分钟。
 
-## [第 79 章 发布、迁移与回退](chapter-79-compatible-release/chapter.md)
+## [第 78 章 发布、迁移与回退](chapter-78-compatible-release/chapter.md)
 
 阅读约 20～28 分钟，隔离发布与回退另加 45～70 分钟。
 
-## [第 80 章 原主机失联以后，哪些业务能先恢复](chapter-80-disaster-recovery/outline.md)
+## [第 79 章 原主机失联以后，哪些业务能先恢复](chapter-79-disaster-recovery/outline.md)
 
 沿已验证的备份与版本记录，在另一主机恢复；先隔离旧写入者，再核对数据、外部投递和业务恢复时间。
 
-## [第 81 章 第九篇回顾：接手一次原因未知的报障](chapter-81-operations-review/outline.md)
+## [第 80 章 第九篇回顾：接手一次原因未知的报障](chapter-80-operations-review/outline.md)
 
 从用户报障自行决定取证与处置，保留事故后的合法写入，并在故障条件改变后重新判断。
 
 ## 知识支线
 
-- [支线 77A　固定来源，让两个实例交叉签发与验证](chapter-77-rotate-credentials/side-01-hmac.md)
-- [支线 77B　让旧会话跨过禁止登录的时刻](chapter-77-rotate-credentials/side-02-connections.md)
-- [支线 78A　回到误操作之前，再把一条业务记录修回现在](chapter-78-backups/side-01-pitr.md)
+- [支线 76A　固定来源，让两个实例交叉签发与验证](chapter-76-rotate-credentials/side-01-hmac.md)
+- [支线 76B　让旧会话跨过禁止登录的时刻](chapter-76-rotate-credentials/side-02-connections.md)
+- [支线 77A　回到误操作之前，再把一条业务记录修回现在](chapter-77-backups/side-01-pitr.md)
 
-[第八篇导读](../part-08-maintenance/README.md) · [中部独立交付](../middle-capstone/chapter-82-booking/outline.md) · [全书目录](../README.md)
+[第八篇导读](../part-08-maintenance/README.md) · [中部独立交付](../middle-capstone/chapter-81-booking/outline.md) · [全书目录](../README.md)

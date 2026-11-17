@@ -352,7 +352,7 @@ ORDER BY a.pid;
 
 ### 只拿走计数表的一项能力
 
-表所有者和超级用户能绕过普通授权，不能用它们演示REVOKE。使用配套 `database/chapter-41-shared-auth-limit/` 中的角色准备和观察脚本，在VERIFY建立独立运行角色；它拥有当前API必要的业务权限，但不拥有表、不继承表所有者。角色与主机用户是两件事，本章先验证数据库身份，第71章再完整拆分API、邮件和通知进程身份。
+表所有者和超级用户能绕过普通授权，不能用它们演示REVOKE。使用配套 `database/chapter-41-shared-auth-limit/` 中的角色准备和观察脚本，在VERIFY建立独立运行角色；它拥有当前API必要的业务权限，但不拥有表、不继承表所有者。角色与主机用户是两件事，本章先验证数据库身份，第 70 章再完整拆分API、邮件和通知进程身份。
 
 在Mac终端用既有psql连接本轮VERIFY，下面的主机、端口、所有者和库名按自己的恢复记录填写，不能从将要测试的API连接串里反推目标。psql的准备入口见[环境指南](../../environment-setup.md#homebrew-与数据库程序)。
 
@@ -368,7 +368,7 @@ CREATE ROLE epp41_api LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 
 接着在psql输入 `\password epp41_api`，按两次隐藏提示设置本轮独立密码；这个反斜线命令由psql处理，不粘到DBeaver SQL编辑器。退出用 `\q`。把密码填入只留本机的运行配置，URL保留字符按第20章编码，文件模式保持0600，不打印连接串。
 
-在DBeaver的VERIFY维护连接打开 `database/chapter-41-shared-auth-limit/00-runtime-grants.sql`，把其中 `epp_ch41_verify` 换成已核对的实际库名，再执行。它逐张列出当前API的SELECT、创建、改密和会话撤销权限；计数表单独授CRUD，没有给整个public中所有对象一次性授权。原登录事务对users使用FOR UPDATE，PostgreSQL因此要求至少一列UPDATE权限；本章临时角色只给id列，外键限制仍生效，但这也意味着该角色并非绝对只读用户表。第71章用专门的只读锁定视图进一步缩小这项能力，不能把当前中间阶段称为最终最小权限方案。
+在DBeaver的VERIFY维护连接打开 `database/chapter-41-shared-auth-limit/00-runtime-grants.sql`，把其中 `epp_ch41_verify` 换成已核对的实际库名，再执行。它逐张列出当前API的SELECT、创建、改密和会话撤销权限；计数表单独授CRUD，没有给整个public中所有对象一次性授权。原登录事务对users使用FOR UPDATE，PostgreSQL因此要求至少一列UPDATE权限；本章临时角色只给id列，外键限制仍生效，但这也意味着该角色并非绝对只读用户表。第 70 章用专门的只读锁定视图进一步缩小这项能力，不能把当前中间阶段称为最终最小权限方案。
 
 把A、B的DATABASE_URL改为这个新角色、同一个VERIFY，停止原API后重启。用原账号登录并读旧素材200，确认角色能真实运行；表owner仍应是迁移身份。然后只选中以下REVOKE执行，GRANT留作独立恢复步骤：
 

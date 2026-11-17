@@ -242,7 +242,7 @@ checkout 决定这次检查的源码，setup-node 读取项目指定版本。cac
 
 读者有自己的 GitHub 练习仓库时，把完整代码、锁文件、两份快照和工作流放在同一个提交。打开仓库的 **Actions → Build and verify**，核对触发的分支与提交；从 PR 的 **Checks** 也可以进入具体运行。展开 build 下第一个红色步骤。若显示清单与锁不一致，回到相同 Node 版本下确认依赖改动、有意更新锁；若显示 Missing or stale snapshot，则按上一节核对源头与生成结果。后面的步骤因前一步失败被跳过，灰色步骤还没有给出业务结论。修好后用新提交的检查记录交接。重新运行旧提交会使用旧源码，适合排查一次短暂的下载故障，无法带上你工作区刚修的文件。没有远程仓库时，本机仍可跑相同 npm 命令与交付演练。
 
-最后回到接班现场。若 API 已报告 ready、CLI 收据也能读到，但登录开始变慢，新的构建编号只能帮你钉住运行的版本。要判断是密码计算、连接池等待还是数据库查询耗时，还要观察执行中的服务。第 66 章从这些读数继续。
+最后回到接班现场。若 API 已报告 ready、CLI 收据也能读到，但登录开始变慢，新的构建编号只能帮你钉住运行的版本。要判断是密码计算、连接池等待还是数据库查询耗时，还要观察执行中的服务。第 65 章从这些读数继续。
 
 [支线 64A　同一份锁文件能复用哪一层产物](side-01-platform-artifacts.md)
 
@@ -261,4 +261,4 @@ checkout 决定这次检查的源码，setup-node 读取项目指定版本。cac
 
 阅读约 48～64 分钟，已有 PostgreSQL 18 时，从干净目录构建、运行、制造差异再恢复另加 65～90 分钟。有自己的 GitHub 仓库时配置并检查一次远程运行另加 10～18 分钟，网络下载与 runner 排队另计。按正文代码、两图和实操步骤估算。
 
-[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-64) · [上一章：为后台操作提供可靠的管理命令](../chapter-63-account-cli/chapter.md) · [下一章：把验过的那份运行制品从验收环境交给发布环境](../chapter-65-artifact-promotion/outline.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)
+[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-64) · [上一章：为后台操作提供可靠的管理命令](../chapter-63-account-cli/chapter.md) · [下一章：调试性能与资源问题](../chapter-65-performance/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)
