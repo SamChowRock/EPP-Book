@@ -21,6 +21,8 @@
 | 第 44、47 章选做 | [微信开发者工具](#真实平台登录选做)（Mac） | 导入小程序，使用真实 AppID 联调 |
 | 第 50 章选读 | [沿用Git、PostgreSQL客户端、DBeaver、Postman、Mailpit与浏览器](#第-50-章分别升级两种历史)（Mac） | 分别备份恢复两种非空历史；可选8350观察页只持有本机私有配置，无新增软件 |
 | 第 51 章 | [邮件 Worker](#让独立进程寄信)（随项目运行） | 把入队后的邮件交给 Mailpit；第 55 章再启动通知角色 |
+| 第 54 章选读 | [Svix 2.10.0、独立回执进程](#第-54-章准备发送记录与签名回执)（随项目安装；Mac） | 在独立数据库副本验证发送记录、签名与重复回执，沿用Mailpit |
+| 第 54 章真实邮箱选做 | [Resend账号、已验证发信域与受控收件箱](#第-54-章准备发送记录与签名回执)；[cloudflared](#第-54-章临时接收公网回执选做)（临时回调选用，Mac） | 取得外部接受与实际收件证据，让供应商访问独立HTTPS回执入口 |
 | 第 59 章 | [sharp 0.35.5、libvips](#让-api-生成并保存头像)（随项目安装） | 解码图片并生成 WebP 预览 |
 | 第 60 章 | [SeaweedFS 4.52](#启动私有存储)（Mac） | 给头像提供私有存储，重启后仍能读回原文件 |
 | 第 64 章 | [Biome、Prisma 生成器辅助包](#5-从开发目录交付一份可运行的服务)（随项目安装） | 检查代码和生成文件；远程运行 GitHub Actions 属选做 |
@@ -216,6 +218,42 @@ SELECT current_database(), current_user,
 第 51 章开始，API 把邮件写入数据库，由独立的邮件 Worker 取出并投递。寄信用的 Nodemailer 随项目依赖安装。即使 API 已经接受注册请求，收件箱也要等 Worker 工作才会有信。沿用前面的 Mailpit，在项目根目录把 `database/chapter-43/worker.env.example` 复制为 `.env.worker`，填入与 API 相同的练习库以及本轮 SMTP 端口。
 
 在两个项目终端分别执行 `nvm use`，一边运行 `npm run dev`，另一边运行 `npm run dev:worker -- epp_ch43_verify`，末尾换成实际练习库名。调试 API 连 `9229`，调试 Worker 连 `9230`。第 55 章复用 Worker 入口，选择 `notifications` 角色，处理结果在数据库的站内收件箱查看。[第 51 章 Worker 启动与调试](part-06-background/chapter-51-worker/chapter.md) · [第 55 章站内通知](part-06-background/chapter-55-notifications/chapter.md)
+
+### 第 54 章准备发送记录与签名回执
+
+第53章的 Mailpit 接受应答只覆盖本机 SMTP。第54章新增发送明细和独立回执进程，用签名确认异步通知来自预期供应商。仍在开发 Mac 操作；先按[备份与恢复](#用备份建立练习副本)把停写的53库恢复到独立 `epp_ch54_verify`，原主线库保留。不要用空库替代已有账号与消息的升级对照。
+
+Node仍为24.22.1。在54完成代码目录运行 `nvm use`、`npm ci`，然后 `npm ls svix`，应解析到2.10.0。Svix是随项目安装的验签库，不需全局CLI。沿53源码跟写时用 `npm install --save-exact svix@2.10.0`，一并保存锁文件。正文的本机签名请求还会验证库确实能核验原始字节，而非只检查版本号。[Svix JavaScript实现](https://github.com/svix/svix-webhooks/tree/main/javascript)
+
+本机练习沿用[Mailpit安装](#在本机收取注册邮件)，为本轮单独启动 SMTP 1054、网页8054。打开浏览器输入 `http://127.0.0.1:8054`，页面可访问还不代表应用已发送；按正文发一笔新申请，在此找到那封邮件与原始头。第54章的本地供应商例子借这台Mailpit接收邮件，不连接外部邮件网络。
+
+```bash
+./mailpit --smtp 127.0.0.1:1054 --listen 127.0.0.1:8054
+```
+
+**真实邮箱路线再准备以下资源。** 在自己拥有管理权的Resend账号里添加发信子域，按该域的 Records 页逐项填写DNS记录并验证。SPF声明获准的发信来源，DKIM供收件端验证域名签署；控制台可能给出TXT、MX或CNAME等记录，以本账号显示的类型、名称和值为准，不照抄别人的DNS。选用独立发信子域，避免替换现有邮箱主域的收信记录。核对发送能力已验证，再继续。[域名状态与DNS记录](https://resend.com/docs/dashboard/domains/manage-domains)
+
+在 **API keys → Create API Key** 新建本轮凭据，选 **Sending access** 并限制到已验证的发信域。值只在创建时展示，直接保存到私有发送配置；不用全权限key运行邮件Worker。另确定自己控制并获准本次试发的收件箱。[创建发信key](https://resend.com/docs/create-an-api-key)
+
+Webhook签名密钥在添加回执入口后取得，放进另一份私有回执配置。它不是发信key。本地实验用独立随机练习密钥，不能拿本地签名事件冒充供应商投递记录。各角色配置的文件名、变量、目标库核对及启动顺序见[54.3](part-06-background/chapter-54-mail-delivery/chapter.md#543-把重复迟到和伪造回执送入入口)。
+
+### 第 54 章临时接收公网回执选做
+
+只做本机实验时跳过此节。外部供应商无法访问你Mac的回环地址；临时联调可以让cloudflared主动连接公网，再把HTTPS请求转到本机独立回执端口3354。已有可用的HTTPS回执主机时直接复用，不需安装连接器，也不需先学后面的Debian部署。
+
+在Mac终端运行 `command -v cloudflared` 和 `cloudflared --version`。没有时，用已准备的Homebrew运行 `brew install cloudflared`，再检查版本；也可从官方页下载匹配芯片的Darwin发行包。使用官方当前支持的版本。[macOS安装](https://developers.cloudflare.com/tunnel/downloads/)
+
+先沿正文的本机步骤生成独立练习签名密钥并启动回执进程，暂时不启动外部邮件发送者。在Mac用下面的请求确认唯一入口会拒绝未签名请求，预期400，而不是连接失败。再开单独终端启动Quick Tunnel；仅指向3354，不能换成API、Mailpit或观察页的端口。
+
+```bash
+curl -i -X POST http://127.0.0.1:3354/webhooks/resend \
+  -H 'Content-Type: application/json' --data-binary '{}'
+cloudflared tunnel --url http://127.0.0.1:3354
+```
+
+终端给出临时HTTPS域名，把它与 `/webhooks/resend` 拼接后填入 Resend **Webhooks → Add Webhook**。选择本章的 sent、delivered、delivery_delayed、bounced、complained 事件，取得该入口签名密钥，更新私有回执配置并重启接收进程。真实事件后在控制台看该次HTTP响应，数据库按同一个svix-id核对落地；只看到连接器在线不算接入完成。[创建Webhook](https://resend.com/docs/webhooks/create-webhook)
+
+Quick Tunnel用于临时开发，域名随重启改变，没有持续可用保证；改名后要同步平台入口。不能加要求浏览器邮箱验证码的访问门禁，自动回调无法通过，身份由正文验签保证。结束后停连接器，并在平台停用临时回执入口；长期运行改用稳定入口与运维方案。[Quick Tunnel边界](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/)
 
 ### 让 API 生成并保存头像
 

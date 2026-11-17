@@ -309,6 +309,6 @@ RETURNING id, status, retain_from;
 
 [上一章：安全领取任务与识别过期执行者](../chapter-52-claims/chapter.md)
 
-[下一章：选读：追踪一封事务邮件的实际送达与异步退信](../chapter-54-mail-delivery/outline.md)
+[下一章：选读：追踪一封事务邮件的实际送达与异步退信](../chapter-54-mail-delivery/chapter.md)
 
 [核心路线继续第 55 章](../chapter-55-notifications/chapter.md)

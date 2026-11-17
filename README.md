@@ -302,9 +302,9 @@
 
 阅读约 45～60 分钟，实现、升级与故障实验另加 75～105 分钟（估算）。
 
-#### [第 54 章 选读：追踪一封事务邮件的实际送达与异步退信](part-06-background/chapter-54-mail-delivery/outline.md)
+#### [第 54 章 选读：追踪一封事务邮件的实际送达与异步退信](part-06-background/chapter-54-mail-delivery/chapter.md)
 
-选读章 · [章节提要](part-06-background/chapter-54-mail-delivery/outline.md)
+阅读约 90～115 分钟，实现、非空升级与本地回执演练另加 130～170 分钟；真实域名、供应商与受控邮箱联调另加 45～75 分钟，不含域名验证等待（估算）。在第53章独立副本练习，第55章仍接原主线。
 
 #### [第 55 章 先让通知成为可查询的数据](part-06-background/chapter-55-notifications/chapter.md)
 
