@@ -2,7 +2,9 @@
 
 “我选了新头像，页面还显示原来那座灯塔。同事打开我的资料卡，连灯塔都看不到。”值班同事补充：“桶里的 WebP 越来越多，我可以把今天多出来的几张删了吗？”
 
-先完成第 58～60 章。本章沿用[第 60 章完成代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-60)、同一套数据库结构、请求集合和本机私有桶。先用交接材料作决定，再用自己的两个练习账号复现。阅读约 30～40 分钟。已有第 60 章环境时，联调与故障复现另加 40～60 分钟。复查可以次日接着做，中间等待不计入操作时间。
+先完成第 58～61 章。本章沿用[第 61 章完成代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-61)、同一套数据库结构、请求集合和本机私有桶。先用交接材料作决定，再用自己的两个练习账号复现。阅读约 30～40 分钟。已有第 61 章环境时，联调与故障复现另加 40～60 分钟。复查可以次日接着做，中间等待不计入操作时间。
+
+第 61 章的两份只读清单可以帮助发现本章尚未知晓的对象；先核对完整性和来源，再按这里的用户与尝试 ID 缩小范围。未跟踪键继续保留交接，不能直接作为清理器输入。
 
 ## 62.1 接手这张报障单
 
@@ -76,7 +78,7 @@ ORDER BY w.created_at DESC, w.id DESC;
 
 ## 62.3 让三种中断留下不同的证据
 
-先停止前面为这个 VERIFY 启动的 API，存储和数据库继续运行。普通终端和调试终端都从同一份第 60 章项目根启动，使用相同的构建、VERIFY 和桶。先跑一次 `npm run check`。以下 Bash 函数在两个终端各定义一次；把预期库名换成自己的建库记录。先检查 3360、3361、9229 空闲，遇到已有监听先辨认归属。
+先停止前面为这个 VERIFY 启动的 API，存储和数据库继续运行。普通终端和调试终端都从同一份第 61 章项目根启动，使用相同的构建、VERIFY 和桶。先跑一次 `npm run check`。以下 Bash 函数在两个终端各定义一次；把预期库名换成自己的建库记录。先检查 3360、3361、9229 空闲，遇到已有监听先辨认归属。
 
 ```bash
 start_avatar_api() {
@@ -103,7 +105,7 @@ start_avatar_api() {
 **第二次，让字节到达后，发布进程退出。** 终端二运行 `start_avatar_api 3361 --inspect=127.0.0.1:9229`，记下它打印的 Node PID。普通浏览器打开 `http://127.0.0.1:3361/docs`，在这个 Swagger 会话用主人身份登录，查 `GET /profile/me`，再取 `GET /auth/csrf`。在写接口展开 **Try it out**，X-EPP-Request 下拉选 1，在 X-CSRF-Token 输入框填这个会话刚取到的值。上传时在 Request body 选 image/png，再用文件选择器打开 harbor.png。Postman 保持连接 3360，两边各自登录；Filer 继续用独立访客窗口。
 
 1. 用 VS Code attach 或 Chrome 的 `chrome://inspect` 连上 9229。在 `src/avatar-publication.ts` 的 publish 方法，给 `return this.transaction('publishAvatar', …)` 设断点，位置见[第 60.6 节的实拍](../chapter-60-avatar-storage/chapter.md#606-在删除以前先取得处置权)。从 3361 的 Swagger 对 `POST /profile/avatar` 选 PNG 并 Execute。命中时只看变量 `id`，记为 Q。
-2. 让进程停在这里。Filer 刷新应能找到 Q；DBeaver 重跑查询应见 Q 是 writing，P 是 current。3360 的 Postman 再发 26，应该还能取得 P。图 62-2、52-3 就是在这个窗口取的。此处先保留 Q。即使网格里的 due 显示 false，去另一个终端输入清理命令时也可能已过五分钟；届时它能撤回预订并删除 Q，下一步便观察不到原先的现场。
+2. 让进程停在这里。Filer 刷新应能找到 Q；DBeaver 重跑查询应见 Q 是 writing，P 是 current。3360 的 Postman 再发 26，应该还能取得 P。图 62-2、62-3 就是在这个窗口取的。此处先保留 Q。即使网格里的 due 显示 false，去另一个终端输入清理命令时也可能已过五分钟；届时它能撤回预订并删除 Q，下一步便观察不到原先的现场。
 3. 从第三个终端只向刚打印的 **3361 那个 Node PID** 执行 `kill -KILL 实际PID`。Swagger 失去应答。3360 继续运行，此时再发 26、再查库：旧引用仍在，Q 的字节也还在。一般网络断线可能发生在提交之后；这次能定位到提交前，是因为我们看见了断点在哪里。
 4. 现在代表主人明确选一次新图：在 3360 的 Postman 发 20、15，25 换成 harbor.jpg 并把 Content-Type 改为 image/jpeg。记新返回的版本 R。数据库应显示 R 是 current，Q 已 retired。用下一节的单笔命令只处理 Q，然后回 Filer 刷新，确认 Q 消失、R 仍在。P 刚从 current 退役时还有旧签名的保护时间，别拿它代替 Q 试删。
 
@@ -167,4 +169,4 @@ node --env-file=.chapter51-store/app.env database/chapter-51/head-avatar.mjs "$a
 | 指定 ID 已处理 1 项 | 区分删除时是否本来就不存在、稍后是否有 PUT，保留退役记录和下一次复查时间。 |
 | 对象数增长而本轮批处理 0 项 | 检查可处置行的期限、锁与所属数据库。未知来源的对象需要独立对账。 |
 
-[本章沿用的第 60 章代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-60) · [上一章：从头像记录与私有桶的差异追查缺件和多件](../chapter-61-object-reconcile/outline.md) · [第七篇导读](../README.md) · [全书目录](../../README.md) · [下一章：为后台操作提供可靠的管理命令](../../part-08-maintenance/chapter-63-account-cli/chapter.md)
+[本章沿用的第 61 章代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-61) · [上一章：从头像记录与私有桶的差异追查缺件和多件](../chapter-61-object-reconcile/chapter.md) · [第七篇导读](../README.md) · [全书目录](../../README.md) · [下一章：为后台操作提供可靠的管理命令](../../part-08-maintenance/chapter-63-account-cli/chapter.md)

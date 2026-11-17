@@ -25,6 +25,7 @@
 | 第 54 章真实邮箱选做 | [Resend账号、已验证发信域与受控收件箱](#第-54-章准备发送记录与签名回执)；[cloudflared](#第-54-章临时接收公网回执选做)（临时回调选用，Mac） | 取得外部接受与实际收件证据，让供应商访问独立HTTPS回执入口 |
 | 第 59 章 | [sharp 0.35.5、libvips](#让-api-生成并保存头像)（随项目安装） | 解码图片并生成 WebP 预览 |
 | 第 60 章 | [SeaweedFS 4.52](#启动私有存储)（Mac） | 给头像提供私有存储，重启后仍能读回原文件 |
+| 第 61 章 | [沿用 Node、PostgreSQL 客户端、DBeaver、Postman、Chrome 与 SeaweedFS](#为头像核对建立独立观察身份)（Mac） | 配对非空副本，用独立只读身份分页清点；无新增软件 |
 | 第 64 章 | [Biome、Prisma 生成器辅助包](#5-从开发目录交付一份可运行的服务)（随项目安装） | 检查代码和生成文件；远程运行 GitHub Actions 属选做 |
 | 第 64 章 | [Bash](#用-bash-与可选-mac-托管)（Mac 自带）；[launchd、iTerm2](#用-bash-与可选-mac-托管)（选做） | Bash 运行独立目录里的 API；70B 用 launchd 在 Mac 托管，iTerm2 可复现书中界面 |
 | 第 70 章 | [OpenSSH](#从-mac-建立-ssh-连接)（Mac 客户端、部署机服务端） | 从 Mac 登录另一台机器并转发请求 |
@@ -283,6 +284,16 @@ node database/chapter-51/store-probe.mjs buckets
 ```
 
 用 Chrome **访客窗口**打开 `http://127.0.0.1:18632/`，点 **buckets → avatars** 可在 Filer 管理界面查看文件。API 走的是另一个入口 `http://127.0.0.1:18633`。按章节命令加载 `.chapter51-store/app.env` 中的四项 `AVATAR_S3_*`，它们配合项目安装的 AWS SDK 访问对象；`admin.env` 留给建桶操作。执行 `node database/chapter-51/store-probe.mjs write`，核对应用能读回刚写入的字节，匿名读取返回 403。随后按正文重启验证并清理样图，第 62 章继续使用原来的数据和身份。[第 60 章存储与权限验证](part-07-profiles/chapter-60-avatar-storage/chapter.md)
+
+### 为头像核对建立独立观察身份
+
+第 61 章沿用第 60 章的软件与同一套头像结构。先用 `node --version`、`psql --version`、`pg_dump --version`、`pg_restore --version` 与 `.chapter51-tools/weed version` 确认 Node 24.22.1、PostgreSQL 18.x、SeaweedFS 4.52；DBeaver 和 Postman 使用原来的账号资料。所有操作在 Mac 的新练习代码目录完成，无须另一台主机。
+
+先停妥原写入者，把非空数据库恢复到新的 VERIFY，再正常停止 SeaweedFS、复制整个 `.chapter51-store`。副本与原实例不能同时占用同一组端口；不要重新初始化桶身份。恢复后用原 Cookie 读取同一资料、素材和头像，核对 ID 和图片摘要，确认库与桶成对。
+
+本章新增的 `.mjs` 工具直接使用已安装的 pg 和 AWS SDK，不需要单独构建或新守护进程。按正文先放齐 `database/chapter-61-reconcile/`，停止副本存储后运行 `init-observer.mjs`，由它首次建立 `.chapter61-private/`。再用管理员在已核对的副本执行 `readonly.sql`，通过 psql 隐藏提示设置观察角色密码。DBeaver 新连接只选这个观察角色，确认指定列可读、其他列和更新被拒。对象观察身份只获 List/Read，API 原身份保持。
+
+观察配置分别在私有 `db.env` 与 `s3.env`，不要把 API 配置替换成它们；取消终端已有的同名 `RECONCILE_` 变量后再加载。首次两份分页结果都显示完整、来源正确，生成的静态 HTML 可直接在本机 Chrome 打开；无需启动网页服务器。扫描中断时保留不完整文件，另取新文件重扫。详见[第 61 章的配置、权限核对与第一次清点](part-07-profiles/chapter-61-object-reconcile/chapter.md#611-为对账准备两份独立清单)。
 
 ## 5. 从开发目录交付一份可运行的服务
 

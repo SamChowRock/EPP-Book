@@ -684,4 +684,4 @@ NODE_ENV=test node --env-file=.env.test-regression --test --test-concurrency=1 t
 | 到期的 retired | 允许继续处置且此后不可发布，数据库状态单独不能回答远端还有没有对象 |
 | 回环端口、Filer 元数据和 Volume | 区分应用入口与内部服务，准备持久化与恢复时要保护能重新连接名字和字节的全部事实 |
 
-[第 60 章完成代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-60) · [上一章：安全地接收和处理头像](../chapter-59-avatar/chapter.md) · [下一章：从头像记录与私有桶的差异追查缺件和多件](../chapter-61-object-reconcile/outline.md) · [第七篇导读](../README.md) · [全书目录](../../README.md)
+[第 60 章完成代码](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-60) · [上一章：安全地接收和处理头像](../chapter-59-avatar/chapter.md) · [下一章：从头像记录与私有桶的差异追查缺件和多件](../chapter-61-object-reconcile/chapter.md) · [第七篇导读](../README.md) · [全书目录](../../README.md)

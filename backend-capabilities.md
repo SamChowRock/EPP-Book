@@ -37,7 +37,7 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | [第 16 章](part-03-postgresql/chapter-16-json-file/chapter.md) | 沿用存储契约，用两个独立进程固定旧快照覆盖顺序；区分文件完整替换、更新保留与持久性，按原 ID 和已知输入恢复，判断进程内队列的边界。 |
 | [第 30 章](part-04-consistency/chapter-30-write-retry/chapter.md)、[第 34 章](part-04-consistency/chapter-34-paging-upgrade/chapter.md) | 重发创建与追加请求，检查业务记录是否重复。保留旧全量契约，新增签名游标入口；逐项比较有序ID，失败后重读原页，说明实时集合为何不同于快照，并用消费者调用证据判定迁移何时可以收尾。 |
 | [第 41 章](part-05-identity/chapter-41-shared-limit/chapter.md)、[第 50 章](part-06-background/chapter-50-login-integration/chapter.md)、[第 54 章](part-06-background/chapter-54-mail-delivery/chapter.md) | 用两个真实API的末格竞争、重启和定向撤权核对共享登录额度，解释规则锁、语句快照、数据库时间与容量。选读登录接线分别升级两种非空历史，用原 Cookie/Bearer、素材与消息 ID 验证身份和任务延续，区分源码合并、结构升级与业务合库；选读邮件交付在53独立副本建立逐次尝试和签名事实，区分accepted、收件服务器接收与业务确认；按原始字节验签、唯一事件去重、邮件ID关联及地址代次处理乱序与恢复，真实邮箱交付单独取得收件证据。55仍接53主线。 |
-| [第 61 章](part-07-profiles/chapter-61-object-reconcile/outline.md)、[第 65 章](part-08-maintenance/chapter-65-artifact-promotion/outline.md) | 按尝试 ID 对照私有桶与数据库的两份清单。另从制品摘要查回当时验过的运行包，在发布副本核对相同入口。 |
+| [第 61 章](part-07-profiles/chapter-61-object-reconcile/chapter.md)、[第 65 章](part-08-maintenance/chapter-65-artifact-promotion/outline.md) | 用独立只读身份分页取得私有桶与数据库两份清单，先核对完整性与观察时间，再按用户和尝试 ID 复查；区分缺件、权限失败与并发发布。另从制品摘要查回当时验过的运行包，在发布副本核对相同入口。 |
 | [第 67 章](part-08-maintenance/chapter-67-pg-maintenance/outline.md)、[第 68 章](part-08-maintenance/chapter-68-bad-data/outline.md) | 从长事务、旧行版本与表空间读数选择维护时机。让一条坏记录只影响相关读取，核对其余业务与修复后的历史。 |
 | [第 70 章](part-09-deployment/chapter-70-target-environment/chapter.md)、[第 71 章](part-09-deployment/chapter-71-service-runtime/chapter.md)、[第 76 章](part-10-operations/chapter-76-maintenance-jobs/chapter.md)、[第 72 章](part-09-deployment/chapter-72-service-access/chapter.md)、[第 77 章](part-10-operations/chapter-77-rotate-credentials/chapter.md) | 从 SSH 目标、运行角色和维护任务识别另一主机的责任。分别验证名称与证书、每个角色的新连接；固定 Cookie 和 Origin 交叉验证 CSRF 与游标，按任务 ID 验收后台切换，并区分禁止旧登录与终止旧会话。 |
 | [支线 78A](part-10-operations/chapter-78-backups/side-01-pitr.md) | 先恢复到隔离时间点，保留事故之后的合法写入，从副本提取并修复受影响的记录。 |
@@ -247,7 +247,7 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | 第四篇 · 第 36 章 | 第 25～35 章 | 改变竞争顺序并重试，用数据库事实核对采纳；迁移到有限名额预约 | 从固定用户转向身份与资源权限 |
 | [第五篇 · 第 48 章](part-05-identity/chapter-48-review/chapter.md) | 第 37～43 章；平台登录按所选分支 | 两账号、过期会话和凭据变化下核对权限；多入口只核对已接入部分 | 将同步邮件改造为可靠投递 |
 | 第六篇 · 第 57 章 | 第 49～56 章 | 沿一次重置申请和确认，分别判断寄信中断时能否接手、通知未生成时如何接续、浏览器断线后怎样恢复视图 | 扩展到对象写入与补偿 |
-| [第七篇 · 第 62 章](part-07-profiles/chapter-62-review/chapter.md) | 第 58～60 章 | 从报障独立取证，用同一 ID 核对当前引用与对象；复现预览中断、发布前退出和清理后的迟到写入，识别单笔处置与整桶维护的边界 | 用管理命令维护和排查已有服务 |
+| [第七篇 · 第 62 章](part-07-profiles/chapter-62-review/chapter.md) | 第 58～61 章 | 从报障独立取证，用同一 ID 核对当前引用与对象；复现预览中断、发布前退出和清理后的迟到写入，识别单笔处置与整桶维护的边界 | 用管理命令维护和排查已有服务 |
 | [第八篇 · 第 63 章](part-08-maintenance/chapter-63-account-cli/chapter.md) | 第 39、51、60～62 章 | 用一次性命令暂停或恢复 Web 资格，依据收据与原会话区分历史操作和当前状态，判断重复、冲突与过期审批 | 在干净目录交付 CLI 与其他运行入口 |
 | [第八篇 · 第 64 章](part-08-maintenance/chapter-64-build-ci/chapter.md) | 第 12、20、51、63 章 | 在干净目录用生产依赖启动 API、Worker 和 CLI，定位漏件；核对生成图与实际外键、契约源与快照，把同样的检查接入 CI | 区分构建故障与运行中的资源瓶颈 |
 | [第八篇 · 第 66 章](part-08-maintenance/chapter-66-performance/chapter.md) | 第 28、35、37、53、56、64 章 | 在释放前区分池排队与库内锁等待，用 CPU、保留对象、查询计划和有界负载解释优化选择 | 在交付现场复查相同症状是否同因 |
