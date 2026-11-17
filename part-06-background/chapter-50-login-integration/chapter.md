@@ -144,9 +144,15 @@ npm run check
 
 脚本会连接实际目标查询 `current_database()`；Shell 外层同名变量会覆盖 env 文件，所以先清除覆盖值。DBeaver 重新查询两条基线：旧迁移记录的名称、摘要和完成时间保持，44 副本只增加发件箱迁移，49 副本只增加小程序迁移。后者旧 users 新增 `mini_enabled=false`，旧 sessions 新增 `channel='web'`，这两个默认值是在给历史事实补上明确含义；其他旧字段逐值保持，不能因多了列就把整行差异都当成合理。
 
-再分别运行一次 `deploy`，应报告没有待应用迁移。它说明迁移入口可以重复执行，不代表每份业务数据都已验证。用同一版本的 PostgreSQL 客户端导出结构，不带数据、所有者和授权：
+再分别运行一次 `deploy`，应报告没有待应用迁移。它说明迁移入口可以重复执行，不代表每份业务数据都已验证。新终端不继承 50.1 的 Shell 变量；导出前先恢复当时选定的同一个私有目录、实际 PostgreSQL 实例及数据库拥有者。下面四项均须与 50.1 的实际值一致（若当时改过目录、主机或端口，这里也使用改后的原值），不要重新执行 `mkdir`、备份或恢复，继续核对已经升级的三个副本。用同一版本的 PostgreSQL 客户端导出结构，不带数据、所有者和授权：
 
 ```bash
+lab_dir="$HOME/epp-ch50-private"
+pg_host=127.0.0.1
+pg_port=5432
+pg_owner=你的练习数据库拥有者
+: "${lab_dir:?请恢复50.1的私有目录}" "${pg_host:?请恢复50.1的实际主机}" \
+  "${pg_port:?请恢复50.1的实际端口}" "${pg_owner:?请恢复50.1的数据库拥有者}"
 for name in mini outbox fresh; do
   pg_dump -h "$pg_host" -p "$pg_port" -U "$pg_owner" -W \
     -d "epp_ch50_$name" --schema-only --no-owner --no-acl \
