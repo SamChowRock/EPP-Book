@@ -36,7 +36,7 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | --- | --- |
 | [第 16 章](part-03-postgresql/chapter-16-json-file/chapter.md) | 沿用存储契约，用两个独立进程固定旧快照覆盖顺序；区分文件完整替换、更新保留与持久性，按原 ID 和已知输入恢复，判断进程内队列的边界。 |
 | [第 30 章](part-04-consistency/chapter-30-write-retry/chapter.md)、[第 34 章](part-04-consistency/chapter-34-paging-upgrade/chapter.md) | 重发创建与追加请求，检查业务记录是否重复。保留旧全量契约，新增签名游标入口；逐项比较有序ID，失败后重读原页，说明实时集合为何不同于快照，并用消费者调用证据判定迁移何时可以收尾。 |
-| [第 41 章](part-05-identity/chapter-41-shared-limit/outline.md)、[第 50 章](part-06-background/chapter-50-login-integration/outline.md)、[第 54 章](part-06-background/chapter-54-mail-delivery/outline.md) | 从两个 API 观察同一登录额度。选读登录接线用原账号和收件箱验证身份延续；选读邮件交付按供应商消息和退信事件追到实际邮箱。 |
+| [第 41 章](part-05-identity/chapter-41-shared-limit/chapter.md)、[第 50 章](part-06-background/chapter-50-login-integration/outline.md)、[第 54 章](part-06-background/chapter-54-mail-delivery/outline.md) | 用两个真实API的末格竞争、重启和定向撤权核对共享登录额度，解释规则锁、语句快照、数据库时间与容量。选读登录接线用原账号和收件箱验证身份延续；选读邮件交付按供应商消息和退信事件追到实际邮箱。 |
 | [第 61 章](part-07-profiles/chapter-61-object-reconcile/outline.md)、[第 65 章](part-08-maintenance/chapter-65-artifact-promotion/outline.md) | 按尝试 ID 对照私有桶与数据库的两份清单。另从制品摘要查回当时验过的运行包，在发布副本核对相同入口。 |
 | [第 67 章](part-08-maintenance/chapter-67-pg-maintenance/outline.md)、[第 68 章](part-08-maintenance/chapter-68-bad-data/outline.md) | 从长事务、旧行版本与表空间读数选择维护时机。让一条坏记录只影响相关读取，核对其余业务与修复后的历史。 |
 | [第 70 章](part-09-deployment/chapter-70-target-environment/chapter.md)、[第 71 章](part-09-deployment/chapter-71-service-runtime/chapter.md)、[第 76 章](part-10-operations/chapter-76-maintenance-jobs/chapter.md)、[第 72 章](part-09-deployment/chapter-72-service-access/chapter.md)、[第 77 章](part-10-operations/chapter-77-rotate-credentials/chapter.md) | 从 SSH 目标、运行角色和维护任务识别另一主机的责任。分别验证名称与证书、每个角色的新连接；固定 Cookie 和 Origin 交叉验证 CSRF 与游标，按任务 ID 验收后台切换，并区分禁止旧登录与终止旧会话。 |
@@ -137,6 +137,8 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 [第39章](part-05-identity/chapter-39-authorization/chapter.md)分开会话身份、入口资格与资源归属。旧账号迁移保留资格，新账号默认不开通；第二账号从数据库配置与图形请求观察跨用户404、许可撤销403和同一Cookie恢复200。登录与改密按用户、凭据、会话顺序持锁，区分配置先提交与敏感事务先持锁的结果；普通在途业务仍可能完成，暂停资格不代替撤销会话或完整冻结。 [支线39A](part-05-identity/chapter-39-authorization/side-01-authorization-models.md)以独立资料库场景展开有范围的角色、成员关系与资源状态，从模型推导动作判断、列表与批量边界，并比较撤销时的入口检查与事务排序；EPP主线保持个人归属，读者可以据需求变化判断何时扩展。
 
 [第40章](part-05-identity/chapter-40-browser-boundary/chapter.md)把浏览器携带Cookie、跨源读取许可与服务端写入保护分开。已有会话的写请求绑定CSRF Token，登录使用来源检查、固定头和JSON契约；用同站不同端口实测简单POST、预检和GET的不同结果。继续复用正文上限与密码并发占位，把限流来源接到显式代理信任；单进程额度与本机代理实验不替代共享计数、TLS或网络隔离。可按Network、错误码、安全日志和数据库事实定位失败，并在重启、换会话后恢复Token。 限流讲解用窗口边界突发与双实例竞争反例区分窗口次数、持续速率和并发占位，说明滑动记录、令牌桶与共享原子计数各自解决的条件，不把换存储当作自动取得全站限额。
+
+[第41章](part-05-identity/chapter-41-shared-limit/chapter.md)把来源次数与本机密码并发分开，用READ COMMITTED下独立取锁、锁后取时和下一条语句快照协调同桶与新来源总容量。改变条件为两个实例、进程重启、999行后两个新来源、定向撤去计数表权限，判断何时429、何时503，以及为何旧会话仍能读取。正文同时解释固定窗口边界突发、NAT共享、全规则锁的吞吐代价、提交未知与一致升级条件；扩大规模或换Redis时仍须保留原子决定与失败语义，不能把换存储等同于完成保护。
 
 [第42章](part-05-identity/chapter-42-verified-signup/chapter.md)从未验证输入推导联系信息与验证意图，分别在空库和非空旧库核对迁移，保留旧身份与数据，建立用途绑定、原子重发、锁后到期判断与一次消费。[第43章](part-05-identity/chapter-43-registration/chapter.md)在重置时同时核对凭据版本并撤销会话，不改变账号状态或Web资格；实际SMTP收件箱、图形请求与数据库事实分开判断，解释202、发送失败及提交后漏发窗口，为第49章Outbox提供具体前提。[支线43A](part-05-identity/chapter-43-registration/side-01-recovery-identity.md)再改变联系方式、秘密空间与恢复权限，推导联系版本、短码尝试预算和渠道失守的后果；不把本地邮箱闭环外推为短信、渠道改绑或公网投递已经接入。
 

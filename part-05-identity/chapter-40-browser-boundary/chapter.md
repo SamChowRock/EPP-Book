@@ -495,7 +495,7 @@ DROP_SUCCESS_ONCE=true node examples/write-retry/server.mjs
 
 沿第38章独立产物步骤，只复制dist、package.json、锁文件与.npmrc，干净安装运行依赖，提供VERIFY、持久CURSOR_HMAC_KEY及准确APP_ORIGIN，再用npm start启动另一个未占用端口。实验页与转发脚本不随dist交付。先用Postman核对登录、旧记录、Token、缺失Token拒绝、正常退出、退出后401；生产默认/docs关闭，无Inspector，SIGTERM正常排空并释放数据库连接。安装成功和开发网页成功分别回答不同问题。
 
-本章保留单实例、同源入口；代理信任需要真实拓扑与网络限制，公网HTTPS和多实例统一额度在相应部署工作中落实。第 42 章增加公开注册与验证、第 43 章接入密码恢复时，复用这些边界，再为新增入口选择自己的额度和一次性凭据规则，不把“没有登录Cookie”误认为“不需要保护”。
+本章保留单实例、同源入口；代理信任需要真实拓扑与网络限制，多实例统一额度在下一章接入数据库；公网HTTPS在部署篇落实。第 42 章增加公开注册与验证、第 43 章接入密码恢复时，复用这些边界，让新增密码入口沿用第41章的共享来源额度，并另行检查邮箱冷却和一次性凭据规则，不把“没有登录Cookie”误认为“不需要保护”。
 
 ## 附录：本章必要技术点速查
 
@@ -517,4 +517,4 @@ DROP_SUCCESS_ONCE=true node examples/write-retry/server.mjs
 
 本章完成代码分支：`part-05/chapter-40`，起点：`part-05/chapter-39`。
 
-[下一章：两个 API 实例如何共用登录额度](../chapter-41-shared-limit/outline.md) · [上一章：鉴权与授权 登录了也不代表能操作](../chapter-39-authorization/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)
+[下一章：两个 API 实例如何共用登录额度](../chapter-41-shared-limit/chapter.md) · [上一章：鉴权与授权 登录了也不代表能操作](../chapter-39-authorization/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)

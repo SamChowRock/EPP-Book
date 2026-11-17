@@ -16,6 +16,7 @@
 | 第 25 章 | [pg_dump、pg_restore](#用备份建立练习副本)（PostgreSQL 18 自带） | 把原库备份并恢复到独立练习库 |
 | 第 30 章 | [沿用Chrome、Postman、DBeaver与Node](#第-30-章在同一页签恢复待确认的提交)（Mac） | 通过回环页面和故障代理观察刷新恢复；固定身份夹具只用于独立VERIFY副本 |
 | 第 34 章 | [沿用Chrome、Postman、DBeaver与Node](#第-34-章比较旧列表与分页读取)（Mac） | 比较全量与分页、模拟一次续页失败；使用独立VERIFY和已有签名密钥 |
+| 第 41 章 | [沿用Node、PostgreSQL、psql、Postman、DBeaver与浏览器](#第-41-章让两个-api-共用登录额度)（Mac） | 两个正式API接同一VERIFY，观察末格竞争及计数表撤权；无新增软件 |
 | 第 42 章 | [Mailpit 1.33.0](#在本机收取注册邮件)（Mac） | 用本地收件箱完成注册验证，第 43 章继续用它收重置邮件 |
 | 第 44、47 章选做 | [微信开发者工具](#真实平台登录选做)（Mac） | 导入小程序，使用真实 AppID 联调 |
 | 第 51 章 | [邮件 Worker](#让独立进程寄信)（随项目运行） | 把入队后的邮件交给 Mailpit；第 55 章再启动通知角色 |
@@ -172,6 +173,14 @@ SELECT current_database(), current_user,
 ## 4. 为登录、寄信和头像接上本机服务
 
 数据库准备好后，大部分章节沿用原来的开发环境，只在使用新功能时补配置。第 33 章为签名游标设置 `CURSOR_HMAC_KEY`，生产运行要保存这把密钥。第 38 章为浏览器请求设置 `APP_ORIGIN`，填写用户实际访问的协议、主机和端口。到注册验证时，API 才第一次需要另一个程序接走邮件。
+
+### 第 41 章让两个 API 共用登录额度
+
+第40章的Map只记当前进程；多开一个API后，第41章把来源额度移入已有PostgreSQL。所有操作仍在Mac完成，不需要先准备Linux、Docker或Redis。沿前面的备份步骤恢复一个独立、UTF8的非空VERIFY，保留原账号和素材，在DBeaver核对主机、端口、库名、角色及 `SHOW server_encoding`。
+
+在代码目录执行 `nvm use`、`node --version`、`npm ci`，版本应为24.22.1。先用第40章构建观察旧Map，再按第41章正文停旧API、追加迁移并构建。API与迁移配置分别核对同一个VERIFY；两API复用持久CURSOR_HMAC_KEY，APP_ORIGIN均为 `http://127.0.0.1:8341`。A/B监听3341/3342，各终端应有不同PID的app.started。第三个终端执行 `node examples/shared-auth-limit/server.mjs`，浏览器打开 `http://127.0.0.1:8341`；它只发送固定虚构错误凭据，真实登录仍用原Postman集合。页面提示启动但请求显示链路错误时，先查两个API的监听和APP_ORIGIN，不要反复点击消耗额度。
+
+定向撤权使用新建非所有者数据库角色，按正文用psql隐藏提示设置密码，并执行随书逐对象授权SQL；先验证角色可以正常登录和读取，启动API后才撤计数表权限，结束必须恢复。本轮不对日常库或超级用户做撤权实验。进入[第41章正文](part-05-identity/chapter-41-shared-limit/chapter.md)。
 
 <a id="第-43-章用-mailpit-收信"></a>
 

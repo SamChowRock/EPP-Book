@@ -1,6 +1,8 @@
 # 第 42 章 从一封验证邮件建立账号
 
-前章保护了浏览器入口。过去只能由维护者创建账号，现在让用户自己提交邮箱，证明能收到一封特定的邮件，然后选择密码。本章的交付结果是一个经过邮箱验证、默认尚未开通 Web 使用资格的账号。保留它的 ID，下一章将用它测试丢失密码以后怎样找回同一账号。
+第40章保护了浏览器入口，第41章让两个API共用数据库里的来源额度。本章从 `part-05/chapter-41` 继续。过去只能由维护者创建账号，现在让用户自己提交邮箱，证明能收到一封特定的邮件，然后选择密码。本章的交付结果是一个经过邮箱验证、默认尚未开通 Web 使用资格的账号。保留它的 ID，下一章将用它测试丢失密码以后怎样找回同一账号。
+
+先把第41章故障实验用的epp41_api连接留在独立文件中，本章开发API恢复原开发身份并核对同一VERIFY；该临时角色没有新注册表和凭据version列的授权，不能直接沿用。第71章再统一配置正式运行角色。
 
 本章的完成快照只公开注册请求与确认，已有登录入口继续可用。下一章沿用同一套数据库结构和底层验证服务，再接上两条密码重置路由。两章只应用一次共同迁移。阅读约 95～115 分钟，迁移、接线、收信与注册验证另加约 95～125 分钟。
 
@@ -119,9 +121,9 @@ node --env-file=.env.database-verify scripts/deploy-verify.mjs bootstrap "$verif
 npm run db:verify -- migrate status
 ```
 
-为什么有两次 deploy 的输出？Prisma 按目录名排序，`20261106003600_registration_recovery` 要修改的密码表却到 `20261106090000_password_credentials` 才创建。已应用的目录名和 SQL 校验和保存在历史表里，直接重命名会让既有库的历史断开。脚本先用实际迁移连接执行 `SELECT current_database()`，与末尾独立给出的库名逐字比对，不一致即退出。给隔离副本起区别于日常库的名字；当两个实例里有同名库时，还要独立核对目标主机、端口和角色。空库模式还检查 public 中是否已有关系、类型或函数，然后把截至第 40 章的 13 项迁移原名、原字节复制到临时目录，在同一目标部署。第二次使用当前分支完整目录，Prisma 跳过历史中已完成的项，按序应用注册及本分支后续迁移。最后应看到迁移状态已是最新。无需切换分支，分段初始化适用于后续各登录分支。
+为什么有两次 deploy 的输出？Prisma 按目录名排序，`20261106003600_registration_recovery` 要修改的密码表却到 `20261106090000_password_credentials` 才创建。已应用的目录名和 SQL 校验和保存在历史表里，直接重命名会让既有库的历史断开。脚本先用实际迁移连接执行 `SELECT current_database()`，与末尾独立给出的库名逐字比对，不一致即退出。给隔离副本起区别于日常库的名字；当两个实例里有同名库时，还要独立核对目标主机、端口和角色。空库模式还检查 public 中是否已有关系、类型或函数，然后把注册依赖的13项历史基础迁移原名、原字节复制到临时目录，在同一目标部署。第二次使用当前分支完整目录，Prisma 跳过历史中已完成的项，按序应用注册、后补的第34章写回执、第41章共享额度以及本分支其他未完成迁移。最后应看到迁移状态已是最新。无需切换分支，分段初始化适用于后续各登录分支。
 
-非空副本使用上面的 `deploy` 模式。它检查第 40 章基线历史，再执行普通 `prisma migrate deploy`；明确选定的日常库或交付库也用同一脚本，改用该目标的配置文件（或已注入的进程环境）和独立记录的库名。shell 已导出的变量优先于 Node 加载的 env 文件，库名参数应取自建库或恢复计划，不能从 URL 截取。若部署曾失败，先查 `migrate status`、实际表和历史，再按第 23 章恢复；不要改写旧 SQL、清空历史或在半成品库上重跑空库引导。空库没有旧用户，检验旧凭据或素材仍需恢复非空副本。继续下面的练习前，将配置和预期库名切回该副本。
+非空副本使用上面的 `deploy` 模式。它检查这13项历史基础迁移的完成记录，再执行普通 `prisma migrate deploy`；明确选定的日常库或交付库也用同一脚本，改用该目标的配置文件（或已注入的进程环境）和独立记录的库名。shell 已导出的变量优先于 Node 加载的 env 文件，库名参数应取自建库或恢复计划，不能从 URL 截取。若部署曾失败，先查 `migrate status`、实际表和历史，再按第 23 章恢复；不要改写旧 SQL、清空历史或在半成品库上重跑空库引导。空库没有旧用户，检验旧凭据或素材仍需恢复非空副本。继续下面的练习前，将配置和预期库名切回该副本。
 
 在 `DatabaseService.onModuleInit` 原来的凭据检查中加入 `version:true`，并检查 `verifiedEmail.findMany({take:1})` 与 `verificationIntent.findMany({take:1})`。这样漏迁移会在启动阶段暴露，避免旧登录碰巧能用、第一次注册才报“关系不存在”。此刻可以暂停，下一次从迁移状态和旧记录开始，不重建数据库、不重置旧密码。
 
@@ -375,7 +377,7 @@ return accepted;
 
 不要因为这些路由“公开”就跳过第40章防护。它们不使用Cookie身份，因此 `sessionBoundary` 在原登录例外旁加入 `RECOVERY_PATHS`（跟写到此时只含两个注册路径） 后直接继续，不要求当前会话的CSRF令牌；即使浏览器恰好带了某个Cookie，也不能把恢复目标换成该Cookie的用户。前置的 `browserBoundary` 仍检查来源、Fetch Metadata、`X-EPP-Request:1`；后面的Body边界仍要求JSON、16KiB以内和严格Schema。
 
-同步以下已有入口，避免Controller存在却被前面的中间件挡住：`httpBoundary` 把本章的两条注册路径登记为仅POST；`authRateLimit` 把它们加入已有每IP每分钟10次的共享窗口；`requestObservation` 加固定路由标签；OpenAPI增加本章的两条注册匿名操作与请求／响应Schema，新路由不宣称需要Cookie或 `X-CSRF-Token`。别把所有 `/auth/*` 都匿名放行，`/auth/password` 仍需要有效会话。
+同步以下已有入口，避免Controller存在却被前面的中间件挡住：`httpBoundary` 把本章的两条注册路径登记为仅POST；`authRateLimit` 把它们加入第41章 `password-auth/v1` 的同一来源共享窗口（十次／60秒）；`requestObservation` 加固定路由标签；OpenAPI增加本章的两条注册匿名操作与请求／响应Schema，新路由不宣称需要Cookie或 `X-CSRF-Token`。这些路径在两个API间共用同一张计数表，新增的邮箱冷却没有替代来源额度；计数不可用返回503/AUTH_RATE_UNAVAILABLE。别把所有 `/auth/*` 都匿名放行，`/auth/password` 仍需要有效会话。
 
 在 `AuthModule` 增加Controller及工厂：
 
@@ -441,6 +443,6 @@ await import("./scripts/dev.mjs");
 
 暂停时结束自己的调试连接并停止 API 与 Mailpit。恢复实践时，在同一 VERIFY 查到已验证邮箱和用户 ID，再用当前密码登录一次；此时即可直接进入已有账号恢复。
 
-[上一章：两个 API 实例如何共用登录额度](../chapter-41-shared-limit/outline.md) · [下一章：恢复已有账号并撤销旧会话](../chapter-43-registration/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)
+[上一章：两个 API 实例如何共用登录额度](../chapter-41-shared-limit/chapter.md) · [下一章：恢复已有账号并撤销旧会话](../chapter-43-registration/chapter.md) · [第五篇导读](../README.md) · [全书目录](../../README.md)
 
 [本章配套代码](https://github.com/SamChowRock/epp-public/tree/part-05/chapter-42)

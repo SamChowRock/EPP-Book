@@ -88,6 +88,8 @@ GRANT UPDATE (paused_by) ON public.verification_mail_control TO epp_mail;
 GRANT INSERT (id,user_id,kind,created_at) ON public.notifications TO epp_notify;
 ```
 
+第41章的共享密码额度也由API身份执行。`grants.sql` 给 `epp_api` 对 `auth_rate_buckets` 的SELECT、INSERT、UPDATE、DELETE；DELETE用于每次最多100行的过期清理。邮件与通知不获这组权限，计数表探针只在API模块运行。两个API及第77章继承API权限的新登录仍指向同一个库和规则；仅能启动不能证明写计数已获授权，应复用41章的真实末格与定向撤权实验。
+
 第 30 章的 `CaptureCommands` 现在也由 API 身份执行。授权脚本额外给予 `capture_write_receipts` 九列的 SELECT、INSERT，完整列为 `user_id, action, operation_id, capture_id, fingerprint, status_code, response, location, recorded_at`，不授 UPDATE、DELETE。读旧回执时，它先对当前归属的 captures 行 `FOR SHARE`；`GRANT UPDATE (chinese_intent) ON public.captures TO epp_api` 满足锁定查询至少可更新一列的要求，同时保留本来允许修改中文意图的业务。邮件、通知均不读素材写入回执，新表的启动检查放在它们专用启动路径的提前返回之后。第 77 章的新 API 登录通过原 API 角色继承这些授权，不能只换密码而漏执行基角色的新授权。
 
 用独立练习库验证授权时，先按第 30 章保存一笔带键写入的原键、原正文与原结果；经本章 API 重放，应取得原 ID 或原修订号。以 API 数据库身份尝试 UPDATE、DELETE 回执应被拒绝。只在独立副本临时撤回新表 INSERT，再用新键写入，业务和回执应同时回滚；恢复原列授权后原键才可完成。不要拿生产历史回执测试删除，也不要把邮件、通知启动失败用授予新表权限来掩盖。

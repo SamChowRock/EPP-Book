@@ -228,9 +228,9 @@
 
 **时间参考（估算）**：阅读约130～160分钟；编码、浏览器联调与产物核对另加140～180分钟。
 
-#### [第 41 章 两个 API 实例如何共用登录额度](part-05-identity/chapter-41-shared-limit/outline.md)
+#### [第 41 章 两个 API 实例如何共用登录额度](part-05-identity/chapter-41-shared-limit/chapter.md)
 
-[章节提要](part-05-identity/chapter-41-shared-limit/outline.md)
+阅读约110～135分钟；编码、双实例竞争与故障恢复另加110～150分钟。
 
 #### [第 42 章 从一封验证邮件建立账号](part-05-identity/chapter-42-verified-signup/chapter.md)
 
