@@ -390,9 +390,9 @@
 
 第八篇已经得到可以交付的程序。本篇先把已验制品晋级到发布环境，再完成原生进程、权限、托管与 HTTPS 交付，随后从运行环境差异和重复部署的问题演进到 Docker 镜像与 Compose。随后在同一部署中建立观测、维护调度、凭据轮换与可恢复备份，接着在原主机失联和故障原因未知的条件下恢复、接班，以第 80 章综合回顾收束。
 
-#### [第 68 章 把验过的那份运行制品从验收环境交给发布环境](part-09-deployment/chapter-68-artifact-promotion/outline.md)
+#### [第 68 章 把验过的那份运行制品从验收环境交给发布环境](part-09-deployment/chapter-68-artifact-promotion/chapter.md)
 
-[章节提要](part-09-deployment/chapter-68-artifact-promotion/outline.md)
+阅读约 32～42 分钟；已有非空配对副本时，双环境晋级与退回操作另加 55～80 分钟。首次复制数据、下载与准备旧包另计。
 
 #### [第 69 章 把应用和数据交给目标环境](part-09-deployment/chapter-69-target-environment/chapter.md)
 

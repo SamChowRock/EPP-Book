@@ -69,7 +69,7 @@ console.log('Deleted or already absent:', deleted, 'Failed:', failed);
 if (failed) process.exitCode = 1;
 ```
 
-这次清理程序加了逐项日志，上次归档的摘要不会标识这份新程序。按[第 68 章的制品验收与晋级](../chapter-68-artifact-promotion/outline.md)，在与目标相容的构建环境运行 `nvm use`、`npm ci`、`npm run ci:check`，确认 TS 已进入 dist。封包前把同一版的 `database/chapter-51/clean.mjs` 及其导入的 `scripts/verify-database.mjs` 按这两个相对路径放进待打包目录，一同交付 dist、清单、锁文件、.npmrc 和本平台生产依赖。只交付 dist 会找不到清理脚本。等下文的受限身份备好，先从新解开的验收副本选仍当前的 Q 跑单笔命令，预期领取零行，Q 仍可读。验好后记录该包摘要。在目标机新建 root 管理的 `/opt/epp73/release`，核摘要、解包，以[第 70 章的受限身份](../chapter-70-service-runtime/chapter.md#702-把运行身份目录和配置交给系统)运行。生产 Node 可沿用 `/opt/epp72/node/bin/node`。
+这次清理程序加了逐项日志，上次归档的摘要不会标识这份新程序。按[第 68 章的制品验收与晋级](../chapter-68-artifact-promotion/chapter.md)，在与目标相容的构建环境运行 `nvm use`、`npm ci`、`npm run ci:check`，确认 TS 已进入 dist。封包前把同一版的 `database/chapter-51/clean.mjs` 及其导入的 `scripts/verify-database.mjs` 按这两个相对路径放进待打包目录，一同交付 dist、清单、锁文件、.npmrc 和本平台生产依赖。只交付 dist 会找不到清理脚本。等下文的受限身份备好，先从新解开的验收副本选仍当前的 Q 跑单笔命令，预期领取零行，Q 仍可读。验好后记录该包摘要。在目标机新建 root 管理的 `/opt/epp73/release`，核摘要、解包，以[第 70 章的受限身份](../chapter-70-service-runtime/chapter.md#702-把运行身份目录和配置交给系统)运行。生产 Node 可沿用 `/opt/epp72/node/bin/node`。
 
 **用哪个账号删除？** 清理 SQL 需要读当前头像指针、锁住写入记录、修改两列。它不需要登录用户、读邮箱、改当前指针或在数据库中删除记录。在隔离实例上用管理员建立新的普通角色 `CREATE ROLE epp_cleanup LOGIN;`，用 psql 的 `\password epp_cleanup` 隐藏输入独立口令。连接本轮库，以有权授权的所有者执行下列 SQL。配套 `examples/maintenance/grants.sql` 先对照 `\set expected_db epp_ch73_handoff` 和实际库名，匹配后才在同一事务发放这些权限。
 

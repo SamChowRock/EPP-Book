@@ -58,15 +58,15 @@ uname -s
 
 ## 69.2 把已验程序送到空主机
 
-现在 SSH 已能登录。部署端还没有 EPP，先取第 67 章验收的程序路径、实际提交和平台。若已有同系统、同架构、同 libc 和同 Node 版本的 Linux 运行归档，按[第 68 章的制品约定](../chapter-68-artifact-promotion/outline.md)核对交接摘要，把原包解到新 release。归档根应有 dist、package.json、package-lock.json、.npmrc 和 node_modules。从 Mac 起步时，sharp 和 argon2 的原生模块属于 Darwin，下面在 Debian 为同一程序安装 Linux 生产依赖。
+现在 SSH 已能登录。部署端还没有 EPP，先取第 67 章验收的程序路径、实际提交和平台。若已有同系统、同架构、同 libc 和同 Node 版本的 Linux 运行归档，按[第 68 章的制品约定](../chapter-68-artifact-promotion/chapter.md)核对交接摘要，把原包解到新 release。归档根应有 dist、package.json、package-lock.json、.npmrc 和 node_modules。从 Mac 起步时，sharp 和 argon2 的原生模块属于 Darwin，下面在 Debian 为同一程序安装 Linux 生产依赖。
 
 **如果手头已经有验过的 Linux 完整包**，在 Mac 的 Bash 先将 `artifact` 设为归档绝对路径。执行 `ssh -F ~/.ssh/epp71.conf epp-lab 'umask 077; mkdir "$HOME/epp71"'`，成功后用 `scp -F ~/.ssh/epp71.conf "$artifact" epp-lab:epp71/linux.tgz` 传输。在 Debian 的 Bash 进入 `cd "$HOME/epp71"`，用 `sha256sum linux.tgz` 对照交接摘要，匹配后执行 `umask 077; mkdir release work && tar -xzf linux.tgz -C release`。按下文的环境说明取得同版 Node，在 release 中用下方 require 命令验证模块，然后跳到“让部署端自己找到原数据”。回到 Mac 后仍需设置下面的 api_env 和 stage，供编辑运行配置使用。
 
 **从 Mac 产物交付时。** 取上章的 release、配置文件位置与构建来源。下面先传程序，库与桶另在同一次停写窗口交接。在 Mac 开新 Bash 页，若部署目录与示例不同，将 release 换为自己记录的路径。
 
 ```bash
-release='填第69章已验收的release绝对路径'
-api_env='填第69章源码目录中.env.handoff的绝对路径'
+release='填第68章已验收的release绝对路径'
+api_env='填第67章保留的.env.handoff绝对路径'
 stage=$(mktemp -d)
 COPYFILE_DISABLE=1 tar -czf "$stage/portable.tgz" -C "$release" dist package.json package-lock.json .npmrc
 shasum -a 256 "$stage/portable.tgz"
@@ -212,4 +212,4 @@ WHERE r.operation_id = '本轮暂停UUID'::uuid
 
 阅读约 20～28 分钟。已有 Debian 和交接数据时，传包、配置与前台验证另加 30～45 分钟。空机安装数据服务和迁移另加 45～85 分钟，下载与复制等待按实际数据量另计。
 
-[沿用配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 把验过的那份运行制品从验收环境交给发布环境](../chapter-68-artifact-promotion/outline.md) · [下一章 · 让 API 和后台进程以各自身份持续运行](../chapter-70-service-runtime/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[沿用配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 把验过的那份运行制品从验收环境交给发布环境](../chapter-68-artifact-promotion/chapter.md) · [下一章 · 让 API 和后台进程以各自身份持续运行](../chapter-70-service-runtime/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

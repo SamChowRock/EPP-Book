@@ -224,4 +224,4 @@ env -u DATABASE_URL node --env-file=.env.perf examples/performance/service.mjs e
 
 阅读约 27～39 分钟。已准备好本机 PostgreSQL 18 和练习账号时，独立判断、恢复副本、干净构建和双连接复现另加 40～55 分钟。首次安装与下载另计。
 
-[本章沿用的完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66) · [上一章：一条历史坏记录应该让多少服务停下来](../chapter-66-bad-data/chapter.md) · [第八篇导读](../README.md) · [下一章 · 把验过的那份运行制品从验收环境交给发布环境](../../part-09-deployment/chapter-68-artifact-promotion/outline.md) · [全书目录](../../README.md)
+[本章沿用的完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66) · [上一章：一条历史坏记录应该让多少服务停下来](../chapter-66-bad-data/chapter.md) · [第八篇导读](../README.md) · [下一章 · 把验过的那份运行制品从验收环境交给发布环境](../../part-09-deployment/chapter-68-artifact-promotion/chapter.md) · [全书目录](../../README.md)
