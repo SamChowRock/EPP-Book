@@ -257,7 +257,7 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | [第 69 章](part-09-deployment/chapter-69-target-environment/chapter.md) | 第 64、67～68 章 | 核实目标主机、匹配运行平台，将重装依赖后的包作为新候选验收，接通独立数据并前台运行 | 从运行身份排查失败 |
 | [第 70 章](part-09-deployment/chapter-70-service-runtime/chapter.md) | 第 53、55、63、69 章 | 给 API、邮件与通知分配运行身份，托管并区分配置重载、进程重启与依赖就绪；恢复漏权并核对积压任务 | 轮换时按角色验收 |
 | [第 71 章](part-09-deployment/chapter-71-service-access/chapter.md) | 第 69～70 章 | 接通名称、TLS、代理、同源页面与签名对象地址，完成一次客户端交付 | 将已交付的原生服务演进为镜像与 Compose |
-| [第 72 章](part-09-deployment/chapter-72-container-image/chapter.md) | 第 64、67～71 章 | 由宿主运行库差异推导镜像交付，构建并检查平台、原生依赖、运行身份与停止信号 | 区分固定运行文件与维护数据、配置的责任 |
+| [第 72 章](part-09-deployment/chapter-72-container-image/chapter.md) | 第 64、67～71 章 | 由宿主运行库差异推导镜像交付，在 Desktop 与命令结果间核对平台、原生依赖、文件寿命、运行权限与停止信号 | 区分固定运行文件与维护数据、配置的责任 |
 | [第 73 章](part-09-deployment/chapter-73-compose-deployment/chapter.md) | 第 70～72 章 | 用 Compose 接管三个角色，沿请求发起位置检查私网、HTTPS、挂载和权限，重建后核对同一批旧记录 | 在原生与容器部署中定位故障、维护和恢复 |
 | [第 74 章](part-09-deployment/chapter-74-observability/chapter.md) | 第 53、55、57、71～73 章 | 在独立检查处按最老待办的等待时间触发告警，恢复后由原账号验证同一通知并收到解除 | 为维护失败与积压建立判断依据 |
 | [第 75 章](part-09-deployment/chapter-75-maintenance-jobs/chapter.md) | 第 51 章及 51A、第 60、62、70、74 章 | 用宿主计时器分别调用原生 CLI 与一次性容器，漏跑或重复启动后逐物判断剩余工作 | 区分业务上欠一份报表和需要再次扫描 |

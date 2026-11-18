@@ -39,7 +39,8 @@
 | 第 71 章 | [curl、浏览器及证书信任设置](#在独立使用设备验证入口)（独立使用设备，如另一台 Mac 上的 Chrome 与系统钥匙串） | 准备私网解析和受信根，再从浏览器登录、读写和收通知 |
 | 第 71 章证书诊断支线选做 | [Firefox ESR、libnss3-tools](#用-firefox-查看证书错误选做)（有图形会话的 Debian） | 用专用浏览器配置观察导入练习根证书前后的变化 |
 | 第 71 章公网回调选做 | [cloudflared](#为公网回调准备连接器选做)（仅选用 Cloudflare Tunnel 的常驻部署端） | 家庭主机主动连到公网入口，让平台能访问指定回调 |
-| 第 72～78 章正文 | [Docker Engine、Buildx 与 Compose](#为容器部署准备引擎与-compose)（Debian 部署机；在 Mac 练习可选 Docker Desktop） | 构建目标平台镜像，管理卷、网络和 Compose，取证、更新并恢复原数据 |
+| 第 72～78 章正文 | [Docker Engine、Buildx 与 Compose](#为容器部署准备引擎与-compose)（Debian 部署机） | 构建目标平台镜像，管理卷、网络和 Compose，取证、更新并恢复原数据 |
+| 第 72 章起的 Mac 练习 | [Docker Desktop 4.99.0](#在-mac-用-docker-desktop-管理容器)（Mac；自带 Engine、Buildx 与 Compose） | 用 Containers / Logs / Inspect 与 Builds 观察本机容器、限制配置和镜像构建 |
 | 第 72 章镜像构建 | [ca-certificates、Python 3、make、g++](#为容器部署准备引擎与-compose)（Dockerfile 的镜像阶段） | CA 集合供运行时验证出站 TLS；后三项只在构建阶段支持原生模块编译，无须在操作 Mac 另装 |
 | 第 76 章 | [复用 PostgreSQL 18、curl 和 Mailpit](#让两个实例接到同一份练习数据) | 用同一份业务数据检查两个 API、后台进程和旧连接 |
 | 支线 77A | [PostgreSQL 18 物理备份、校验与启动工具](#为隔离恢复演练准备-postgresql-18)（数据库练习主机） | 选做按时间点恢复时使用，检查基础备份并在独立数据目录回放 WAL |
@@ -47,7 +48,7 @@
 <details>
 <summary>后续选做路线和下部还会用到什么？</summary>
 
-第 72 章正文开始使用 Docker 与 Compose，接在已经完成的原生托管与 HTTPS 交付之后。第 71 章沿用已经托管的私网 HTTPS 入口，从独立设备验收。容器日志先用 Engine 自带命令读取，图形入口可使用已安装的 Docker Desktop。第十篇真实模型调用需要供应商账号、密钥和额度，第 90 章用到 pgvector，第十三篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
+第 72 章正文开始使用 Docker 与 Compose，接在已经完成的原生托管与 HTTPS 交付之后。第 71 章沿用已经托管的私网 HTTPS 入口，从独立设备验收。Mac 上优先在 Docker Desktop 查看容器与日志，Debian 部署端使用 Engine 自带命令。第十篇真实模型调用需要供应商账号、密钥和额度，第 90 章用到 pgvector，第十三篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
 
 </details>
 
@@ -597,7 +598,13 @@ Docker 服务应为 active，`version` 同时显示 Client 和 Server；Buildx �
 
 如果当前网络必须经过 HTTP 代理，终端里的 curl 能下载并不能证明引擎也能下载：CLI、Docker daemon 和构建阶段是不同的进程。按[官方 daemon 代理配置](https://docs.docker.com/engine/daemon/proxy/)为实际引擎配置可达的代理；再按[构建代理参数](https://docs.docker.com/build/building/variables/#proxy-arguments)把构建时所需代理传给安装依赖的步骤。使用 sudo 时还要确认客户端是否保留了所需代理环境。代理地址取自己的网络配置，不照抄他人的回环或虚拟机地址；不把代理凭据写进 Dockerfile 的 ENV 或项目配置。分别用 pull 和一次实际构建判断下载通路，不以换成未核验的镜像源代替排查。
 
-只在 Mac 做独立进程、卷与网络实验时，按处理器选择 [Docker Desktop 安装包](https://docs.docker.com/desktop/setup/install/mac-install/)，启动应用后在 Mac 终端运行 `docker context show`、`docker version`、`docker buildx version`、`docker compose version`，再运行 `docker run --rm hello-world`。在 Desktop 的 Containers 页面打开实验容器，可以查看 Logs、Inspect 与运行状态，再对照终端里的同一个容器 ID。关掉 Mac 后仍要交付服务时，镜像与持久数据须在持续在线的部署环境运行。
+### 在 Mac 用 Docker Desktop 管理容器
+
+在 Mac 做独立进程、卷与网络实验时，优先使用 Docker Desktop 图形界面。先在“应用程序”中查找 Docker；已有安装就打开并检查版本，无须重复安装。缺少时，按处理器选择 [Docker 官方安装包](https://docs.docker.com/desktop/setup/install/mac-install/)，Apple Silicon 选 Apple 芯片版，Intel 选 Intel 版。打开下载的磁盘映像，把 Docker.app 拖入 Applications，再从“应用程序”启动。首次启动按界面完成条款确认和安装设置；本机练习可在登录页选择 **Skip**，进入主界面后等待底部显示 **Engine running**。
+
+Desktop 已包含 Engine、Buildx 和 Compose。安装后新开一个 Mac 终端，依次运行 `docker context show`、`docker version`、`docker buildx version`、`docker compose version`。本机 Desktop 的 context 通常为 `desktop-linux`；`version` 应同时显示 Client 和 Server。若选择用户目录安装命令工具，入口在 `$HOME/.docker/bin`，须按安装界面提示加入 PATH；旧终端可能仍未加载新设置。
+
+首次运行 `docker run --name epp-install-check hello-world`，保留测试容器供界面查看。回到 **Containers → epp-install-check → Logs**，应看到 **Hello from Docker!**；它完成输出就正常退出，因此显示 **Exited (0)**。再次检查时直接打开已有容器；若重复运行同一创建命令，会因名称已占用而失败。日常从 **Containers** 查看状态、启停及打开 **Logs / Inspect**，从 **Images** 查看镜像，从 **Volumes** 查看卷；构建时在 **Builds → 本次构建 → Logs** 观察步骤与失败位置。第 72 章用真实镜像做文件寿命、权限和停止实验，第 73 章接管前再在 Debian 目标引擎验收。Desktop 管理的是 Mac 上的引擎，Debian 上的容器不会自动出现在这里。关掉 Mac 后仍要交付服务时，镜像与持久数据须在持续在线的部署环境运行。
 
 进入 Compose 应用集成前，另准备已验证的 EPP Linux 镜像、三份受限角色配置、容器可达的数据库/SMTP/对象端点，以及练习 HTTPS 所用的公开根证书。它们来自前文已有交付，不由 hello-world 自动提供。第 72 章使用 `node:24.22.1-bookworm-slim`，先拉取并记录实际摘要，再用于应用构建；不把可变标签当作固定交付凭据。Dockerfile 在 base 阶段安装 ca-certificates，在 build 阶段安装 Python 3、make、g++，用途是验证出站 TLS 和编译可能缺少预编译产物的原生依赖。最终 runtime 只复制生产依赖与完整 dist，通过镜像里的 Node 版本、argon2 和 sharp 实际运算检查这些依赖。回到[第 72 章镜像交付](part-09-deployment/chapter-72-container-image/chapter.md)，接着完成[第 73 章 Compose](part-09-deployment/chapter-73-compose-deployment/chapter.md)，再进入[第 74 章运行观测](part-09-deployment/chapter-74-observability/chapter.md)。
 

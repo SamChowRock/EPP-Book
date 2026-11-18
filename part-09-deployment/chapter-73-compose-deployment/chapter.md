@@ -4,7 +4,7 @@
 
 这次演进保持原账号、旧素材、头像与未决任务。先让容器接管 API、邮件和通知，继续使用已经托管的 PostgreSQL、SeaweedFS、Mailpit 与 nginx。数据库可以独立于应用维护，将来换成托管数据库也使用相同边界。需要把数据服务容器化时，本章的卷与恢复机制仍适用，但要另外迁移数据，不能靠换一个数据库镜像自动完成。
 
-前置代码为[第 72 章镜像交付](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-73)，本章完成配套为 `part-09/chapter-74`。在 Debian 部署端使用同一引擎、同一操作身份。先用 `command -v docker` 确认官方软件包的客户端路径为 `/usr/bin/docker`，并按 72.2 核对 Server 属于本机。新开 Bash 时先定义 `docker() { sudo /usr/bin/docker "$@"; }`，后文的 Docker 调用都经该函数执行；Mac 只作管理端。[容器引擎安装与验证](../../environment-setup.md#为容器部署准备引擎与-compose)
+前置代码为[第 72 章镜像交付](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-73)，本章完成配套为 `part-09/chapter-74`。本章在 Debian 部署端使用同一引擎、同一操作身份。若上一章先在 Mac 练习，先按[72.6 的镜像交接](../chapter-72-container-image/chapter.md#726-镜像完成之后服务还缺什么)把适合目标架构的镜像交给 Debian，并完成目标机运行检查；后文不使用 Mac Desktop 的本地镜像库。先用 `command -v docker` 确认官方软件包的客户端路径为 `/usr/bin/docker`，并按 72.2 核对 Server 属于本机。新开 Bash 时先定义 `docker() { sudo /usr/bin/docker "$@"; }`，后文的 Docker 调用都经该函数执行；Mac 只作管理端。[容器引擎安装与验证](../../environment-setup.md#为容器部署准备引擎与-compose)
 
 ## 73.1 数据为什么不能随应用一起替换
 
