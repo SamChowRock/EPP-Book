@@ -254,8 +254,8 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | [第八篇 · 第 66 章](part-08-maintenance/chapter-66-bad-data/chapter.md) | 第 25、30、34、63～65 章 | 从旧列表漏行与启动拒绝划定局部不可用范围，完成案件、检查点、证据与 CLI 接线；以原身份和可信历史验证原子修复及重放 | 交接尚未批准修复的案件、可用范围与恢复依据 |
 | [第八篇 · 第 67 章](part-08-maintenance/chapter-67-artifact-promotion/chapter.md) | 第 63～66 章 | 区分源码提交、归档摘要与可信验收记录；拒绝变化候选，以新记录区分复制历史相同的环境，并验证旧包的数据适用边界 | 将已验产物交给目标主机，区分程序回退与数据兼容 |
 | [第八篇 · 第 68 章](part-08-maintenance/chapter-68-review/chapter.md) | 第 63～67 章及支线 65B | 按操作 ID 与原会话区分历史收据和当前资格，在超时前找到阻塞者；用同一份产物分别验证 API、两种 Worker 和 CLI，区分空间回收与坏记录的处置依据，并核对归档验收和实际数据目标 | 交接已验归档、配置、配对数据、未决维护事项和连接预算，进入跨主机部署 |
-| [第 69 章](part-09-deployment/chapter-69-target-environment/chapter.md) | 第 64、67～68 章 | 核实目标主机、匹配运行平台、接通独立数据并前台运行 | 从运行身份排查失败 |
-| [第 70 章](part-09-deployment/chapter-70-service-runtime/chapter.md) | 第 53、55、63、69 章 | 给 API、邮件与通知分配运行身份，托管并检验停止与重启；恢复漏权并核对积压任务 | 轮换时按角色验收 |
+| [第 69 章](part-09-deployment/chapter-69-target-environment/chapter.md) | 第 64、67～68 章 | 核实目标主机、匹配运行平台，将重装依赖后的包作为新候选验收，接通独立数据并前台运行 | 从运行身份排查失败 |
+| [第 70 章](part-09-deployment/chapter-70-service-runtime/chapter.md) | 第 53、55、63、69 章 | 给 API、邮件与通知分配运行身份，托管并区分配置重载、进程重启与依赖就绪；恢复漏权并核对积压任务 | 轮换时按角色验收 |
 | [第 71 章](part-09-deployment/chapter-71-service-access/chapter.md) | 第 69～70 章 | 接通名称、TLS、代理、同源页面与签名对象地址，完成一次客户端交付 | 将已交付的原生服务演进为镜像与 Compose |
 | [第 72 章](part-09-deployment/chapter-72-container-image/chapter.md) | 第 64、67～71 章 | 由宿主运行库差异推导镜像交付，构建并检查平台、原生依赖、运行身份与停止信号 | 区分固定运行文件与维护数据、配置的责任 |
 | [第 73 章](part-09-deployment/chapter-73-compose-deployment/chapter.md) | 第 70～72 章 | 用 Compose 接管三个角色，沿请求发起位置检查私网、HTTPS、挂载和权限，重建后核对同一批旧记录 | 在原生与容器部署中定位故障、维护和恢复 |

@@ -11,7 +11,7 @@
 ```bash
 umask 077
 src=$(pwd -P)
-release='填第69章已验收的release绝对路径'
+release='填第67章验收并经第68章交接的Mac平台release绝对路径'
 deploy="$HOME/Library/Application Support/EPP/ch57"
 db=epp_ch56_handoff  # 换成独立建库记录上的值
 node_bin=$(command -v node)
@@ -19,7 +19,7 @@ node_bin=$(command -v node)
 ls -ld "$release/dist/src/server.js" "$release/dist/config/service.json" "$release/node_modules"
 ```
 
-Node 应与交付记录同版（本例 v24.22.1），三个路径均可读。第 68 章版本的监听固定在 127.0.0.1，正合本章与下一章的回环入口。如果你已经验过可配置 LISTEN_HOST 的第 69 章版本，也可沿用那份 release，记录实际版本。初次准备时，在 release **以外**建立私有的工作目录和配置目录：
+Node 应与交付记录同版（本例 v24.22.1），三个路径均可读。第 68 章版本的监听固定在 127.0.0.1，正合本章与下一章的回环入口。如果另从部署配套 `part-09/chapter-70` 构建并验过可配置 LISTEN_HOST 的 Mac 产物，也可沿用，记录实际版本；第 69 章在 Debian 安装依赖得到的 Linux release 不能拿回 Mac 运行。初次准备时，在 release **以外**建立私有的工作目录和配置目录：
 
 ```bash
 mkdir -p "$(dirname "$deploy")"
@@ -31,7 +31,7 @@ ls -ld "$deploy/config" "$deploy/work"
 
 ## 为运行账号授予数据库权限
 
-本机账号决定进程能否打开配置、能否在 work 写文件；PostgreSQL 则按配置中的登录角色检查 SQL。如果直接把第 68 章用于迁移的表所有者交给 API，它也就有能力改写昨天的收据。现在为应用准备一个普通登录，给两张收据表上的读与追加权限，保留原记录不被改写。第 70 章在这个基础上再把 API 与两个 Worker 分权。
+本机账号决定进程能否打开配置、能否在 work 写文件；PostgreSQL 则按配置中的登录角色检查 SQL。如果直接把第 68 章用于迁移的表所有者交给 API，它也就有能力改写昨天的收据。现在为应用准备一个普通登录，给收据表上的读与追加权限，保留原记录不被改写。第 70 章在这个基础上再把 API 与两个 Worker 分权。
 
 角色属于整个 PostgreSQL 实例，表权限则落在某一个库的具体对象上，所以这里要连接两次。先在 Bash 的源码根填入建库记录，再用有创建角色权限的管理员连接练习实例的 postgres 库：
 
@@ -65,7 +65,7 @@ psql -X -h 127.0.0.1 -p "$pg_port" -U "$pg_owner" -d "$db"
 
 `\set` 只设置 psql 变量，不会切换连接。`\i` 从启动 psql 的当前目录读取脚本，按**当前连接身份**执行。若报找不到文件，用 `\! pwd` 查看 psql 的本地工作目录；若报 Wrong deployment database，重新核对主机、端口和库名，再连到正确的库。把 expected_db 改成眼前的错误库名会失去这次保护。[psql 的命令与选项](https://www.postgresql.org/docs/18/app-psql.html)
 
-读[授权脚本](https://github.com/SamChowRock/epp-public/blob/part-09/chapter-70/examples/deployment/runtime-grants.sql)时，沿一条查收据的请求看三层授权。CONNECT 允许进入该库，USAGE 允许在 public 模式中按名找到对象，表上的 SELECT 才允许读行。脚本给两张收据表另授 INSERT，办理新操作可追加记录；它没有授 UPDATE。上述授权在同一事务中完成，预期输出以 BEGIN 开始，中间是各条 GRANT，最后是 COMMIT。看到 COMMIT 后再换运行角色验证。GRANT 会追加权限，角色以前从所有权、其他角色或 PUBLIC 得到的能力仍可能生效。
+读[授权脚本](https://github.com/SamChowRock/epp-public/blob/part-09/chapter-70/examples/deployment/runtime-grants.sql)时，沿一条查收据的请求看三层授权。CONNECT 允许进入该库，USAGE 允许在 public 模式中按名找到对象，表上的 SELECT 才允许读行。脚本给收据表另授 INSERT，办理新操作可追加记录；它没有授 UPDATE。上述授权在同一事务中完成，预期输出以 BEGIN 开始，中间是各条 GRANT，最后是 COMMIT。看到 COMMIT 后再换运行角色验证。GRANT 会追加权限，角色以前从所有权、其他角色或 PUBLIC 得到的能力仍可能生效。
 
 从所有者的 psql 用 `\q` 回到 Bash，再执行 `psql -X -h 127.0.0.1 -p "$pg_port" -U epp57_run -d "$db"`。先用 `\conninfo` 看清这次的角色，再执行下句。第一项应为 false，第二项为 true，第三项为 false。若 public 仍允许 PUBLIC 建对象，或旧角色继承了所有者权限，先在练习库清理旧授权再测。连接的数据库账号和操作系统登录账号可以不同。
 
@@ -345,11 +345,11 @@ launchctl kill SIGKILL "$domain/local.epp.ch57.api"
 
 ![三个真实 launchd 任务的状态与两次 API 就绪时的进程号](images/jobs.png)
 
-图 70B-1　API 启动过两次，通知仍在第一次运行。邮件从未启动变成启动一次、退出码 2。仅凭这几项还无法决定能不能再发。
+图 69B-1　API 启动过两次，通知仍在第一次运行。邮件从未启动变成启动一次、退出码 2。仅凭这几项还无法决定能不能再发。
 
 ![邮件通道占用、一次投递与注册通知完成的终端查询](images/data.png)
 
-图 70B-2　库里 B 的消息为 unknown，尝试一次，通道的 paused_by 指向 B。收件人可能已经收过，留住 ID 并保持停发。A 已经收到了信，完成注册后，通知任务变成 done，收件箱有同 ID 的一行。交接人可以继续启动 API 和通知，在投递查清前让邮件等待明确处置。
+图 69B-2　库里 B 的消息为 unknown，尝试一次，通道的 paused_by 指向 B。收件人可能已经收过，留住 ID 并保持停发。A 已经收到了信，完成注册后，通知任务变成 done，收件箱有同 ID 的一行。交接人可以继续启动 API 和通知，在投递查清前让邮件等待明确处置。
 
 计划停机时用 SIGTERM，观察 app.stopped 与监听释放。要研究半途上传如何清理暂存，沿[第 59 章的分块上传](../../part-07-profiles/chapter-59-avatar/chapter.md)复现；本次交付只需保留原账号、收据、头像和通道占用。
 

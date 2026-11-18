@@ -9,14 +9,14 @@ readlink active.conf  # 应为 slot-a/tls.conf
 ```
 
 ```bash
-ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:8443:127.0.0.1:8443 epp-lab
+ssh -F ~/.ssh/epp71.conf -N -o ExitOnForwardFailure=yes -L 127.0.0.1:8443:127.0.0.1:8443 epp-lab
 ```
 
-在原操作端 Bash 设置 `site=https://api.epp.test:8443`，定义 `probe=(curl -q --noproxy '*' --max-time 8 -sS -w '\nHTTP %{http_code}\n')`。若部署 API 尚未启动，按主线 71.1 启动同机上游。之后从浏览器观察下文两份现场。
+在原操作端 Bash 设置 `site=https://api.epp.test:8443`，定义 `probe=(curl -q --noproxy '*' --max-time 8 -sS -w '\nHTTP %{http_code}\n')`。这轮走本地转发，先设 `map=api.epp.test:8443:127.0.0.1`；指定根的对照命令为 `"${probe[@]}" --resolve "$map" --cacert "$lab/ca/root.crt" "$site/profile/me"`。`--resolve` 只为这次 curl 指定目的地址，不改变主线的私网解析。若部署 API 尚未启动，按主线 71.1 启动同机上游。之后从浏览器观察下文两份现场。
 
 ![Firefox 对 api.epp.test 显示的 Advanced 详情](images/unknown-issuer.png)
 
-**图 72A-1**　新建的 Firefox 配置打开正确名称时，Advanced 的末句同时提到未知签发者和服务端可能缺少中间证书。光凭这一页，还无法决定去改哪个进程或哪台客户端。
+**图 71A-1**　新建的 Firefox 配置打开正确名称时，Advanced 的末句同时提到未知签发者和服务端可能缺少中间证书。光凭这一页，还无法决定去改哪个进程或哪台客户端。
 
 下面两轮实验的第一条 curl 记录相同，都是 `60 / HTTP 000 / unable to get local issuer certificate`。手上各有一份当时签发端交接的根证书。如果只能在客户端重试一次，你会保留哪些条件，改变哪一个？什么结果会让你转去查 nginx？
 
@@ -112,14 +112,14 @@ echo "curl=$?"
 
 ![Firefox 对 other.epp.test 的错误详情显示证书只适用于 api.epp.test](images/wrong-name.png)
 
-**图 72A-2**　沿用图 72A-1 的浏览器配置，导入练习根后访问 other.epp.test。读末句 *The certificate is only valid for: api.epp.test.*，再看地址中的 other.epp.test。
+**图 71A-2**　沿用图 71A-1 的浏览器配置，导入练习根后访问 other.epp.test。读末句 *The certificate is only valid for: api.epp.test.*，再看地址中的 other.epp.test。
 
 这时修哪一处取决于一件运维工具无法替你决定的事：对外交付的名字究竟是哪一个？若交接单只承诺 api.epp.test，改正客户端地址即可。若 other.epp.test 确实也是服务承诺的入口，就要核实这个名字的归属，为两个名字签发含相应 SAN 的证书，并从两个 URL 各作一次新握手。签发者可信，只说明它签的内容可以相信；这张证书实际写了哪个名字，仍须逐个核对。[curl 的客户端验证](https://curl.se/docs/sslcerts.html)
 
 <details>
 <summary>选做：在独立 Firefox 配置中重现两张图</summary>
 
-在 Debian 练习机的图形会话中操作。首次使用时，先按[Firefox 与 NSS 的准备步骤](../../environment-setup.md#用-firefox-查看证书错误选做)安装 Firefox ESR 和 libnss3-tools。操作端先执行 `scp "$lab/ca/root.crt" epp-lab:epp75-edge/root.crt`。两端分别对自己这份文件执行 `openssl x509 -in 文件名 -noout -fingerprint -sha256`，与签发时记下的值核对。部署端新建配置，使这两个名字只在本次浏览器映到回环，禁用该配置的代理与加密 DNS。若从第三台机器打开，先给那台机器建立到入口的本地转发。
+在 Debian 练习机的图形会话中操作。首次使用时，先按[Firefox 与 NSS 的准备步骤](../../environment-setup.md#用-firefox-查看证书错误选做)安装 Firefox ESR 和 libnss3-tools。操作端先执行 `scp -F ~/.ssh/epp71.conf "$lab/ca/root.crt" epp-lab:epp75-edge/root.crt`。两端分别对自己这份文件执行 `openssl x509 -in 文件名 -noout -fingerprint -sha256`，与签发时记下的值核对。部署端新建配置，使这两个名字只在本次浏览器映到回环，禁用该配置的代理与加密 DNS。若从第三台机器打开，先给那台机器建立到入口的本地转发。
 
 ```bash
 profile=$(mktemp -d)
@@ -140,10 +140,10 @@ certutil -L -d "sql:$profile"
 firefox-esr --no-remote --profile "$profile" 'https://api.epp.test:8443/profile/me'
 ```
 
-打开正确名称，看 EPP 的 JSON。再把同一地址栏改为 `https://other.epp.test:8443/profile/me`，观察图 72A-2 的两处名称。保留配置目录，收尾时还要从它撤掉信任。
+打开正确名称，看 EPP 的 JSON。再把同一地址栏改为 `https://other.epp.test:8443/profile/me`，观察图 71A-2 的两处名称。保留配置目录，收尾时还要从它撤掉信任。
 
 </details>
-做过 Firefox 对照的读者，还可以趁入口在线验证撤去信任的效果。退出练习 Firefox，执行 `certutil -D -d "sql:$profile" -n EPP75-Practice-Root`，用 `certutil -L -d "sql:$profile"` 确认练习根已移除。用同一配置重新打开正确 URL。本轮它又回到图 72A-1 的拒绝页。若先停 nginx，这个实验就只能得到连接失败，区分不了是谁撤回了信任。
+做过 Firefox 对照的读者，还可以趁入口在线验证撤去信任的效果。退出练习 Firefox，执行 `certutil -D -d "sql:$profile" -n EPP75-Practice-Root`，用 `certutil -L -d "sql:$profile"` 确认练习根已移除。用同一配置重新打开正确 URL。本轮它又回到图 71A-1 的拒绝页。若先停 nginx，这个实验就只能得到连接失败，区分不了是谁撤回了信任。
 
 
 完成回环故障实验后，在部署端执行 `"$nginx_bin" -s quit -p "$edge/" -c nginx.conf`，等监听释放，再关闭本次 SSH 转发。若回到主线，保留已生成的 active.conf 链接、签发材料和 API。

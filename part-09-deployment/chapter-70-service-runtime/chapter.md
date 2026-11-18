@@ -32,7 +32,7 @@ application_name 是程序给连接填的标签，usename 是 PostgreSQL 实际�
 
 每个角色得到的授权要覆盖它真正执行的 SQL。通知处理需要在检查账号状态时持锁，而 PostgreSQL 对直接锁表行还有更新权限要求。因此完成版使用由表所有者定义的带锁视图，让通知角色经过该入口读取状态。API 注册时则只提交允许自己决定的字段，将初始资格留给数据库默认值。权限收窄与访问代码必须同时交付；只换密码、换启动用户，运行的仍是原来的权限范围。
 
-这些改动在[支线 71C](side-03-database-roles.md)逐段实现，解释列授权、视图权限、并发锁及 ORM 默认列之间的关系。跟写应用时先完成该支线，再回这里构建。部署练习可直接检出完成版，并沿下节给同一程序分配身份。
+这些改动在[支线 70C](side-03-database-roles.md)逐段实现，解释列授权、视图权限、并发锁及 ORM 默认列之间的关系。跟写应用时先完成该支线，再回这里构建。部署练习可直接检出完成版，并沿下节给同一程序分配身份。
 
 在操作端本章快照 `part-09/chapter-71` 或已完成上述修改的构建目录，执行 `nvm use`、`npm ci`、`npm run ci:check`。完成版的构建包含新的访问代码，旧库仍需追加视图。下一节先升级练习副本，再启动新版消费者。
 
@@ -321,13 +321,17 @@ sudo -u epp-mail env -i /opt/epp72/node/bin/node --env-file=/etc/epp72/mail.env 
 
 维护时执行 `sudo systemctl stop epp72-api`。这是管理器主动停止，Restart=on-failure 不会立即把它拉起。Node 收到 TERM 后停止接新请求并收尾；用 `systemctl show epp72-api -p ActiveState -p ExecMainStatus` 和 journal 的 app.stopped 核对退出，再用 `ss -lnt` 确认 3374 已释放。TimeoutStopSec 给正常收尾留出 40 秒，超过后管理器可强行终止，因此停止成功还需对照应用是否完成收尾。正常停止后执行 `sudo systemctl start epp72-api`，重发原会话请求。邮件和通知可分别 stop，停止邮件时还应检查当时在途那笔工作的持久状态。[systemd 启停与重启策略](https://manpages.debian.org/trixie/systemd/systemd.service.5.en.html)
 
+改完文件后，还要分清谁在读它。修改 unit 的 User、ExecStart 或 WorkingDirectory，先运行 `sudo systemctl daemon-reload`，再 restart 受影响的服务；daemon-reload 不会替已经运行的 Node 换身份或参数。只改 `/etc/epp72/api.env` 时，Node 在下次启动才重新读文件，因此需要 `sudo systemctl restart epp72-api`，不必仅为这份 env 重载 unit。两种情况都重新核对 MainPID、app.ready 和原会话请求；读到文件新值不能证明旧进程已经采用它。
+
+`After=network.target` 只表达启动顺序，不证明数据库、桶和 SMTP 已能接受业务连接。本章在依赖就绪后才 start；开机时仍可能先遇到连接失败。普通失败会按策略重试，但宿主管理器的启动频率限制也可能停止继续拉起。若 status 显示 start-limit-hit，先从 journal 找到最初的连接或配置错误，修好后对该 unit 执行 `sudo systemctl reset-failed 单元名`，再明确 start 并复验。reset-failed 只清失败状态与启动计数，不修配置，也不解除邮件库中的 unknown 占用；邮件仍须先取得继续投递的依据。[systemd 启动频率限制](https://manpages.debian.org/trixie/systemd/systemd.unit.5.en.html)
+
 交接记录写下三个 unit 的 User、WorkingDirectory、配置位置、实际库与桶，以及邮件是否允许继续投递。用已有观察连接按原 ID 读回收据即可。若接班人需要从命令行只读查收据，[70A 的独立观察身份](side-01-runtime-diagnostics.md#为只读收据命令分配身份选做)给出权限更窄的入口。
 
 保持 `epp72-api` 使用原私有工作目录和 api.env 运行。在 Debian 上执行 `curl -g --noproxy '*' 'http://[::1]:3374/profile/me'`，匿名请求应得到 AUTH_REQUIRED。再从原客户端经 13358 的入口用旧会话读资料并打开头像。下一章就让 nginx 把带名 HTTPS 请求转给这个已经验证的 HTTP 监听。留下已恢复工作的通知进程；邮件按这次通道处置的结论交接，有 unknown 占用时保持停发并记录原 ID。
 
-若数据库和桶必须留在另一台固定主机，[支线 71B](side-02-private-data-link.md)在同一组进程下换一种数据通路。
+若数据库和桶必须留在另一台固定主机，[支线 70B](side-02-private-data-link.md)在同一组进程下换一种数据通路。
 
-出现“能读资料，预览却失败”时，可转入[支线 71A](side-01-runtime-diagnostics.md)沿同一次请求分清来源、工作目录与存储端点。
+出现“能读资料，预览却失败”时，可转入[支线 70A](side-01-runtime-diagnostics.md)沿同一次请求分清来源、工作目录与存储端点。
 
 ## 附录：本章必要技术点速查
 
@@ -340,8 +344,8 @@ sudo -u epp-mail env -i /opt/epp72/node/bin/node --env-file=/etc/epp72/mail.env 
 | 缺权限还是缺数据 | SQLSTATE 42501；同一任务 ID 的 pending／done 与收件箱行 | 先缩小到身份、对象、动词，再按原 ID 复验 |
 | 一次停发是否应该重启 | systemd 的 RestartPreventExitStatus、邮件占用及尝试记录 | 确认外部投递结果和通道处置后再启动 |
 
-阅读约 35～48 分钟。已有上一章的 Debian 前台部署时，迁移、分权、托管、断线重连与一轮缺权恢复另加 65～95 分钟。70C 跟写实现和双会话实验另计。
+阅读约 39～52 分钟。已有上一章的 Debian 前台部署时，迁移、分权、托管、断线重连与一轮缺权恢复另加 65～95 分钟。70C 跟写实现和双会话实验另计。
 
 本章使用第 70 章完成快照（`part-09/chapter-71`），配套目录为 `examples/service-roles/`，包含授权 SQL、三个完整 unit 和运行说明。
 
-配套检出命令 `git switch part-09/chapter-71` · [上一章 · 让另一台主机在退出登录后继续提供服务](../chapter-69-target-environment/chapter.md) · [下一章 · 把 EPP 放到使用者能访问的 HTTPS 地址](../chapter-71-service-access/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+配套检出命令 `git switch part-09/chapter-71` · [上一章 · 把应用和数据交给目标环境](../chapter-69-target-environment/chapter.md) · [下一章 · 让客户端通过可信入口访问服务](../chapter-71-service-access/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

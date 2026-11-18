@@ -8,14 +8,14 @@
 
 ## [第 69 章 把应用和数据交给目标环境](chapter-69-target-environment/chapter.md)
 
-阅读约 20～28 分钟。已有 Debian 和交接数据时，传包、配置与前台验证另加 30～45 分钟。空机安装数据服务和迁移另加 45～85 分钟，下载与复制等待按实际数据量另计。
+阅读约 23～31 分钟。已有 Debian 和交接数据时，传包、配置与前台验证另加 35～50 分钟。空机安装数据服务和迁移另加 45～85 分钟，下载与复制等待按实际数据量另计。
 
 - [支线 69A　SSH 报主机密钥变化时怎样重新接手](chapter-69-target-environment/side-01-host-key.md)
 - [支线 69B　在 Mac 托管服务并追查意外退出](chapter-69-target-environment/side-02-macos-supervision.md)
 
 ## [第 70 章 让 API 和后台进程以各自身份持续运行](chapter-70-service-runtime/chapter.md)
 
-阅读约 35～48 分钟。已有上一章的 Debian 前台部署时，迁移、分权、托管、断线重连与一轮缺权恢复另加 65～95 分钟。70C 跟写实现和双会话实验另计。
+阅读约 39～52 分钟。已有上一章的 Debian 前台部署时，迁移、分权、托管、断线重连与一轮缺权恢复另加 65～95 分钟。70C 跟写实现和双会话实验另计。
 
 - [支线 70A　能读资料，为什么预览头像仍会失败](chapter-70-service-runtime/side-01-runtime-diagnostics.md)
 - [支线 70B　数据库和桶在另一台机器上，谁维持连接](chapter-70-service-runtime/side-02-private-data-link.md)

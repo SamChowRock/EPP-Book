@@ -60,7 +60,7 @@ uname -s
 
 现在 SSH 已能登录。部署端还没有 EPP，先取第 68 章验收的程序路径、实际提交和平台。若已有同系统、同架构、同 libc 和同 Node 版本的 Linux 运行归档，按[第 67 章的制品约定](../../part-08-maintenance/chapter-67-artifact-promotion/chapter.md)核对交接摘要，把原包解到新 release。归档根应有 dist、package.json、package-lock.json、.npmrc 和 node_modules。从 Mac 起步时，sharp 和 argon2 的原生模块属于 Darwin，下面在 Debian 为同一程序安装 Linux 生产依赖。
 
-**如果手头已经有验过的 Linux 完整包**，在 Mac 的 Bash 先将 `artifact` 设为归档绝对路径。执行 `ssh -F ~/.ssh/epp71.conf epp-lab 'umask 077; mkdir "$HOME/epp71"'`，成功后用 `scp -F ~/.ssh/epp71.conf "$artifact" epp-lab:epp71/linux.tgz` 传输。在 Debian 的 Bash 进入 `cd "$HOME/epp71"`，用 `sha256sum linux.tgz` 对照交接摘要，匹配后执行 `umask 077; mkdir release work && tar -xzf linux.tgz -C release`。按下文的环境说明取得同版 Node，在 release 中用下方 require 命令验证模块，然后跳到“让部署端自己找到原数据”。回到 Mac 后仍需设置下面的 api_env 和 stage，供编辑运行配置使用。
+**如果手头已经有验过的 Linux 完整包**，在 Mac 的 Bash 先将 `artifact` 设为归档绝对路径。执行 `ssh -F ~/.ssh/epp71.conf epp-lab 'umask 077; mkdir "$HOME/epp71"'`，成功后用 `scp -F ~/.ssh/epp71.conf "$artifact" epp-lab:epp71/linux.tgz` 传输。在 Debian 的 Bash 进入 `cd "$HOME/epp71"`，用 `sha256sum linux.tgz` 对照交接摘要，匹配后执行 `umask 077; mkdir release work && tar -xzf linux.tgz -C release`。按下文的环境说明取得同版 Node，在 release 中用下方 require 命令验证模块，然后跳到“让部署端自己找到原数据”。回到 Mac 后，在打包页执行 `umask 077`，将 `api_env` 设为第 68 章 `.env.handoff` 的绝对路径，再执行 `stage=$(mktemp -d)`。这两项供下方复制和编辑配置使用；无需再执行 Mac 产物的打包步骤。
 
 **从 Mac 产物交付时。** 取上章的 release、配置文件位置与构建来源。下面先传程序，库与桶另在同一次停写窗口交接。在 Mac 开新 Bash 页，若部署目录与示例不同，将 release 换为自己记录的路径。
 
@@ -100,7 +100,7 @@ printf '%s  portable.tgz\n' "$digest" | sha256sum -c -
 )
 ```
 
-第一份摘要核对送来的 dist 与清单，第二份标识含 Linux 依赖的完整包。记下原提交、平台、Node 与两个摘要。同平台再次部署时可按同一摘要接手。
+第一份摘要核对送来的 dist 与清单，第二份标识含 Linux 依赖的完整包。此时得到的是目标平台的新候选包：源码没变，运行依赖已经重新安装，Mac 上的验收不能直接算作这份 Linux 包的验收。`require` 只检查模块能否加载；69.3 还要实际登录并把 PNG 转成 WebP。通过后记下原提交、平台、Node、两个摘要及对应结果，同平台再次部署才可按这份已验摘要接手。
 
 **让部署端自己找到原数据。** 一次从 Mac 回环转到 Debian 的连接，能让你访问 API。若反过来让 Debian 通过 Mac 接数据库，Mac 一离线，API 即使还有 PID 也读不到账号。先停第 68 章副本的写入者，按[在 Debian 接手已有的数据库、桶和收件箱](../../environment-setup.md#在-debian-接手已有的数据库桶和收件箱)，在同一个停写窗口迁移配对的数据，在部署端启动并核对 PostgreSQL（127.0.0.1:55471）、S3（127.0.0.1:18633）和练习 SMTP（127.0.0.1:1025）。安装程序和仅创建同名空桶都不会带回旧数据。数据服务启动后，在 69.3 用运行身份查原收据并从客户端实际取图；Mac 的旧桶随后保持停止，给客户端要用的本地 18633 留出端口。保留两端的恢复材料。
 
@@ -170,6 +170,8 @@ ssh -F ~/.ssh/epp71.conf -N -o ExitOnForwardFailure=yes \
 
 从仍运行前台 Node 的远端页找到同一 ID 的 http.completed 和 401。再用第 60 章的请求集合，把 baseUrl 改成 `http://127.0.0.1:13358`。保留集合正常的 cookie jar，05 登录已开通的旧账号，20 读本人资料，比对 userId。发 26 获取原头像，立刻在操作端打开返回的完整 URL，比较原对象的字节与摘要。若账号没有头像，在本轮配对桶发布一张，记下此时基线。资料能读而图片打不开时，核对 API 所用的桶、URL 中的端点和 S3 的监听。示例旧图是 2056 字节。长度相同仍可能是另一张图，用相同 URL 立即下载，拿 SHA-256 与迁移前的基线比较。保留这个会话供托管后复读。
 
+在同一旧账号会话中再发 15 取得写令牌，给 24 的 binary body 选择配套 `examples/avatar-preview/harbor.png`，Content-Type 为 image/png，Origin 使用本轮 APP_ORIGIN。预期 200、image/webp，保存响应并打开，确认图像能解码。这条预览不会替换当前头像，却会实际调用部署端的 sharp；刚才的密码登录则实际调用 argon2。若登录成功而预览失败，用该笔 X-Request-Id 查前台日志，区分原生依赖、图片输入与 work 写权，不能只凭 `require` 成功放行完整包。
+
 接下来查部署端的数据身份。在**另一张 Debian SSH 页**用 `psql -X -h 127.0.0.1 -p 55471 -U epp57_run -d 交接库名` 连接刚恢复的库，库名替换为交接值，输入该运行角色的口令。要用原来的 DBeaver 图形界面，可在 Mac 的新终端执行 `ssh -F ~/.ssh/epp71.conf -N -o ExitOnForwardFailure=yes -L 127.0.0.1:15471:127.0.0.1:55471 epp-lab`（先确认本机 15471 空闲且服务端允许转发至 55471）。复制原观察连接，将主机、端口改为 127.0.0.1、15471，选择恢复的库并用它的观察身份，在 SQL 编辑器执行同一查询。先执行 `SELECT current_database(), current_user, inet_server_addr(), inet_server_port();`，确认端口、库名与账号，再查已知的一笔暂停。两个 UUID 抄自交接单：
 
 ```sql
@@ -194,9 +196,9 @@ WHERE r.operation_id = '本轮暂停UUID'::uuid
 
 </details>
 
-前台验证结束后，在运行 API 的 SSH 页按 Ctrl-C，等 app.stopped、退出码 0 和端口释放。保留目标机的 release、api.env、work 与成对数据，记录本轮客户端来源、账号和当前头像摘要。下一章直接从这些文件为服务分配身份。中断后按 69.2 的绝对路径重新运行，再接回 69.3 的客户端转发。
+前台验证结束后，在运行 API 的 SSH 页按 Ctrl-C，等 app.stopped、退出码 0 和端口释放。在 Debian 的 `$HOME/epp71` 执行 `sha256sum linux.tgz`，与交接或封包时记录相同才把本轮结果归到它名下；work 与私有配置不装回归档。保留目标机的 release、api.env、work 与成对数据，记录本轮客户端来源、账号和当前头像摘要。下一章直接从这些文件为服务分配身份。中断后按 69.2 的绝对路径重新运行，再接回 69.3 的客户端转发。
 
-主机密钥变化的诊断在[支线 70A](side-01-host-key.md)。目前 SSH 转发供部署者检查回环服务，使用者的入口在 HTTPS 一章建立。
+主机密钥变化的诊断在[支线 69A](side-01-host-key.md)。目前 SSH 转发供部署者检查回环服务，使用者的入口在 HTTPS 一章建立。
 
 ## 附录：本章必要技术点速查
 
@@ -210,6 +212,6 @@ WHERE r.operation_id = '本轮暂停UUID'::uuid
 
 本机用 `ssh -V` 看 OpenSSH 版本，`man ssh`、`man ssh_config` 和 `man ssh-keygen` 对应本机安装版本。[SSH 客户端](https://man.openbsd.org/ssh.1) · [客户端配置](https://man.openbsd.org/ssh_config.5) · [主机记录与指纹](https://man.openbsd.org/ssh-keygen.1) · [sshd 启动参数](https://man.openbsd.org/sshd.8)
 
-阅读约 20～28 分钟。已有 Debian 和交接数据时，传包、配置与前台验证另加 30～45 分钟。空机安装数据服务和迁移另加 45～85 分钟，下载与复制等待按实际数据量另计。
+阅读约 23～31 分钟。已有 Debian 和交接数据时，传包、配置与前台验证另加 35～50 分钟。空机安装数据服务和迁移另加 45～85 分钟，下载与复制等待按实际数据量另计。
 
 [沿用配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 第八篇回顾：从维护动作到可交付产物](../../part-08-maintenance/chapter-68-review/chapter.md) · [下一章 · 让 API 和后台进程以各自身份持续运行](../chapter-70-service-runtime/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

@@ -32,6 +32,18 @@ openssl verify -CAfile "$lab/ca/root.crt" -untrusted "$lab/ca/issuer.crt" \
 
 第一条 verify 在叶处找不到签发者，第二条返回 OK。要是入口只把叶发给用户，一台手里只有根的新客户端就会遇到第一次的情形。这解释了 `examples/tls-trust/issue-leaf.sh` 最后一行的来历，`cat "$out/leaf.crt" "$ca/issuer.crt" > "$out/fullchain.pem"`。nginx 先送叶，再送中间证书；客户端沿签名关系走回自己信任的根。即便对端把根也送来，最后那个信任决定仍由客户端作出。[nginx 证书链配置](https://nginx.org/en/docs/http/configuring_https_servers.html)
 
+## 中断一段时间后，先查哪张证书到期
+
+本练习的叶证书有效七天，中间 CA 三十天，根九十天。只看叶的 notAfter 不够：例如中间 CA 只剩两天，今天签一张七天期叶，客户端两天后仍会因中间证书到期而拒绝。在签发端逐个查看，`-in` 每次选择一张证书，subject 和 issuer 帮你辨认它在链中的位置：
+
+```bash
+for cert in "$lab/slot-a-issued/leaf.crt" "$lab/ca/issuer.crt" "$lab/ca/root.crt"; do
+  openssl x509 -in "$cert" -noout -subject -issuer -dates
+done
+```
+
+再用上节带 `-untrusted` 的 verify 检查整条链，并在签发端、部署端和使用端各运行 `date -u`，排除时钟偏差。不要为让证书通过而改系统时间或跳过验证。只有叶过期、原签发链仍可信且有效时，可沿下文签 B；中间 CA 到期，须由仍可信的根重新签发中间证书并连同新叶交付。根也到期或原私钥失去可信性时，这套短期练习应另建私有签发目录，经独立指纹核对向浏览器及 API 交接新根，再验证两个入口；覆盖旧目录不会让客户端自动信任新根。[OpenSSL 的整链有效期验证](https://docs.openssl.org/3.0/man1/openssl-verification-options/)
+
 ## 换证后回到原业务请求
 
 到了换证窗口。刚签出的 B 和正在用的 A 都写着 api.epp.test，都是同一个中间 CA 签的。更麻烦的是，图中的两张证书同一秒签发，连到期时刻都相同。假如你把 B 复制到机器却漏了重载，用户刷新后还能读到原素材吗？在 A 仍有效、API 和数据都没变的情况下，这次刷新仍会得到 200。
@@ -92,13 +104,13 @@ read_capture after && cmp "$lab/before.json" "$lab/after.json"
 
 ![iTerm2 记录三次新握手及同一素材在三阶段的响应](images/rotation.png)
 
-**图 72B-1**　图中是同一轮回环入口实测，两证同秒签发，三组的 notAfter 完全一样。沿 serial 向下读，尾段依次为 6C79、2871、6C79。再沿 HTTP 行读，同一素材三次返回 200。换证后和回退后保存的正文分别与 before 逐字节一致。
+**图 71B-1**　图中是同一轮回环入口实测，两证同秒签发，三组的 notAfter 完全一样。沿 serial 向下读，尾段依次为 6C79、2871、6C79。再沿 HTTP 行读，同一素材三次返回 200。换证后和回退后保存的正文分别与 before 逐字节一致。
 
 **旧的 TLS 连接**已经完成握手，沿它再发一次 HTTP 请求，入口未必需要出示证书。**旧的应用会话**靠 Cookie 识别，同一用户可以带着它走一条全新的 TLS 连接。验收时恰好要新建前者、保留后者。如果换证后看到 B，却只能重新登录才能取到素材，入口更新已得到证明，用户接手仍有问题；应追这次请求有没有带原 Cookie、API 查的是哪份会话数据。若原素材照常返回，所有新握手却一直收到 A，则该回到 nginx 和实际流量去向。这两种交接需要的后续动作不同。
 
 
 每次切换后都在独立使用端再对 9443 开新连接，用相同名称和根证书核对活动序列号，并重新请求当前头像的签名地址，下载字节核对原摘要。两个 server 各自加载 active.conf，旧 worker 上仍可能有未结束的连接。演练后留下当前证书的序列号和到期日。
 
-阅读约 12～18 分钟，另做证书链对照与切换回退约 25～40 分钟。
+阅读约 15～21 分钟，另做证书链对照与切换回退约 25～40 分钟。
 
 [回到使用者的 HTTPS 入口](chapter.md) · [浏览器证书错误](side-01-certificate-diagnostics.md)

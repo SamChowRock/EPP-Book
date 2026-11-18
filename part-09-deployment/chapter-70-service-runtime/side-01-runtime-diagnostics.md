@@ -60,7 +60,7 @@ sudo -u epp-api test -w /var/lib/epp72-api && echo writable || echo read-only
 
 ![同一客户端读资料与头像正常、预览失败时，核对 Debian 监听、进程工作目录与写权限](images/work-directory.png)
 
-**图 71A-1**　iTerm2 中，服务已在 [::1]:3374 监听，旧头像可读且内容与基线一致。图中实验在另一份同平台目录 /opt/epp72/release，处理请求的进程正从该 release 工作：root 拥有、模式 755，API 用户在这里建不了 .avatar-tmp。私有 work 已经存在、模式 700，只是进程没有从那里启动。图底的 403 与 Chrome 连接失败来自前一轮地址配置，可以和这一轮的 500 对照。
+**图 70A-1**　iTerm2 中，服务已在 [::1]:3374 监听，旧头像可读且内容与基线一致。图中实验在另一份同平台目录 /opt/epp72/release，处理请求的进程正从该 release 工作：root 拥有、模式 755，API 用户在这里建不了 .avatar-tmp。私有 work 已经存在、模式 700，只是进程没有从那里启动。图底的 403 与 Chrome 连接失败来自前一轮地址配置，可以和这一轮的 500 对照。
 
 保持 release 的属主和模式，停 `sudo systemctl stop epp74-cwd`，再运行 `start_api epp72-diag-ok /var/lib/epp72-api api.env`。在 Postman **只重发 24**。同一请求现在得到 200，响应类型 image/webp，本轮 PNG 样本得到 2062 字节。用 `sudo stat -c '%a %U:%G %n' /var/lib/epp72-api/.avatar-tmp` 看临时根的实际属主；完成过的那次上传子目录应已移除。若 work 本身可写仍失败，检查早已有的 .avatar-tmp 是否属于上一个 UID、是否为目录、是否开放了组或其他用户权限。用新的私有 work 对照，保留原故障目录供核查。
 
@@ -68,7 +68,7 @@ sudo -u epp-api test -w /var/lib/epp72-api && echo writable || echo read-only
 
 ![在途请求、旧头像、收据和两项后台任务的实测结果](images/handoff.png)
 
-**图 71A-2**　另一轮交接又选了一笔只送出 32 字节的在途预览。在该 API 排空后，客户端收到 503，暂存文件消失；原会话和旧头像在新进程中仍能读回。下半按各自 ID 查询：邮件保持 unknown、一次尝试，通知已 done 并入箱。接班时，这两笔工作的处置依据各自的持久记录。
+**图 70A-2**　另一轮交接又选了一笔只送出 32 字节的在途预览。在该 API 排空后，客户端收到 503，暂存文件消失；原会话和旧头像在新进程中仍能读回。下半按各自 ID 查询：邮件保持 unknown、一次尝试，通知已 done 并入箱。接班时，这两笔工作的处置依据各自的持久记录。
 
 ## 为只读收据命令分配身份（选做）
 

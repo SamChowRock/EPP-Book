@@ -501,7 +501,7 @@ node -p 'process.version + " " + process.platform + " " + process.arch'
 npm --version
 ```
 
-`command -v node` 应指向 `/opt/epp72/node/bin/node`，版本、平台和架构应为 `v24.22.1 linux arm64` 或 `v24.22.1 linux x64`。若收到含生产依赖的完整 Linux 归档，先核对系统、CPU、Node 版本和整包摘要，再解开使用。在目标平台补装依赖的路径中，按锁安装后须重新封包并验收，记录这个平台的摘要。
+`command -v node` 应指向 `/opt/epp72/node/bin/node`，版本、平台和架构应为 `v24.22.1 linux arm64` 或 `v24.22.1 linux x64`。若收到含生产依赖的完整 Linux 归档，先核对系统、CPU、Node 版本和整包摘要，再解开使用。在目标平台补装依赖的路径中，按锁安装后须重新封包；按第 69 章用旧账号实际登录、预览 PNG 得到可解码的 WebP，再核对旧数据与归档摘要，记录这个平台的验收结果。模块能 require 只是加载检查。
 
 部署前准备 PostgreSQL 18 非空副本、与它配对的头像桶，以及邮件角色可达的私有 Mailpit。旧账号应已开通，留好原收据 ID。由迁移管理员建视图、数据库实例管理员建登录角色，各服务使用各自的凭据。Mac 上仍用 Postman 发请求、DBeaver 查数据。[第 70 章服务身份与验证](part-09-deployment/chapter-70-service-runtime/chapter.md)
 

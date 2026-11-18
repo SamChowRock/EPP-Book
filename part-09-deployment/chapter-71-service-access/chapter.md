@@ -2,7 +2,7 @@
 
 第 70 章已经把 API、邮件和通知交给宿主管理，运行账号能读取各自的配置。使用者却仍不能直接拿这个部署当网站使用。API 只听部署机回环，头像地址里的回环又会指向发起请求的那台电脑；把监听改到网卡，还没有解决客户端如何确认服务身份的问题。
 
-本章从这几个地址的归属出发，把公开页面、API 和私有头像放到使用者能访问并验证的 HTTPS 入口。程序、账号与业务数据沿用前章。篇末在管理连接退出后，从独立客户端完成一次实际交付，后续运行维护就从这套服务继续。
+本章从这几个地址的归属出发，把公开页面、API 和私有头像放到使用者能访问并验证的 HTTPS 入口。程序、账号与业务数据沿用前章。章末在管理连接退出后，从独立客户端完成一次实际交付，后续运行维护就从这套服务继续。
 
 ## 71.1 先让客户端按名字找到目标
 
@@ -35,8 +35,8 @@ lab="$HOME/epp73-issuing"
 mkdir -m 0700 "$lab" &&
   sh "$src/make-ca.sh" "$lab/ca"
 openssl x509 -in "$lab/ca/root.crt" -noout -fingerprint -sha256
-ssh epp-lab 'umask 077; mkdir "$HOME/epp75-edge"' &&
-  scp "$src/nginx.conf" epp-lab:epp75-edge/nginx.conf
+ssh -F ~/.ssh/epp71.conf epp-lab 'umask 077; mkdir "$HOME/epp75-edge"' &&
+  scp -F ~/.ssh/epp71.conf "$src/nginx.conf" epp-lab:epp75-edge/nginx.conf
 ```
 
 部署端在另一个 Bash 生成 A 的私钥和 CSR，私钥保存在私有目录。tls.conf 把同一套链与私钥放在一起。若 nginx 未进 PATH，给 nginx_bin 填实际绝对路径。
@@ -65,17 +65,17 @@ new_key slot-a
 issue() (
   set -eu
   slot=$1
-  scp "epp-lab:epp75-edge/$slot/leaf.csr" "$lab/$slot.csr"
+  scp -F ~/.ssh/epp71.conf "epp-lab:epp75-edge/$slot/leaf.csr" "$lab/$slot.csr"
   sh "$src/issue-leaf.sh" "$lab/ca" "$lab/$slot.csr" "$lab/$slot-issued"
-  scp "$lab/$slot-issued/fullchain.pem" "epp-lab:epp75-edge/$slot/fullchain.pem"
+  scp -F ~/.ssh/epp71.conf "$lab/$slot-issued/fullchain.pem" "epp-lab:epp75-edge/$slot/fullchain.pem"
 )
 issue slot-a
 ```
 
 
-在部署端执行 `cd "$edge" && ln -s slot-a/tls.conf active.conf`。若刚做过故障支线，先用 `readlink active.conf` 确认已经指向 slot-a/tls.conf 即可。管理端用 `openssl x509 -in "$lab/slot-a-issued/leaf.crt" -noout -dates -serial -ext subjectAltName` 核对有效期、序列号和 DNS:api.epp.test。用 `scp "$lab/ca/root.crt" epp-lab:epp75-edge/root.crt` 交给部署端；通过已验证的文件通道把同一份**公开根证书**交给使用端。各自执行 `openssl x509 -in root.crt -noout -fingerprint -sha256`，把完整指纹与签发端读数另行核对。签发私钥和服务私钥留在各自机器。
+在部署端执行 `cd "$edge" && ln -s slot-a/tls.conf active.conf`。若刚做过故障支线，先用 `readlink active.conf` 确认已经指向 slot-a/tls.conf 即可。管理端用 `openssl x509 -in "$lab/slot-a-issued/leaf.crt" -noout -dates -serial -ext subjectAltName` 核对有效期、序列号和 DNS:api.epp.test。用 `scp -F ~/.ssh/epp71.conf "$lab/ca/root.crt" epp-lab:epp75-edge/root.crt` 交给部署端；通过已验证的文件通道把同一份**公开根证书**交给使用端。各自执行 `openssl x509 -in root.crt -noout -fingerprint -sha256`，把完整指纹与签发端读数另行核对。签发私钥和服务私钥留在各自机器。
 
-curl 可以对单次请求指定根；浏览器的信任还要单独设置。例如，在练习 Mac 上打开「钥匙串访问」，选登录钥匙串，导入核过指纹的 root.crt，打开该证书的「信任」，将 SSL 设为始终信任，再重新打开使用该钥匙串的浏览器。仅在受控练习账号这样配置，并记下练习结束时要撤去的根指纹。若使用隔离 Firefox 配置，可在「设置 → 隐私与安全 → 证书 → 查看证书 → 证书颁发机构」中导入同一根，允许其标识网站；使用自己的私网 DNS 或 hosts。要复现 Firefox 报错及服务端漏发中间证书，见[支线 72A](side-01-certificate-diagnostics.md)。[Firefox 的 CA 信任](https://support.mozilla.org/en-US/kb/setting-certificate-authorities-firefox)
+curl 可以对单次请求指定根；浏览器的信任还要单独设置。例如，在练习 Mac 上打开「钥匙串访问」，选登录钥匙串，导入核过指纹的 root.crt，打开该证书的「信任」，将 SSL 设为始终信任，再重新打开使用该钥匙串的浏览器。仅在受控练习账号这样配置，并记下练习结束时要撤去的根指纹。若使用隔离 Firefox 配置，可在「设置 → 隐私与安全 → 证书 → 查看证书 → 证书颁发机构」中导入同一根，允许其标识网站；使用自己的私网 DNS 或 hosts。要复现 Firefox 报错及服务端漏发中间证书，见[支线 71A](side-01-certificate-diagnostics.md)。[Firefox 的 CA 信任](https://support.mozilla.org/en-US/kb/setting-certificate-authorities-firefox)
 
 ## 71.3 接通同源页面、API 和头像存储
 
@@ -295,7 +295,7 @@ wc -c < "$png"
 <details>
 <summary>定位对象端口或桶故障时：用部署者账号实际上传并读回</summary>
 
-先按本节第一处展开内容取得 Cookie 和写令牌，可止于定义 write_capture，无需创建素材。发布会更换练习账号的当前头像。若篇末还要核对原账号的旧头像，在本节开头选择另一个允许发布的练习账号。若允许更换并需要记录旧图，则在上传前先执行下方读取 current.json 和下载文件的命令，将旧对象另存为 old.webp。管理端把 `png` 设为配套目录中 `examples/avatar-preview/harbor.png` 的绝对路径，使用同一个登录会话、Origin 和写令牌。上传时 API 需通过 9443 的证书检查，使用自己的存储权限完成写入。
+先按本节第一处展开内容取得 Cookie 和写令牌，可止于定义 write_capture，无需创建素材。发布会更换练习账号的当前头像。若章末还要核对原账号的旧头像，在本节开头选择另一个允许发布的练习账号。若允许更换并需要记录旧图，则在上传前先执行下方读取 current.json 和下载文件的命令，将旧对象另存为 old.webp。管理端把 `png` 设为配套目录中 `examples/avatar-preview/harbor.png` 的绝对路径，使用同一个登录会话、Origin 和写令牌。上传时 API 需通过 9443 的证书检查，使用自己的存储权限完成写入。
 
 ```bash
 "${client[@]}" -f -b "$lab/cookies" -H "Origin: $site" -H 'X-EPP-Request: 1' \
@@ -338,8 +338,8 @@ shasum -a 256 "$lab/object.webp"
   set -eu
   test -f examples/handoff-client/index.html
   test -f examples/handoff-client/client.js
-  ssh epp-lab 'mkdir -p "$HOME/epp75-edge/public/handoff"'
-  scp examples/handoff-client/index.html examples/handoff-client/client.js \
+  ssh -F ~/.ssh/epp71.conf epp-lab 'mkdir -p "$HOME/epp75-edge/public/handoff"'
+  scp -F ~/.ssh/epp71.conf examples/handoff-client/index.html examples/handoff-client/client.js \
     epp-lab:epp75-edge/public/handoff/
 )
 ```
@@ -362,7 +362,7 @@ done
 
 在页面点“创建本轮素材”，按返回 ID 再读一次；选择不超过 2 MiB 且符合第 59 章像素限制的 PNG 或 JPEG，点“发布并打开头像”。这次会替换练习账号当前头像。记下新 avatarId，页面应显示实际解码后的宽高。重新打开页面并登录，再读取刚才的素材和当前头像，核对自己留下的这笔写入。
 
-这个交付页的创建按钮沿用第 30 章保留的无键客户端契约，每次主动点击都是新操作；它没有保存待办，响应中断时不能据此自动重发。要验收带键恢复，沿第 40 章保存原操作键与原正文，从当前 HTTPS 入口发送并重放，核对原 ID、Location 和单份回执。API 具备恢复协议，不意味着所有旧客户端按钮已经实现了它。
+这个交付页的创建按钮沿用第 30 章保留的无键客户端契约，每次主动点击都是新操作；它没有保存待办，响应中断时不能据此自动重发。要验收带键恢复，沿[第 30 章的带键写入与重放](../../part-04-consistency/chapter-30-write-retry/chapter.md)保存原操作键与原正文，从当前 HTTPS 入口发送并重放，核对原 ID、Location 和单份回执。API 具备恢复协议，不意味着所有旧客户端按钮已经实现了它。
 
 如果素材可读、新头像却打不开，在 Network 按次序找上传 POST、向 API 取签名地址的 GET、浏览器到 9443 的 GET。没有最后一笔请求，先查页面策略；连接或 TLS 失败，查使用设备的解析、网络与信任；已经收到对象服务的 403，再查签名有效期、Host 与路径是否被改写。若失败的是上传，回看 API 的错误与请求 ID，检查它到 9443 的连接、桶权限及工作目录。这样一次故障可以定位到具体连接，无需把所有配置都重填一遍。
 
@@ -382,7 +382,7 @@ LEFT JOIN public.notifications AS n ON n.id = j.id AND n.user_id = j.user_id
 WHERE j.user_id = '本轮用户UUID'::uuid AND j.id = '浏览器显示的通知UUID'::uuid;
 ```
 
-如果邮件通道仍因 unknown 结果停发，保留原占用和尝试次数，明确这次邮件与重置尚未验收。按已有投递核查处置后再做这一轮。信已收到、密码已改而通知仍 pending 时，用户刷新页面也无法启动消费进程；下一篇就从这种在线服务中的积压开始建立告警。
+如果邮件通道仍因 unknown 结果停发，保留原占用和尝试次数，明确这次邮件与重置尚未验收。按已有投递核查处置后再做这一轮。信已收到、密码已改而通知仍 pending 时，用户刷新页面也无法启动消费进程；第 74 章就从这种在线服务中的积压开始建立告警。
 
 </details>
 
@@ -397,7 +397,7 @@ WHERE j.user_id = '本轮用户UUID'::uuid AND j.id = '浏览器显示的通知U
 
 程序能够在目标平台运行、宿主能管理它、客户端能从实际网络访问它，这三部分现在接到同一次交付中。交接记录留下当前构建、服务身份与配置位置、可信入口，以及用户写入和后台处理的结果。接班人据此维护正在使用的服务。
 
-暂停练习时在 Debian 用 `sudo systemctl stop epp74-https epp72-api` 停入口与 API，依第 70 章记录停妥数据和消费者。恢复时先恢复依赖，再 `sudo systemctl start epp72-api epp74-https`，用原地址、原根和原数据再查。若证书已经过期，签发新叶并用新连接检验；若 Cookie 过期，重新登录并注明。[支线 71B　验证签发链并演练换证回退](side-02-certificate-rotation.md)
+暂停练习时在 Debian 用 `sudo systemctl stop epp74-https epp72-api` 停入口与 API，依第 70 章记录停妥数据和消费者。恢复时先恢复依赖，再 `sudo systemctl start epp72-api epp74-https`，用原地址、原根和原数据再查。若证书已经过期，先检查叶、中间 CA 和根的有效期；只有签发链仍有效时才直接续签叶，链也过期时按支线 71B 重新准备可信材料，再用新连接检验；若 Cookie 过期，重新登录并注明。[支线 71B　验证签发链并演练换证回退](side-02-certificate-rotation.md)
 
 ## 附录：本章必要技术点速查
 
@@ -412,4 +412,4 @@ WHERE j.user_id = '本轮用户UUID'::uuid AND j.id = '浏览器显示的通知U
 
 阅读约 30～40 分钟。已有第 70 章部署、可路由私网和练习账号时，签发、配置及客户端交付另加 55～80 分钟。71.4 故障对照另加 15～25 分钟，后台改密核对另加 10～20 分钟。估时按正文、命令和一次顺利操作估算，首次环境准备另计。证书诊断与换证回退按需选读。
 
-配套检出命令 `git switch part-09/chapter-72` · [上一章 · 分配运行权限](../chapter-70-service-runtime/chapter.md) · [下一章 · 把应用和运行环境一起交付](../chapter-72-container-image/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+配套检出命令 `git switch part-09/chapter-72` · [上一章 · 让 API 和后台进程以各自身份持续运行](../chapter-70-service-runtime/chapter.md) · [下一章 · 把应用和运行环境一起交付](../chapter-72-container-image/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
