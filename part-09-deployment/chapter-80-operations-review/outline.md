@@ -29,4 +29,4 @@
 
 交接已恢复的业务、仍有疑问的记录、继续开放的条件。写清哪条新证据会让你改变当前决定。
 
-[上一章 · 原主机失联以后，哪些业务能先恢复](../chapter-79-disaster-recovery/outline.md) · [下一章 · 中部独立交付：发布预约服务并带旧单升级](../../middle-capstone/chapter-81-booking/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[上一章 · 原主机失联以后，哪些业务能先恢复](../chapter-79-disaster-recovery/outline.md) · [下一章 · 上部独立交付：发布预约服务并带旧单升级](../../upper-capstone/chapter-81-booking/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
