@@ -93,10 +93,10 @@ mkdir -m 700 "$runtime/config" "$runtime/work"
 要实际启动时，先把该环境已核实的数据库、来源、签名密钥和桶配置放入 "$runtime/config/api.env"，权限设为 0600，再运行下面的命令。
 
 ```bash
-(cd "$runtime/work" && env -i "$node_bin" --env-file="$runtime/config/api.env" "$release/dist/src/server.js")
+(cd "$runtime/work" && env -i NODE_ENV=production "$node_bin" --env-file="$runtime/config/api.env" "$release/dist/src/server.js")
 ```
 
-这里的 cd 选择暂存文件落在哪里；绝对脚本路径选择程序；--env-file 选择运行配置。Node 环境文件不会覆盖父进程导出的同名变量，env -i 先清空外层环境，避免旧 DATABASE_URL 把程序送到另一份库。Node 用绝对路径，因此不依赖被清空的 PATH。默认的 dist/config/service.json 仍随模块定位，换 cwd 后应能读取。若实际启动了 API，按 Ctrl-C 等它退出，再进入下面的交付检查。[Node 的环境文件规则](https://nodejs.org/docs/latest-v24.x/api/cli.html#--env-filefile)
+这里的 cd 选择暂存文件落在哪里；绝对脚本路径选择程序；--env-file 选择运行配置。Node 环境文件不会覆盖父进程导出的同名变量，env -i 先清空外层环境，避免旧 DATABASE_URL 把程序送到另一份库。命令显式设置 NODE_ENV=production；若省略，应用会默认进入 development，连 /docs 的默认开关也会改变。api.env 不应再声明另一种模式。Node 用绝对路径，因此不依赖被清空的 PATH。默认的 dist/config/service.json 仍随模块定位，换 cwd 后应能读取。若实际启动了 API，按 Ctrl-C 等它退出，再进入下面的交付检查。[Node 的环境文件规则](https://nodejs.org/docs/latest-v24.x/api/cli.html#--env-filefile)
 
 **让交付检查自己跑完。** 要观察正常路径，先准备本机 PostgreSQL 18。用 DBeaver 连到已有学习实例，在数据库导航里为本轮创建独立空库，例如 epp_ch54_delivery，所有者选拥有 public 建表权限的练习角色，刷新连接确认库名。也可以按[第 17 章](../../part-03-postgresql/chapter-17-postgresql-environment/chapter.md)的建库步骤在 psql 中完成。仍保有第 63 章 VERIFY 的读者请留好那份库和旧收据。这里会引导空库、插入固定用户并启动能领取任务的 Worker，必须用本轮专用的空库。
 

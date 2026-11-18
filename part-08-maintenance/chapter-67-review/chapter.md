@@ -33,15 +33,16 @@ API 与 CLI 都用同一套账号状态和 Web 资格判断。API 还要从请�
 
 ## 67.2 在副本重建一次超时的重放
 
-**准备两个不同用途的库。** 将第 63～65 章任一已完成版本中含已开通练习账号和迁移历史的本机库备份，恢复到新建的 `epp_ch56_handoff`。这是下面真正改资格的副本。若手边没有旧库，先完成下方的源码构建并配好 .env.handoff，执行 `env -u DATABASE_URL -u SHADOW_DATABASE_URL node --env-file=.env.handoff scripts/deploy-verify.mjs bootstrap epp_ch56_handoff`，再按第 63 章的账号准备步骤创建一个有密码、active、Web 已开通的练习账号。另建一个 public schema 为空的 `epp_ch56_delivery`，留给下节会实际启动 Worker 的交付检查。两库使用独立的本地配置文件。分别按建库记录核对实例、端口、库名和角色；同名库也可能在另一台机器上。[备份与独立恢复](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-66/database/chapter-22/backup-restore.md) · [第 63 章账号准备](../chapter-63-account-cli/chapter.md#631-给一次暂停分配身份)
+**准备两个不同用途的库。** 将第 63～65 章任一已完成版本中含已开通练习账号和迁移历史的本机库备份，恢复到新建的 `epp_ch56_handoff`。这是下面真正改资格的副本。若手边没有旧库，先完成下方的 nvm use、npm ci、ci:check 并配好 .env.handoff，用下面的 bootstrap 替代下方那一次 deploy：执行 `env -u DATABASE_URL -u SHADOW_DATABASE_URL node --env-file=.env.handoff scripts/deploy-verify.mjs bootstrap epp_ch56_handoff`，再按第 63 章的账号准备步骤创建一个有密码、active、Web 已开通的练习账号。另建一个 public schema 为空的 `epp_ch56_delivery`，留给下节会实际启动 Worker 的交付检查。两库使用独立的本地配置文件。分别按建库记录核对实例、端口、库名和角色；同名库也可能在另一台机器上。[备份与独立恢复](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-66/database/chapter-22/backup-restore.md) · [第 63 章账号准备](../chapter-63-account-cli/chapter.md#631-给一次暂停分配身份)
 
-从第 66 章干净代码副本的项目根开始。恢复的历史副本若尚未包含第 66 章迁移，先用 `.env.handoff` 执行 `env -u DATABASE_URL node --env-file=.env.handoff scripts/deploy-verify.mjs deploy epp_ch56_handoff`，再构建交付产物。将指向历史副本的 DATABASE_URL 放进仅自己可读的 `.env.handoff`，将空库的放进 `.env.delivery`。这两个文件都只写各自的数据库连接。在一个终端执行以下命令，每步成功再继续，记下输出的临时目录。后面一直用这套产物。
+从第 66 章干净代码副本的项目根开始。先安装依赖并构建，再升级恢复的历史副本。将指向历史副本的 DATABASE_URL 放进仅自己可读的 `.env.handoff`，将空库的放进 `.env.delivery`。这两个文件都只写各自的数据库连接。在一个终端执行以下命令，每步成功再继续，记下输出的临时目录。后面一直用这套产物。
 
 ```bash
 umask 077
 nvm use
 npm ci
 npm run ci:check
+env -u DATABASE_URL node --env-file=.env.handoff scripts/deploy-verify.mjs deploy epp_ch56_handoff
 source_dir=$PWD
 release=$(mktemp -d)
 cp -R dist package.json package-lock.json .npmrc "$release/"

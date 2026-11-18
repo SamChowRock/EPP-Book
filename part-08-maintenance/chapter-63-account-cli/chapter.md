@@ -40,7 +40,25 @@ CREATE TABLE public.web_access_receipts (
 
 已有用户无需回填。迁移之前改过的资格可以读到，改动的人和当时的值无从还原，收据从部署以后开始积累。关联用户的外键使保留收据期间无法直接删掉对应账号，将来设计账号删除和保留期限时两者要一起考虑。在 Prisma schema 的 User 增加 `webAccessReceipts WebAccessReceipt[]`，加入[与表对应的 WebAccessReceipt 模型](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-63/prisma/schema.prisma)。主键用两个字段的 `@@id([userId, operationId])`。这样同一个操作 ID 的含义以账号为范围，手抄错账号后只给原操作 ID 无法保护你。命令和交班记录都要携带这一对值。
 
-从前章跟写可以另开本章配套副本，按上面的路径取迁移、新模型和 User 的这一行，再继续添加后面的文件。项目根的 .env.database-verify 用 DATABASE_URL 连接新库，.env.test 用 TEST_DATABASE_URL 连接同一练习库。终端运行：
+对应模型如下；在已有 User 内补上关系行，再把这个模型放到 schema 末尾。SQL 中的状态 CHECK 仍由迁移维护，不靠 Prisma 模型代替。
+
+```prisma
+model WebAccessReceipt {
+  userId String @map("user_id") @db.Uuid
+  operationId String @map("operation_id") @db.Uuid
+  beforeEnabled Boolean @map("before_enabled")
+  requestedEnabled Boolean @map("requested_enabled")
+  accountStatus String @map("account_status") @db.Text
+  dbActor String @default(dbgenerated("SESSION_USER")) @map("db_actor") @db.Text
+  recordedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("recorded_at") @db.Timestamptz(3)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([userId, operationId])
+  @@map("web_access_receipts")
+}
+```
+
+从前章跟写时先加上迁移与模型，再继续添加后面的文件。项目根的 .env.database-verify 用 DATABASE_URL 连接新库，.env.test 用 TEST_DATABASE_URL 连接同一练习库。终端运行：
 
 ```bash
 nvm use
