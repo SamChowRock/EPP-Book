@@ -1,10 +1,10 @@
 # 支线 69B　在 Mac 托管服务并追查意外退出
 
-部署目标是 Mac 时，在本机准备运行身份、配置和工作目录，然后把实际启动命令交给 launchd。以下从第 67 章已验的 release 起步，所需变量都在本支线建立。首次按[Mac 环境说明](../../environment-setup.md#用-bash-启动服务选做-mac-托管)确认 Bash、launchctl、plutil 可用。
+部署目标是 Mac 时，在本机准备运行身份、配置和工作目录，然后把实际启动命令交给 launchd。以下从第 68 章已验的 release 起步，所需变量都在本支线建立。首次按[Mac 环境说明](../../environment-setup.md#用-bash-启动服务选做-mac-托管)确认 Bash、launchctl、plutil 可用。
 
 ## 为已验程序准备独立工作目录
 
-拿出第 67 章的交接记录，保留原 release 的绝对路径、构建来源、交接库的地址和库名、已开通账号的 userId 和暂停收据的 operationId。若原目录已清理，有同平台已验的包就按记录核摘要并解开；两者都没有时才按[67.2 的装配和 67.3 的入口核验](../../part-08-maintenance/chapter-67-review/chapter.md#672-在副本重建一次超时的重放)重建。本次再查原收据，是为了验证稍后换上的数据库登录也能从目标库读到它。
+拿出第 68 章的交接记录，保留原 release 的绝对路径、构建来源、交接库的地址和库名、已开通账号的 userId 和暂停收据的 operationId。若原目录已清理，有同平台已验的包就按记录核摘要并解开；两者都没有时才按[68.2 的装配和 68.3 的入口核验](../../part-08-maintenance/chapter-68-review/chapter.md#682-在副本重建一次超时的重放)重建。本次再查原收据，是为了验证稍后换上的数据库登录也能从目标库读到它。
 
 在 Mac 的[本章配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)根目录，普通练习账号先运行 `nvm use`，再输入 `/bin/bash`。系统终端或 iTerm2 均可。配套根用于取授权脚本，下面的 release 指向**上章实际验过的程序**。先恢复变量，重开 Bash 窗口时也从这一段接起。[本机运行环境](../../environment-setup.md#用-bash-启动服务选做-mac-托管)
 
@@ -19,7 +19,7 @@ node_bin=$(command -v node)
 ls -ld "$release/dist/src/server.js" "$release/dist/config/service.json" "$release/node_modules"
 ```
 
-Node 应与交付记录同版（本例 v24.22.1），三个路径均可读。第 67 章版本的监听固定在 127.0.0.1，正合本章与下一章的回环入口。如果你已经验过可配置 LISTEN_HOST 的第 69 章版本，也可沿用那份 release，记录实际版本。初次准备时，在 release **以外**建立私有的工作目录和配置目录：
+Node 应与交付记录同版（本例 v24.22.1），三个路径均可读。第 68 章版本的监听固定在 127.0.0.1，正合本章与下一章的回环入口。如果你已经验过可配置 LISTEN_HOST 的第 69 章版本，也可沿用那份 release，记录实际版本。初次准备时，在 release **以外**建立私有的工作目录和配置目录：
 
 ```bash
 mkdir -p "$(dirname "$deploy")"
@@ -31,7 +31,7 @@ ls -ld "$deploy/config" "$deploy/work"
 
 ## 为运行账号授予数据库权限
 
-本机账号决定进程能否打开配置、能否在 work 写文件；PostgreSQL 则按配置中的登录角色检查 SQL。如果直接把第 67 章用于迁移的表所有者交给 API，它也就有能力改写昨天的收据。现在为应用准备一个普通登录，给两张收据表上的读与追加权限，保留原记录不被改写。第 70 章在这个基础上再把 API 与两个 Worker 分权。
+本机账号决定进程能否打开配置、能否在 work 写文件；PostgreSQL 则按配置中的登录角色检查 SQL。如果直接把第 68 章用于迁移的表所有者交给 API，它也就有能力改写昨天的收据。现在为应用准备一个普通登录，给两张收据表上的读与追加权限，保留原记录不被改写。第 70 章在这个基础上再把 API 与两个 Worker 分权。
 
 角色属于整个 PostgreSQL 实例，表权限则落在某一个库的具体对象上，所以这里要连接两次。先在 Bash 的源码根填入建库记录，再用有创建角色权限的管理员连接练习实例的 postgres 库：
 

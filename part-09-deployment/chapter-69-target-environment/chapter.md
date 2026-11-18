@@ -1,8 +1,8 @@
 # 第 69 章　把应用和数据交给目标环境
 
-第 67 章交出了程序和带历史的练习数据，第 68 章把制品摘要、验收结果与发布内容对应起来。现在把它们交给 Debian。源码相同，原生依赖可能属于另一个平台；配置中的回环地址到了另一台机器，也会指向另一份服务。先在目标机前台运行同一个入口，确认程序能读取交接的数据，下一章再建立专用运行身份并交给系统托管。
+第八篇已经在第 67 章建立制品验收与晋级方法，并在第 68 章交出程序、带历史的练习数据和未决维护记录。现在把它们交给 Debian。源码相同，原生依赖可能属于另一个平台；配置中的回环地址到了另一台机器，也会指向另一份服务。先在目标机前台运行同一个入口，确认程序能读取交接的数据，下一章再建立专用运行身份并交给系统托管。
 
-按第 68 章验收并交付与目标平台相符的 release，保留第 67 章的非空数据与配置，从[部署配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)取得授权与存储工具。Mac 是操作端，Debian 13 是部署端。首次安装按[Debian 环境说明](../../environment-setup.md#准备-debian-13-部署端)核对系统、架构和 sudo，再按[两端 SSH 准备](../../environment-setup.md#从-mac-建立-ssh-连接)取得参数。保留独立控制台。
+按第 67 章验收并交付与目标平台相符的 release，保留第 68 章的非空数据与配置，从[部署配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70)取得授权与存储工具。Mac 是操作端，Debian 13 是部署端。首次安装按[Debian 环境说明](../../environment-setup.md#准备-debian-13-部署端)核对系统、架构和 sudo，再按[两端 SSH 准备](../../environment-setup.md#从-mac-建立-ssh-连接)取得参数。保留独立控制台。
 
 ## 69.1 先识别将要接手的主机
 
@@ -58,15 +58,15 @@ uname -s
 
 ## 69.2 把已验程序送到空主机
 
-现在 SSH 已能登录。部署端还没有 EPP，先取第 67 章验收的程序路径、实际提交和平台。若已有同系统、同架构、同 libc 和同 Node 版本的 Linux 运行归档，按[第 68 章的制品约定](../chapter-68-artifact-promotion/chapter.md)核对交接摘要，把原包解到新 release。归档根应有 dist、package.json、package-lock.json、.npmrc 和 node_modules。从 Mac 起步时，sharp 和 argon2 的原生模块属于 Darwin，下面在 Debian 为同一程序安装 Linux 生产依赖。
+现在 SSH 已能登录。部署端还没有 EPP，先取第 68 章验收的程序路径、实际提交和平台。若已有同系统、同架构、同 libc 和同 Node 版本的 Linux 运行归档，按[第 67 章的制品约定](../../part-08-maintenance/chapter-67-artifact-promotion/chapter.md)核对交接摘要，把原包解到新 release。归档根应有 dist、package.json、package-lock.json、.npmrc 和 node_modules。从 Mac 起步时，sharp 和 argon2 的原生模块属于 Darwin，下面在 Debian 为同一程序安装 Linux 生产依赖。
 
 **如果手头已经有验过的 Linux 完整包**，在 Mac 的 Bash 先将 `artifact` 设为归档绝对路径。执行 `ssh -F ~/.ssh/epp71.conf epp-lab 'umask 077; mkdir "$HOME/epp71"'`，成功后用 `scp -F ~/.ssh/epp71.conf "$artifact" epp-lab:epp71/linux.tgz` 传输。在 Debian 的 Bash 进入 `cd "$HOME/epp71"`，用 `sha256sum linux.tgz` 对照交接摘要，匹配后执行 `umask 077; mkdir release work && tar -xzf linux.tgz -C release`。按下文的环境说明取得同版 Node，在 release 中用下方 require 命令验证模块，然后跳到“让部署端自己找到原数据”。回到 Mac 后仍需设置下面的 api_env 和 stage，供编辑运行配置使用。
 
 **从 Mac 产物交付时。** 取上章的 release、配置文件位置与构建来源。下面先传程序，库与桶另在同一次停写窗口交接。在 Mac 开新 Bash 页，若部署目录与示例不同，将 release 换为自己记录的路径。
 
 ```bash
-release='填第68章已验收的release绝对路径'
-api_env='填第67章保留的.env.handoff绝对路径'
+release='填第67章已验收的release绝对路径'
+api_env='填第68章保留的.env.handoff绝对路径'
 stage=$(mktemp -d)
 COPYFILE_DISABLE=1 tar -czf "$stage/portable.tgz" -C "$release" dist package.json package-lock.json .npmrc
 shasum -a 256 "$stage/portable.tgz"
@@ -102,7 +102,7 @@ printf '%s  portable.tgz\n' "$digest" | sha256sum -c -
 
 第一份摘要核对送来的 dist 与清单，第二份标识含 Linux 依赖的完整包。记下原提交、平台、Node 与两个摘要。同平台再次部署时可按同一摘要接手。
 
-**让部署端自己找到原数据。** 一次从 Mac 回环转到 Debian 的连接，能让你访问 API。若反过来让 Debian 通过 Mac 接数据库，Mac 一离线，API 即使还有 PID 也读不到账号。先停第 67 章副本的写入者，按[在 Debian 接手已有的数据库、桶和收件箱](../../environment-setup.md#在-debian-接手已有的数据库桶和收件箱)，在同一个停写窗口迁移配对的数据，在部署端启动并核对 PostgreSQL（127.0.0.1:55471）、S3（127.0.0.1:18633）和练习 SMTP（127.0.0.1:1025）。安装程序和仅创建同名空桶都不会带回旧数据。数据服务启动后，在 69.3 用运行身份查原收据并从客户端实际取图；Mac 的旧桶随后保持停止，给客户端要用的本地 18633 留出端口。保留两端的恢复材料。
+**让部署端自己找到原数据。** 一次从 Mac 回环转到 Debian 的连接，能让你访问 API。若反过来让 Debian 通过 Mac 接数据库，Mac 一离线，API 即使还有 PID 也读不到账号。先停第 68 章副本的写入者，按[在 Debian 接手已有的数据库、桶和收件箱](../../environment-setup.md#在-debian-接手已有的数据库桶和收件箱)，在同一个停写窗口迁移配对的数据，在部署端启动并核对 PostgreSQL（127.0.0.1:55471）、S3（127.0.0.1:18633）和练习 SMTP（127.0.0.1:1025）。安装程序和仅创建同名空桶都不会带回旧数据。数据服务启动后，在 69.3 用运行身份查原收据并从客户端实际取图；Mac 的旧桶随后保持停止，给客户端要用的本地 18633 留出端口。保留两端的恢复材料。
 
 第41章的 `auth_rate_buckets` 也随原库和迁移交付。旧副本若尚未应用 `20261116170000_shared_auth_rate_limit`，先由迁移身份追加，再执行本章运行授权；`epp57_run` 需要这张表的SELECT、INSERT、UPDATE、DELETE，最后一项用于有界过期清理。更换主机不清空计数表；保持相同的来源解析时，原来源窗口继续生效。代理或地址表示改变可能命中另一来源键，两个API接到不同数据库副本也不会共享额度。
 
@@ -114,7 +114,7 @@ printf '%s  portable.tgz\n' "$digest" | sha256sum -c -
 
 已有独立常开的数据机时，可以沿用其私网通路；只有需要跨机转发的部署才另做[独立数据连接](../chapter-70-service-runtime/side-02-private-data-link.md)。以下步骤按三项依赖已在 Debian 上运行。
 
-回到 Mac 的打包页，从第 67 章的 .env.handoff 复制数据库连接。该文件原来只有 DATABASE_URL，需在副本补上下面的生产运行配置。在配置副本内将 DATABASE_URL 的主机端口改为 127.0.0.1:55471，使用 Debian 恢复时选定的库名和刚设置的 epp57_run 口令，特殊字符按 URL 分量编码。使用本轮配对桶的应用凭据；签名密钥沿用已保存的部署值，若此前只用过临时值，用 openssl rand -hex 32 新建并保存，旧游标需重新获取。确认 AVATAR_S3_ENDPOINT 为 `http://127.0.0.1:18633`，设 PORT=3358、APP_ORIGIN=`http://127.0.0.1:13358`。编辑完成后单独传输私有配置。
+回到 Mac 的打包页，从第 68 章的 .env.handoff 复制数据库连接。该文件原来只有 DATABASE_URL，需在副本补上下面的生产运行配置。在配置副本内将 DATABASE_URL 的主机端口改为 127.0.0.1:55471，使用 Debian 恢复时选定的库名和刚设置的 epp57_run 口令，特殊字符按 URL 分量编码。使用本轮配对桶的应用凭据；签名密钥沿用已保存的部署值，若此前只用过临时值，用 openssl rand -hex 32 新建并保存，旧游标需重新获取。确认 AVATAR_S3_ENDPOINT 为 `http://127.0.0.1:18633`，设 PORT=3358、APP_ORIGIN=`http://127.0.0.1:13358`。编辑完成后单独传输私有配置。
 
 部署配置除了刚替换的 DATABASE_URL，还应包含以下项目。占位值在私有文件中填写，用本轮桶的 app.env 取得四项存储值，生产密钥留在该文件。
 
@@ -212,4 +212,4 @@ WHERE r.operation_id = '本轮暂停UUID'::uuid
 
 阅读约 20～28 分钟。已有 Debian 和交接数据时，传包、配置与前台验证另加 30～45 分钟。空机安装数据服务和迁移另加 45～85 分钟，下载与复制等待按实际数据量另计。
 
-[沿用配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 把验过的那份运行制品从验收环境交给发布环境](../chapter-68-artifact-promotion/chapter.md) · [下一章 · 让 API 和后台进程以各自身份持续运行](../chapter-70-service-runtime/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[沿用配套](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-70) · [上一章 · 第八篇回顾：从维护动作到可交付产物](../../part-08-maintenance/chapter-68-review/chapter.md) · [下一章 · 让 API 和后台进程以各自身份持续运行](../chapter-70-service-runtime/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

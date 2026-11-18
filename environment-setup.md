@@ -4,7 +4,7 @@
 
 ## 1. 需要准备哪些软件
 
-第九篇第 68～80 章依次准备原生托管、容器、运行维护、备份、发布与故障恢复所需工具；第 79～80 章沿用已有工具，在独立恢复目标与事故副本操作。具体主机、身份与安装验证仍按下表和各章入口核对。
+第九篇第 69～80 章依次准备原生托管、容器、运行维护、备份、发布与故障恢复所需工具；第 79～80 章沿用已有工具，在独立恢复目标与事故副本操作。具体主机、身份与安装验证仍按下表和各章入口核对。
 
 | 读到哪里 | 软件与安装位置 | 用它完成什么 |
 | --- | --- | --- |
@@ -30,10 +30,10 @@
 | 第 61 章 | [沿用 Node、PostgreSQL 客户端、DBeaver、Postman、Chrome 与 SeaweedFS](#为头像核对建立独立观察身份)（Mac） | 配对非空副本，用独立只读身份分页清点；无新增软件 |
 | 第 64 章 | [Biome、Prisma 生成器辅助包](#5-从开发目录交付一份可运行的服务)（随项目安装） | 检查代码和生成文件；远程运行 GitHub Actions 属选做 |
 | 第 64 章 | [Bash](#用-bash-启动服务选做-mac-托管)（Mac 自带）；[launchd、iTerm2](#用-bash-启动服务选做-mac-托管)（选做） | Bash 运行独立目录里的 API；69B 用 launchd 在 Mac 托管，iTerm2 可复现书中界面 |
-| 第 68 章 | [tar、shasum、Bash 与既有 Node、数据库、存储及图形工具](#第-68-章准备两套本机制品验收环境)（Mac） | 封存同平台运行包，在两套隔离副本核对摘要、配置和新记录归属 |
+| 第 67 章 | [tar、shasum、Bash 与既有 Node、数据库、存储及图形工具](#第-67-章准备两套本机制品验收环境)（Mac） | 封存同平台运行包，在两套隔离副本核对摘要、配置和新记录归属 |
 | 第 69 章 | [OpenSSH](#从-mac-建立-ssh-连接)（Mac 客户端、部署机服务端） | 从 Mac 登录另一台机器并转发请求 |
 | 第 69 章起 | [Debian 13、systemd](#准备-debian-13-部署端)（部署机）；[Lima](#准备-debian-13-部署端)（选用 Mac 虚拟机路线） | 建立可独立管理用户和服务的 Linux 主机 |
-| 第 69 章部署端 | [PostgreSQL 18、SeaweedFS 4.52、Mailpit 1.33.0 和 lsof](#在-debian-接手已有的数据库桶和收件箱)（Debian；已有独立数据机时可复用） | 将第 67 章的非空练习副本交给部署环境，退出操作终端后仍可访问 |
+| 第 69 章部署端 | [PostgreSQL 18、SeaweedFS 4.52、Mailpit 1.33.0 和 lsof](#在-debian-接手已有的数据库桶和收件箱)（Debian；已有独立数据机时可复用） | 将第 68 章的非空练习副本交给部署环境，退出操作终端后仍可访问 |
 | 第 69 章起 | [Linux 版 Node.js 24.22.1、npm](#安装部署端共用的-linux-node)（部署机） | 以各自的系统用户运行 API、邮件和通知 |
 | 第 71 章 | [OpenSSL 3](#两端准备-openssl)（管理 Mac 和部署 Debian）、[nginx](#在-debian-准备-nginx)（Debian） | 练习签发时核对名称和根指纹；由 nginx 在可达的私网地址接收页面、API 和头像请求 |
 | 第 71 章 | [curl、浏览器及证书信任设置](#在独立使用设备验证入口)（独立使用设备，如另一台 Mac 上的 Chrome 与系统钥匙串） | 准备私网解析和受信根，再从浏览器登录、读写和收通知 |
@@ -310,21 +310,23 @@ node database/chapter-51/store-probe.mjs buckets
 
 **为坏记录保留来源与现场两份库。** 第 66 章沿用 PostgreSQL 18、Node 24.22.1、DBeaver 和 Postman。用第 65 章非空副本建立 `epp_ch66_source`，在停写备份恢复出的独立 `epp_ch66_verify` 核对原始历史；只在 source 的两个明确合成 ID 注入缺修订故障。API 使用原 Cookie 和配置，维护 CLI 用 `.env.ch66` 与 `.env.ch66-verify` 分别选库并显式校验预期库名。本机 API 使用 scripts/dev.mjs 编译监听并开启 Inspector 9229，按正文用轮询模式做保存、重启与退出对照；为 HTTP 留一个回环端口（如 3366）；证据文件保存在 Git 之外，审批后固定摘要。新版本需要新增的完整性迁移；旧库升级与新空库 bootstrap 分别验证，不能仅切分支。[第 66 章操作](part-08-maintenance/chapter-66-bad-data/chapter.md)
 
-**带着已有数据交接。** 空库能检验交付文件是否齐全，已有账号和收据则能检验服务接到了哪一份数据。第 67 章用第 66 章的代码，将有历史数据的库恢复为交接副本，连接写入仅自己可读的 `.env.handoff`，空库仍由 `.env.delivery` 选中。分别为交接 API 与交付探测留出回环端口（如 3357 和 3356），另开两个连接到交接副本的 SQL 会话，才能在一个会话持锁时从另一个观察。[第 67 章维护交接](part-08-maintenance/chapter-67-review/chapter.md)
-
-### 用 Bash 启动服务，选做 Mac 托管
-
-第 64 章在独立工作目录验证产物，部署篇沿用第 67 章的程序与配置。若部署目标就是 Mac，支线 69B 用 macOS 自带的 launchd 托管它们。在已图形登录的 Mac 上打开终端。书中分标签页观察各角色，若要使用相同界面，首次执行 `brew install --cask iterm2` 安装 iTerm2。系统“终端”也能运行相同的 Bash 命令。[iTerm2 安装入口](https://formulae.brew.sh/cask/iterm2)
-
-在项目目录的 Zsh 先执行 `nvm use`，再输入 `/bin/bash`。这样子 shell 会继承已选 Node 的路径。在 Bash 中用 `echo "$BASH_VERSION"`、`node --version` 确认 shell 和 Node 24.22.1，即可开始第 64 章。选做 69B 时用 `command -v launchctl plutil` 确认系统工具可用。项目脚本用 Node 生成任务文件，`plutil` 可以读文件，`launchctl` 将任务交给宿主管理。按正文把产物、配置、工作文件和日志放入各自的持久目录。启动邮件角色前，核对待发任务和 Mailpit 地址。[第 64 章前台启动](part-08-maintenance/chapter-64-build-ci/chapter.md) · [69B 在 Mac 托管](part-09-deployment/chapter-69-target-environment/side-02-macos-supervision.md)
-
-### 第 68 章准备两套本机制品验收环境
+### 第 67 章准备两套本机制品验收环境
 
 本章继续在 Mac 操作，不需要先安装 Debian 或 Docker。沿用 Node 24.22.1、PostgreSQL 18、SeaweedFS、Mailpit、DBeaver 和 Postman；安装入口见上方软件表。系统自带 Bash、tar、shasum 与 awk，先执行 `command -v bash tar shasum awk`，应分别找到程序。`tar --version` 可核对本机 libarchive 版本；`shasum -a 256` 用于归档摘要。无需另装 GNU tar。
 
-按[第 62 章](part-07-profiles/chapter-62-review/chapter.md)的停写与配对恢复步骤准备两套非空库和独立桶副本，先保留原账号、素材 ID、收据与头像摘要。两套 API 可使用 3368、3369，数据库与存储端口按已有实例的分配记录填写；DBeaver 对每套连接查询实际库名与服务器地址，Postman 保存两套 baseUrl。配置、可写 work 和程序归档分开保存，env 文件权限 0600。邮件只连接练习收件箱。
+按[第 62 章](part-07-profiles/chapter-62-review/chapter.md)的停写与配对恢复步骤准备两套非空库和独立桶副本，先保留原账号、素材 ID、收据与头像摘要。数据应已完成第 66 章的迁移与隔离核对；配置从 `.env.ch66-api` 复制并分别改为本轮副本目标。两套 API 可使用 3368、3369，数据库与存储端口按已有实例的分配记录填写；DBeaver 对每套连接查询实际库名与服务器地址，Postman 保存两套 baseUrl。配置、可写 work 和程序归档分开保存，env 文件权限 0600。邮件只连接练习收件箱。
 
-在[第 68 章](part-09-deployment/chapter-68-artifact-promotion/chapter.md)先按锁安装与构建，在独立目录安装生产依赖；归档解包后真正完成密码登录和 PNG 转 WebP，才能证明该平台的原生模块可用。只检查版本、require 或摘要，不能代替这些操作。源码修改沿用第 66 章调试模式；解包后的生产入口不启 Inspector、不监听源码。
+在[第 67 章](part-08-maintenance/chapter-67-artifact-promotion/chapter.md)先按锁安装与构建，在独立目录安装生产依赖；归档解包后真正完成密码登录和 PNG 转 WebP，才能证明该平台的原生模块可用。只检查版本、require 或摘要，不能代替这些操作。源码修改沿用第 66 章调试模式；解包后的生产入口不启 Inspector、不监听源码。
+
+### 第 68 章准备维护与制品交接
+
+**带着已有数据交接。** 空库能检验交付文件是否齐全，已有账号和收据则能检验服务接到了哪一份数据。第 68 章用第 66 章的代码，将有历史数据的库恢复为交接副本，连接写入仅自己可读的 `.env.handoff`，空库仍由 `.env.delivery` 选中。分别为交接 API 与交付探测留出回环端口（如 3357 和 3356），另开两个连接到交接副本的 SQL 会话，才能在一个会话持锁时从另一个观察。[第 68 章维护交接](part-08-maintenance/chapter-68-review/chapter.md)
+
+### 用 Bash 启动服务，选做 Mac 托管
+
+第 64 章在独立工作目录验证产物，部署篇沿用第 68 章的程序与配置。若部署目标就是 Mac，支线 69B 用 macOS 自带的 launchd 托管它们。在已图形登录的 Mac 上打开终端。书中分标签页观察各角色，若要使用相同界面，首次执行 `brew install --cask iterm2` 安装 iTerm2。系统“终端”也能运行相同的 Bash 命令。[iTerm2 安装入口](https://formulae.brew.sh/cask/iterm2)
+
+在项目目录的 Zsh 先执行 `nvm use`，再输入 `/bin/bash`。这样子 shell 会继承已选 Node 的路径。在 Bash 中用 `echo "$BASH_VERSION"`、`node --version` 确认 shell 和 Node 24.22.1，即可开始第 64 章。选做 69B 时用 `command -v launchctl plutil` 确认系统工具可用。项目脚本用 Node 生成任务文件，`plutil` 可以读文件，`launchctl` 将任务交给宿主管理。按正文把产物、配置、工作文件和日志放入各自的持久目录。启动邮件角色前，核对待发任务和 Mailpit 地址。[第 64 章前台启动](part-08-maintenance/chapter-64-build-ci/chapter.md) · [69B 在 Mac 托管](part-09-deployment/chapter-69-target-environment/side-02-macos-supervision.md)
 
 ## 6. 从 Mac 接手另一台机器上的 EPP
 
@@ -401,7 +403,7 @@ sudo -v
 )
 ```
 
-**从第 67 章的交接副本接手。** 在 Mac 上记录实际源库名、端口、当前的 avatarId 和已保存图的 SHA-256。停掉 API、邮件和通知进程及其他会向该库和桶写入的练习程序，等在途请求结束，保持 PG 在线。正常停止本轮 SeaweedFS，确认原 PID 已退出。以下的 `store` 填实际运行的 `.chapter51-store` 绝对路径，里面有原 s3.json、config 和 data。这个目录只用于书中的单机、同版本 mini 练习。将下列归档保存在权限 0700 的私有目录，其中包含桶凭据。
+**从第 68 章的交接副本接手。** 在 Mac 上记录实际源库名、端口、当前的 avatarId 和已保存图的 SHA-256。停掉 API、邮件和通知进程及其他会向该库和桶写入的练习程序，等在途请求结束，保持 PG 在线。正常停止本轮 SeaweedFS，确认原 PID 已退出。以下的 `store` 填实际运行的 `.chapter51-store` 绝对路径，里面有原 s3.json、config 和 data。这个目录只用于书中的单机、同版本 mini 练习。将下列归档保存在权限 0700 的私有目录，其中包含桶凭据。
 
 ```bash
 umask 077

@@ -140,7 +140,7 @@ sudo chown -R root:root /opt/epp72/release
 sudo chmod -R a+rX,go-w /opt/epp72/release
 ```
 
-把归档移入私有的制品保管位置，记下路径和 SHA-256。70.3 在解包位置验收后，将摘要与运行结果写进可信交接记录。同平台再交付时按[第 68 章](../chapter-68-artifact-promotion/chapter.md)核对原归档、解入空目录，省去安装和构建。
+把归档移入私有的制品保管位置，记下路径和 SHA-256。70.3 在解包位置验收后，将摘要与运行结果写进可信交接记录。同平台再交付时按[第 67 章](../../part-08-maintenance/chapter-67-artifact-promotion/chapter.md)核对原归档、解入空目录，省去安装和构建。
 
 第 69 章交付的 Debian 已经拥有 PG、私有桶和练习邮箱。它们各自在本机回环的 55471、18633 和 1025 等连接。下面只改变 API 的内部监听（IPv6 回环的 3374），保留浏览器熟悉的来源和原来的签名密钥。关闭上一轮用于访问 API 的 SSH 转发，新开操作端 Bash 页；若本章还从 Mac 读签名头像，同一连接也转发 S3。原 Mac 上的旧存储应已停妥，两个本地端口均应空闲。
 

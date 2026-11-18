@@ -583,7 +583,7 @@ Postman 重发同一个 recoverable 详情请求，返回原第二版文本；�
 
 交付时还要保留原服务的连续性：在非空副本升级前后逐值比较未参与故障的旧表和原迁移，拿原 Cookie 读本人资料与健康素材；独立生产目录按锁安装运行依赖，从构建产物启动，再保存一次开发源码触发重启，确认同一状态和历史仍在。迁移、维护命令和进程生命周期分别验证，不能用一次测试全绿代替真实旧数据接续。开发复验沿用 66.1 的监听入口，保存及恢复源码各触发一次重启；Ctrl-C 后确认本轮业务端口和 Inspector 都已关闭。维护命令退出并不表示旁边的开发服务也已停止，分别核对进程。涉及邮件、头像或异机部署的交付，还须沿相应章节验证外部依赖和目标平台。
 
-完成后断开 DBeaver 的本轮连接，停止本轮 API，删除临时明文登录凭据；备份、未决案件与已批准依据按既有保留策略保存。维护交接写明剩余案件、已证明的事实、缺的证据和下一次检查入口。第 67 章会把这份未决记录与构建产物一起交给接班人。
+完成后断开 DBeaver 的本轮连接，停止本轮 API，删除临时明文登录凭据；备份、未决案件与已批准依据按既有保留策略保存。维护交接写明剩余案件、已证明的事实、缺的证据和下一次检查入口。下一章从这份完整程序制作候选归档，在两套隔离环境核对制品与数据目标；第 68 章再把未决记录与验收证据一起交给接班人。
 
 ## 附录：本章必要技术点速查
 
@@ -600,4 +600,4 @@ Postman 重发同一个 recoverable 详情请求，返回原第二版文本；�
 
 PostgreSQL 18 官方文档：[事务隔离](https://www.postgresql.org/docs/18/transaction-iso.html)、[行锁](https://www.postgresql.org/docs/18/explicit-locking.html)、[部分索引](https://www.postgresql.org/docs/18/indexes-partial.html)、[pg_dump](https://www.postgresql.org/docs/18/app-pgdump.html)、[pg_restore](https://www.postgresql.org/docs/18/app-pgrestore.html)。Node 24：[crypto.createHash](https://nodejs.org/docs/latest-v24.x/api/crypto.html#cryptocreatehashalgorithm-options)、[文件创建标志](https://nodejs.org/docs/latest-v24.x/api/fs.html#file-system-flags)。
 
-[上一章 · 调试性能与资源问题](../chapter-65-performance/chapter.md) · [下一章 · 第八篇回顾：从维护动作到可交付产物](../chapter-67-review/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[上一章 · 调试性能与资源问题](../chapter-65-performance/chapter.md) · [下一章 · 把验过的那份运行制品从验收环境交给发布环境](../chapter-67-artifact-promotion/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
