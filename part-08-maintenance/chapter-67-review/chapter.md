@@ -2,7 +2,7 @@
 
 > 值班交接单：上午暂停了一个练习账号的 Web 资格，下午另一位同事按新决定恢复。晚班为了补回上午丢失的终端输出，用原操作 ID 重发暂停，命令等了几秒，以 1 退出。有人提议换一个 ID 再发。与此同时，准备用来接替服务的目录能跑账号预览，API 启动却退出了。现在能把这个目录交给下一班吗？账号该留在哪个状态？
 
-先完成第 63～66 章及支线 65B。拿出账号管理命令、验过的运行制品和数据库观察记录，给交接单写两句答复：准备对账号做什么，准备凭什么切换 API。下面三份材料可以按你自己的顺序打开。如果还缺证据，先记下从哪个进程、哪个库、在什么时候取。后面的操作可用同一份[第 65 章配套代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66)在本机重建这两处现场；67.4 再改变交接条件，判断长事务留下的空间问题与历史坏记录分别该怎样处置。
+先完成第 63～66 章及支线 65B。拿出账号管理命令、验过的运行制品和数据库观察记录，给交接单写两句答复：准备对账号做什么，准备凭什么切换 API。下面三份材料可以按你自己的顺序打开。如果还缺证据，先记下从哪个进程、哪个库、在什么时候取。后面的操作可用同一份[第 66 章配套代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66)在本机重建这两处现场；67.4 再改变交接条件，判断长事务留下的空间问题与历史坏记录分别该怎样处置。
 
 ## 67.1 接手一张尚未结案的维护单
 
@@ -35,7 +35,7 @@ API 与 CLI 都用同一套账号状态和 Web 资格判断。API 还要从请�
 
 **准备两个不同用途的库。** 将第 63～65 章任一已完成版本中含已开通练习账号和迁移历史的本机库备份，恢复到新建的 `epp_ch56_handoff`。这是下面真正改资格的副本。若手边没有旧库，先完成下方的源码构建并配好 .env.handoff，执行 `env -u DATABASE_URL -u SHADOW_DATABASE_URL node --env-file=.env.handoff scripts/deploy-verify.mjs bootstrap epp_ch56_handoff`，再按第 63 章的账号准备步骤创建一个有密码、active、Web 已开通的练习账号。另建一个 public schema 为空的 `epp_ch56_delivery`，留给下节会实际启动 Worker 的交付检查。两库使用独立的本地配置文件。分别按建库记录核对实例、端口、库名和角色；同名库也可能在另一台机器上。[备份与独立恢复](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-66/database/chapter-22/backup-restore.md) · [第 63 章账号准备](../chapter-63-account-cli/chapter.md#631-给一次暂停分配身份)
 
-从第 65 章干净代码副本的项目根开始。将指向历史副本的 DATABASE_URL 放进仅自己可读的 `.env.handoff`，将空库的放进 `.env.delivery`。这两个文件都只写各自的数据库连接。在一个终端执行以下命令，每步成功再继续，记下输出的临时目录。后面一直用这套产物。
+从第 66 章干净代码副本的项目根开始。恢复的历史副本若尚未包含第 66 章迁移，先用 `.env.handoff` 执行 `env -u DATABASE_URL node --env-file=.env.handoff scripts/deploy-verify.mjs deploy epp_ch56_handoff`，再构建交付产物。将指向历史副本的 DATABASE_URL 放进仅自己可读的 `.env.handoff`，将空库的放进 `.env.delivery`。这两个文件都只写各自的数据库连接。在一个终端执行以下命令，每步成功再继续，记下输出的临时目录。后面一直用这套产物。
 
 ```bash
 umask 077
@@ -162,7 +162,7 @@ env -u DATABASE_URL EPP_CHECK_PORT=3356 node --env-file=.env.delivery \
 
 这张单子里的三秒耗在已进入数据库的事务上。如果把池从五条加到十条，多出来的连接仍会在同一行后面排队。有效的处置是由持锁者结束已经核实的检查事务，把人的思考时间移出事务。若一位同事只需看当前值，可以在自动提交里做普通 SELECT。办理资格的 apply 仍要在事务内核对账号、重放键和收据，直接拿掉那把锁会改变并发时的办理顺序。
 
-把这个判断移到登录接口，症状变成“两次都慢，放开后都成功”。用第 65 章留下的 `epp_ch55_lab` 和对应的 `.env.perf`，在源码根复跑下面的[本机对照](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-66/examples/performance/service.mjs)。没有这个库时先按[第 65.1 节](../chapter-65-performance/chapter.md#651-给耗时找一个起点和终点)在独立空库引导。程序创建自己的练习账号，分别在释放连接和释放账号锁之前取样。
+把这个判断移到登录接口，症状变成“两次都慢，放开后都成功”。用第 65 章留下的 `epp_ch55_lab` 和对应的 `.env.perf`，在源码根复跑下面的[本机对照](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-66/examples/performance/service.mjs)。若这个旧实验库仍为 65 章结构，先用 `.env.perf` 执行 `env -u DATABASE_URL node --env-file=.env.perf scripts/deploy-verify.mjs deploy epp_ch55_lab`。没有这个库时先按[第 65.1 节](../chapter-65-performance/chapter.md#651-给耗时找一个起点和终点)在独立空库引导。程序创建自己的练习账号，分别在释放连接和释放账号锁之前取样。
 
 ```bash
 umask 077
@@ -196,7 +196,7 @@ env -u DATABASE_URL node --env-file=.env.perf examples/performance/service.mjs e
 <details>
 <summary>对照隔离与重新开放的依据</summary>
 
-按[第 66 章](../chapter-66-bad-data/outline.md)保留库名、故障 ID、缺失关系及扫描检查点。启动就绪和正常邻项可读，都不能证明列表完整。先核对详情与列表各自怎样处理坏记录，明确哪些健康操作仍可继续、哪些操作必须拒绝；“隔离这条记录”需要相应访问路径实际执行隔离，不能只在交接单上写一个标记。若归属判断也不可信，拒绝依赖该归属授权的访问；不能为了保持可用而猜测属主。
+按[第 66 章](../chapter-66-bad-data/chapter.md)保留库名、故障 ID、缺失关系及扫描检查点。启动就绪和正常邻项可读，都不能证明列表完整。先核对详情与列表各自怎样处理坏记录，明确哪些健康操作仍可继续、哪些操作必须拒绝；“隔离这条记录”需要相应访问路径实际执行隔离，不能只在交接单上写一个标记。若归属判断也不可信，拒绝依赖该归属授权的访问；不能为了保持可用而猜测属主。
 
 修复依据必须能对应原记录及其历史。父记录的初始文本不能证明缺失修订的完整内容，没有可信来源就保留隔离状态。有证据并完成有条件修复后，用原账号复查详情和列表，再检查正常邻项、另一账号的访问边界以及重复处理结果，才决定重新开放。交接时写出未解决的 ID、仍可用的业务和解除隔离所需证据，不能把“服务还能启动”当作结案。
 
@@ -223,4 +223,4 @@ env -u DATABASE_URL node --env-file=.env.perf examples/performance/service.mjs e
 
 阅读约 27～39 分钟。已准备好本机 PostgreSQL 18 和练习账号时，独立判断、恢复副本、干净构建和双连接复现另加 40～55 分钟。首次安装与下载另计。
 
-[本章沿用的完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66) · [上一章：一条历史坏记录应该让多少服务停下来](../chapter-66-bad-data/outline.md) · [第八篇导读](../README.md) · [下一章 · 把验过的那份运行制品从验收环境交给发布环境](../../part-09-deployment/chapter-68-artifact-promotion/outline.md) · [全书目录](../../README.md)
+[本章沿用的完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66) · [上一章：一条历史坏记录应该让多少服务停下来](../chapter-66-bad-data/chapter.md) · [第八篇导读](../README.md) · [下一章 · 把验过的那份运行制品从验收环境交给发布环境](../../part-09-deployment/chapter-68-artifact-promotion/outline.md) · [全书目录](../../README.md)

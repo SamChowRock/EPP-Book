@@ -2,7 +2,7 @@
 
 接班人用第 64 章的交付目录启动了服务。有两条登录记录格外慢：一条 247 毫秒，一条 244 毫秒，两条都是 200。库里也都多了一条有效会话。如果只能再取一次读数，你会在请求结束后查最慢的 SQL，还是在请求尚未结束时看它在等谁？这两次登录里，只有一次真的在数据库里等锁。
 
-从[第 64 章代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-64)继续。本章保留原接口、密码成本和数据结构，只在开发目录加[本机诊断实验](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66/examples/performance)。它用真实的 API 和 PostgreSQL 制造能解除的等待；另开一个只有虚构对象的 Node 进程做破坏时序的内存观察。两边的样本不能混算。
+从[第 64 章代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-64)继续。本章保留原接口、密码成本和数据结构，只在开发目录加[本机诊断实验](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-65/examples/performance)。它用真实的 API 和 PostgreSQL 制造能解除的等待；另开一个只有虚构对象的 Node 进程做破坏时序的内存观察。两边的样本不能混算。
 
 ## 65.1 给耗时找一个起点和终点
 
@@ -55,7 +55,7 @@ node --inspect=127.0.0.1:9229 -e 'setInterval(() => {}, 60000)'
 
 图 65-1　上方横轴是整次录制，含启动、等待采样定时器和收尾。黄色长段与同步计算发生在同一个窗口。图表示观察到的调用栈，不是对真实登录密码开销的测量。
 
-若换成真正的登录，Argon2 的工作在原生库和工作线程执行。JS 在 await 处让出了主线程；主线程的 CPU profile 上看不到一条很宽的 JavaScript 调用，仍可能有昂贵的原生计算或工作线程排队。先用同一台机器、同一密码参数，比较[第 37 章的成本实验](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-66/examples/password-cost.mjs)：
+若换成真正的登录，Argon2 的工作在原生库和工作线程执行。JS 在 await 处让出了主线程；主线程的 CPU profile 上看不到一条很宽的 JavaScript 调用，仍可能有昂贵的原生计算或工作线程排队。先用同一台机器、同一密码参数，比较[第 37 章的成本实验](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-65/examples/password-cost.mjs)：
 
 ```bash
 for n in 1 4 8; do UV_THREADPOOL_SIZE=4 node examples/password-cost.mjs 19456 "$n"; done
@@ -100,7 +100,7 @@ ORDER BY pid;
 
 先看被挡的那行是否正在等 Lock，沿 blocked_by 找阻塞者；持锁者本身不一定叫 epp-api。按该 PID 在同一视图单查 state、xact_start、wait_event_type；看见 idle in transaction 就去问那段事务为什么没有结束，不能据此终止陌生会话。本实验的自动故障窗口只有约 200 ms，不要求手动抢拍；脚本在释放前已从数据库读回等待关系。练习手动观察可沿用[第 28 章的双连接操作](../../part-04-consistency/chapter-28-concurrency/chapter.md)，单独开第三个连接作观察者。如果锁了十秒才去测登录，登录自己的锁超时会先发生，你看到的是另一个现场。反过来，一次 blocked_by 为空也只说明采样时没看到这种锁阻塞，不能排除先前短暂等锁，更不能排除 IO。
 
-两种等待都排除后，才问「拿到连接后，SQL 为得到这 21 行做了多少事」。学习记录首页按归属过滤、按创建时间和 ID 倒序取下一页的探针行；第 35 章已为它建立有序索引。不要先删那个索引来制造慢查询。打开配套的 [plan.sql](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-66/examples/performance/plan.sql)，在一个 DBeaver 编辑器中按顺序执行：BEGIN、建临时表、ANALYZE、第一条 EXPLAIN。保存第一份结果，再执行建索引、ANALYZE 和第二条 EXPLAIN；最后 ROLLBACK。也可以在同一编辑器选择 **SQL Editor → Execute SQL script** 一次顺序执行整份；在下方两个 Results 标签之间切换，找列头为 QUERY PLAN 的网格。Statistics 显示的是脚本执行统计。psql 也可在指向练习库的会话用 `\i examples/performance/plan.sql` 执行整份。临时表只在创建它的连接可见，用简化的键重现首页的访问方式，没有模拟整条业务查询的关联和行宽。
+两种等待都排除后，才问「拿到连接后，SQL 为得到这 21 行做了多少事」。学习记录首页按归属过滤、按创建时间和 ID 倒序取下一页的探针行；第 35 章已为它建立有序索引。不要先删那个索引来制造慢查询。打开配套的 [plan.sql](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-65/examples/performance/plan.sql)，在一个 DBeaver 编辑器中按顺序执行：BEGIN、建临时表、ANALYZE、第一条 EXPLAIN。保存第一份结果，再执行建索引、ANALYZE 和第二条 EXPLAIN；最后 ROLLBACK。也可以在同一编辑器选择 **SQL Editor → Execute SQL script** 一次顺序执行整份；在下方两个 Results 标签之间切换，找列头为 QUERY PLAN 的网格。Statistics 显示的是脚本执行统计。psql 也可在指向练习库的会话用 `\i examples/performance/plan.sql` 执行整份。临时表只在创建它的连接可见，用简化的键重现首页的访问方式，没有模拟整条业务查询的关联和行宽。
 
 ```sql
 EXPLAIN (ANALYZE, BUFFERS)
@@ -122,7 +122,7 @@ ORDER BY created_at DESC, id DESC LIMIT 21;
 
 这次 DBeaver 实拍中，两份计划末尾的 Execution Time 分别为 1.390 和 0.032 ms。换一台机器时，先核对过滤行数、排序节点和提前停止的位置，不要求毫秒数相同。临时表此处报告 local buffers，不能把 hit 数当磁盘读次数，也不能把规划成本 cost 当毫秒。EXPLAIN ANALYZE 会真的执行语句；这里测的是隔离库上的 SELECT。
 
-还有一种「越来越慢」与单条 SQL 无关。打开专用练习库的 SQL 编辑器，先运行配套 [mail.sql](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-66/examples/performance/mail.sql)。保持本机 Mailpit 已启动、邮件 Worker 未启动（[本机邮件环境](../../environment-setup.md)有启动命令）。另一个终端从配套根目录启动正常 API；端口可换成空闲端口，两端 SMTP 必须一致：
+还有一种「越来越慢」与单条 SQL 无关。打开专用练习库的 SQL 编辑器，先运行配套 [mail.sql](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-65/examples/performance/mail.sql)。保持本机 Mailpit 已启动、邮件 Worker 未启动（[本机邮件环境](../../environment-setup.md)有启动命令）。另一个终端从配套根目录启动正常 API；端口可换成空闲端口，两端 SMTP 必须一致：
 
 ```bash
 env -u DATABASE_URL NODE_ENV=development PORT=3355 LOCAL_SMTP_PORT=1055 \
@@ -215,4 +215,4 @@ ORDER BY execution_ms DESC LIMIT 15;
 
 阅读约 35～48 分钟；已有 PostgreSQL 18 和本机 Mailpit 时，跟做登录、两类采样、执行计划和投递对照另加 45～65 分钟。按四幅界面图与实际操作估算，首次安装与下载另计。
 
-[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66) · [上一章：构建与持续集成](../chapter-64-build-ci/chapter.md) · [下一章：一条历史坏记录应该让多少服务停下来](../chapter-66-bad-data/outline.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)
+[本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-65) · [上一章：构建与持续集成](../chapter-64-build-ci/chapter.md) · [下一章：一条历史坏记录应该让多少服务停下来](../chapter-66-bad-data/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)

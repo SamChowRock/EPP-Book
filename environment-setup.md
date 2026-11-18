@@ -307,7 +307,9 @@ node database/chapter-51/store-probe.mjs buckets
 
 **为空间回收保留三个独立会话。** 支线 65B 沿用 PostgreSQL 18 与 DBeaver。按前文建立数据库的方法另建由练习角色拥有的空库 `epp_ch65b_lab`，不执行 EPP 的 bootstrap；在 DBeaver 新建连接后分别建立 A、B、C 独立连接，用 `current_database()`、`inet_server_port()` 和三个不同的 `pg_backend_pid()` 核对目标。B 建普通练习表并写入，A 保留事务快照，C 在自动提交模式执行维护。仅练习表暂时关闭 autovacuum，收尾恢复；检查磁盘余量的 `df` 在数据库宿主机执行。[65B 三连接与空间回收](part-08-maintenance/chapter-65-performance/side-02-pg-maintenance.md)
 
-**带着已有数据交接。** 空库能检验交付文件是否齐全，已有账号和收据则能检验服务接到了哪一份数据。第 67 章用第 65 章的代码，将有历史数据的库恢复为交接副本，连接写入仅自己可读的 `.env.handoff`，空库仍由 `.env.delivery` 选中。分别为交接 API 与交付探测留出回环端口（如 3357 和 3356），另开两个连接到交接副本的 SQL 会话，才能在一个会话持锁时从另一个观察。[第 67 章维护交接](part-08-maintenance/chapter-67-review/chapter.md)
+**为坏记录保留来源与现场两份库。** 第 66 章沿用 PostgreSQL 18、Node 24.22.1、DBeaver 和 Postman。用第 65 章非空副本建立 `epp_ch66_source`，在停写备份恢复出的独立 `epp_ch66_verify` 核对原始历史；只在 source 的两个明确合成 ID 注入缺修订故障。API 使用原 Cookie 和配置，维护 CLI 用 `.env.ch66` 与 `.env.ch66-verify` 分别选库并显式校验预期库名。为本机 API 留一个回环端口（如 3366）；证据文件保存在 Git 之外，审批后固定摘要。新版本需要新增的完整性迁移；旧库升级与新空库 bootstrap 分别验证，不能仅切分支。[第 66 章操作](part-08-maintenance/chapter-66-bad-data/chapter.md)
+
+**带着已有数据交接。** 空库能检验交付文件是否齐全，已有账号和收据则能检验服务接到了哪一份数据。第 67 章用第 66 章的代码，将有历史数据的库恢复为交接副本，连接写入仅自己可读的 `.env.handoff`，空库仍由 `.env.delivery` 选中。分别为交接 API 与交付探测留出回环端口（如 3357 和 3356），另开两个连接到交接副本的 SQL 会话，才能在一个会话持锁时从另一个观察。[第 67 章维护交接](part-08-maintenance/chapter-67-review/chapter.md)
 
 ### 用 Bash 启动服务，选做 Mac 托管
 

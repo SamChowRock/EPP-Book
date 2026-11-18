@@ -92,6 +92,8 @@ GRANT INSERT (id,user_id,kind,created_at) ON public.notifications TO epp_notify;
 
 第50章统一的小程序映射只由API读取和建立，所以 `wechat_identities` 仅给 `epp_api` SELECT、INSERT；邮件、通知及只读工具的启动路径不探测该表。首次平台身份创建本地用户时也只执行 `INSERT INTO users(id)`，让数据库决定其他默认列，避免ORM附带默认资格列而越过INSERT(id)授权。MiniService原有用户FOR UPDATE锁仍保留：API已有资料字段的列级UPDATE足以支持该锁，不需增加修改mini资格的权力。第 76 章新的API登录继承同一基角色授权。
 
+第 66 章的局部数据保护还要求 API 读取案件状态。更新后的 grants.sql 仅增加 `GRANT SELECT (id,capture_id,state) ON public.capture_integrity_cases TO epp_api`；扫描和修复表不对 API 开放，邮件和通知也不需要案件权限。先迁移再授权；定向撤回这三列权限应使新 API 启动拒绝，恢复后原 Cookie 及健康素材可读。第 76 章 API 新登录继承基角色的此项授权，不另复制成管理权限。
+
 第 30 章的 `CaptureCommands` 现在也由 API 身份执行。授权脚本额外给予 `capture_write_receipts` 九列的 SELECT、INSERT，完整列为 `user_id, action, operation_id, capture_id, fingerprint, status_code, response, location, recorded_at`，不授 UPDATE、DELETE。读旧回执时，它先对当前归属的 captures 行 `FOR SHARE`；`GRANT UPDATE (chinese_intent) ON public.captures TO epp_api` 满足锁定查询至少可更新一列的要求，同时保留本来允许修改中文意图的业务。邮件、通知均不读素材写入回执，新表的启动检查放在它们专用启动路径的提前返回之后。第 76 章的新 API 登录通过原 API 角色继承这些授权，不能只换密码而漏执行基角色的新授权。
 
 用独立练习库验证授权时，先按第 30 章保存一笔带键写入的原键、原正文与原结果；经本章 API 重放，应取得原 ID 或原修订号。以 API 数据库身份尝试 UPDATE、DELETE 回执应被拒绝。只在独立副本临时撤回新表 INSERT，再用新键写入，业务和回执应同时回滚；恢复原列授权后原键才可完成。不要拿生产历史回执测试删除，也不要把邮件、通知启动失败用授予新表权限来掩盖。
