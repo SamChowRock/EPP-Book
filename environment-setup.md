@@ -305,6 +305,8 @@ node database/chapter-51/store-probe.mjs buckets
 
 **给性能采样留一个专用库。** 第 65 章要观察请求为什么会变慢，让专用库承担实验中的等待和写入。在代码根目录的 `.env.perf` 中只填指向本机 `epp_ch55_lab` 的 `DATABASE_URL`。池等待实验使用临时端口。CPU profile 保存到私有临时目录，堆快照从合成进程生成，分别在 Chrome 的 **Performance** 和 **Memory** 导入。投递实验也用自己的 API、SMTP 和网页端口，例如 3355、1055、8055。[第 65 章性能采样](part-08-maintenance/chapter-65-performance/chapter.md)
 
+**为空间回收保留三个独立会话。** 支线 65B 沿用 PostgreSQL 18 与 DBeaver。按前文建立数据库的方法另建由练习角色拥有的空库 `epp_ch65b_lab`，不执行 EPP 的 bootstrap；在 DBeaver 新建连接后分别建立 A、B、C 独立连接，用 `current_database()`、`inet_server_port()` 和三个不同的 `pg_backend_pid()` 核对目标。B 建普通练习表并写入，A 保留事务快照，C 在自动提交模式执行维护。仅练习表暂时关闭 autovacuum，收尾恢复；检查磁盘余量的 `df` 在数据库宿主机执行。[65B 三连接与空间回收](part-08-maintenance/chapter-65-performance/side-02-pg-maintenance.md)
+
 **带着已有数据交接。** 空库能检验交付文件是否齐全，已有账号和收据则能检验服务接到了哪一份数据。第 67 章用第 65 章的代码，将有历史数据的库恢复为交接副本，连接写入仅自己可读的 `.env.handoff`，空库仍由 `.env.delivery` 选中。分别为交接 API 与交付探测留出回环端口（如 3357 和 3356），另开两个连接到交接副本的 SQL 会话，才能在一个会话持锁时从另一个观察。[第 67 章维护交接](part-08-maintenance/chapter-67-review/chapter.md)
 
 ### 用 Bash 启动服务，选做 Mac 托管

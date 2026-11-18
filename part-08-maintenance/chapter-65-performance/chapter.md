@@ -198,7 +198,7 @@ ORDER BY execution_ms DESC LIMIT 15;
 
 [支线 65A　写后删缓存，为什么还会读回旧页](side-01-cache-race.md)
 
-[支线 65B　长事务结束以后，PostgreSQL 怎样回收旧行占用的空间](side-02-pg-maintenance.md)
+[支线 65B　长事务结束以后，PostgreSQL 怎样回收旧行占用的空间](side-02-pg-maintenance.md)：用三个独立会话区分旧快照保留、普通清理后的空间复用与停机重写；阅读另加 30～40 分钟，跟做另加 30～45 分钟。
 
 ## 附录：本章必要技术点速查
 
