@@ -10,8 +10,6 @@
 
 原生部署已把只读 release、可写工作目录与数据库目录分开。容器继续遵守这个边界：镜像层保存程序，每个容器另有自己的可写层。停止再启动原容器会保留可写层，删除重建则会失去它。把数据库放进可写层，即使重启实验成功，也不能证明发布新版时数据还在。
 
-API容器继续执行第41章的共享来源额度协议；重新创建容器不清数据库窗口。若以后增加第二个API副本，它必须接同一数据库和规则，运行身份保留计数表CRUD；环境文件相同但数据库分别复制，仍不能得到统一额度。 同时核对入口代理与来源解析：容器接管后若request.ip的地址或表示改变，就会命中另一来源键；这不等于旧计数行被清空。两个副本必须使用一致的代理信任和来源约定，再比较共享窗口。
-
 命名卷由引擎管理，绑定挂载将引擎主机上的指定路径接进容器，两者都独立于应用容器。tmpfs 将临时写入放在内存文件系统里，停止后丢弃；它占用内存预算，还可能进入宿主交换空间。EPP 的头像预览暂存适合限额 tmpfs，已经发布的对象和数据库需要持久存储。[存储类型](https://docs.docker.com/engine/storage/) · [tmpfs 边界](https://docs.docker.com/engine/storage/tmpfs/)
 
 先用已构建的 `epp:chapter-73` 做一份文本收据，借此区分容器身份与数据身份。以下两条 run 都会创建临时容器，并在退出后删除它。镜像入口已经是 Node，命令从 `-e` 开始；卷实验临时以 root 写入新卷，真实应用继续使用 UID 10001。
@@ -63,14 +61,22 @@ curl --noproxy '*' --max-time 3 http://127.0.0.1:18080
 
 两次应得到 `network-A`。再看 `docker logs "$probe_id"`：从宿主回环发布端口进入的那条请求，其 peer 是随后 nginx 到 API 路径的代理对端候选，记下具体 IP；不要把另一容器直连的地址填成代理地址。把第一条中的 probe 改为 `127.0.0.1`，请求容器自身没有监听 8080，连接应失败；把服务监听改成自己的回环，其他容器和发布端口也不能到达它。观察完执行 `docker stop "$probe_id"`、`docker rm "$probe_id"`，保留后面要用的网络。
 
-API、数据库与浏览器有不同的调用位置。本章按下表调整实际连接，而不是统一替换所有 localhost。
+沿一次页面请求和一次头像下载看流量去向。第 71 章的页面与对象入口都在宿主 nginx 上。浏览器通过部署机的私网地址访问，API 容器通过网桥网关访问同名对象入口。两边用同一 HTTPS 名称验证证书和签名。
 
-| 调用者 | 去哪里 | 为什么这样配 |
-| --- | --- | --- |
-| API/Worker 容器 | `epp-data.internal`，映射到本次宿主网关 | 到已有原生 PostgreSQL 和 Mailpit，使用它们的实际端口 |
-| 宿主 nginx | `127.0.0.1:3374` | Docker 发布到 API 的容器端口 3000 |
-| API 与浏览器 | `https://api.epp.test:9443` | 同一个对象来源参与请求与签名，两侧分别准备解析与信任 |
-| 用户浏览器 | 原来的 HTTPS 页面来源 | Cookie、Origin、页面和 API 契约继续保持 |
+```mermaid
+flowchart LR
+  browser["用户浏览器"] -->|"HTTPS 8443 · 页面与 API"| page["宿主 nginx · 页面入口"]
+  page -->|"127.0.0.1:3374 → 容器 3000"| api["API 容器"]
+  browser -->|"HTTPS 9443 · 签名 URL"| obj["宿主 nginx · 对象入口"]
+  api -->|"HTTPS 9443 · 网桥网关"| obj
+  obj -->|"宿主回环"| store["SeaweedFS"]
+  api -->|"网桥网关 55471"| pg["PostgreSQL"]
+  mail["邮件容器"] -->|"网桥网关 55471"| pg
+  notify["通知容器"] -->|"网桥网关 55471"| pg
+  mail -->|"网桥网关 1025"| smtp["Mailpit"]
+```
+
+图中是同机部署路线。若页面和素材能打开，头像却下载失败，先在浏览器开发者工具的 Network 中找端口 9443 的请求，查看实际响应和证书错误。如果 8443 上的上传请求已到达 API，而 API 报访问对象存储失败，则沿 API 容器到 9443 的路径检查网关解析、监听与容器信任的公开根。保留原签名 URL 供当前请求使用，交接记录只记状态、对象键和摘要。
 
 默认省略发布地址可能把端口绑定到所有宿主接口。本章只向宿主回环发布 API，外部设备经过 nginx；数据库与存储管理端口不因容器化自动公开。Docker 的发布规则也会参与宿主防火墙转发，要从实际调用端复查边界。[端口发布](https://docs.docker.com/engine/network/port-publishing/)
 
@@ -121,7 +127,7 @@ ExecStart=/opt/epp-data/bin/mailpit --smtp 172.28.74.1:1025 --listen 127.0.0.1:8
 
 ## 73.4 把三个角色变成可重建的服务定义
 
-检出本章配套，在 **Debian 配套仓库根目录**建立专用部署目录。首次创建时执行下面的命令；若 `/opt/epp74` 已存在，先检查是否为本轮配置，不要重复覆盖旧秘密。
+在 Debian 已有配套仓库运行 `git fetch origin refs/heads/part-09/chapter-74`，成功后用 `git worktree add --detach ../epp-compose-73 FETCH_HEAD` 将完成快照放到新的空闲路径，再 `cd ../epp-compose-73`。上一章跟写的 Dockerfile 可保留在原工作目录。本节从完成快照取 Compose 定义，继续使用已验收镜像。首次创建时执行下面的命令；若 `/opt/epp74` 已存在，先检查是否为本轮配置，不要重复覆盖旧秘密。
 
 ```bash
 sudo install -d -o "$(id -un)" -g "$(id -gn)" -m 0700 /opt/epp74
@@ -138,7 +144,7 @@ dc() { docker compose --project-directory /opt/epp74 --env-file /opt/epp74/compo
 
 dc 是本章固定选择部署目录与插值文件的简写，新开 Bash 要重新定义 docker 和 dc。在 `compose.env` 的 EPP_IMAGE 填第 72 章保存的完整本地镜像 ID，EPP_DATABASE 填真实库名，EPP_TRUST_PROXY_IP 填 73.2 实际观察的宿主代理地址。若换了网段，修改 compose.yaml 的 extra_hosts 与外部网络名；这些地址并非都从插值文件读取。Compose 的插值环境与应用的环境文件是两层：`--env-file compose.env` 为 `${...}` 提供值，容器 command 内的 Node `--env-file` 才读取角色秘密。Shell 同名环境可能覆盖插值文件；本章 sudo 默认清理调用者环境，仍用 `dc config --images` 核实最终镜像。[Compose 插值来源](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/)
 
-三个副本此时属于部署账号，用前文已有的编辑器分别打开 secrets/api.env、mail.env、notify.env 修改。DATABASE_URL 保留各自账号、已编码的密码、真实库名和 55471 端口，只把同机回环主机改为 `epp-data.internal`。mail.env 的 LOCAL_SMTP_HOST 改成该名称，LOCAL_SMTP_PORT 为 1025。API 保留原 APP_ORIGIN、CURSOR_HMAC_KEY、桶身份及 `AVATAR_S3_ENDPOINT=https://api.epp.test:9443`；不要把三份合并。公开根取自第 71 章已核指纹的 practice-root.crt，用 `openssl x509 -in trust/root.crt -noout -fingerprint -sha256` 与当时记录比较。
+三个副本此时属于部署账号，用前文已有的编辑器分别打开 secrets/api.env、mail.env、notify.env 修改。DATABASE_URL 保留各自账号、已编码的密码、真实库名、连接参数和实际数据库端口（同机示例为 55471），只把同机回环主机改为 `epp-data.internal`。mail.env 的 LOCAL_SMTP_HOST 改成该名称，LOCAL_SMTP_PORT 为 1025。API 保留原 APP_ORIGIN、CURSOR_HMAC_KEY、桶身份及 `AVATAR_S3_ENDPOINT=https://api.epp.test:9443`；不要把三份合并。公开根取自第 71 章已核指纹的 practice-root.crt，用 `openssl x509 -in trust/root.crt -noout -fingerprint -sha256` 与当时记录比较。
 
 编辑后执行 `sudo chown root:10001 secrets/{api,mail,notify}.env` 和 `sudo chmod 0640 secrets/{api,mail,notify}.env`，收回部署账号的直接读权；后续修改先在私有目录准备候选，再以 install 按相同身份替换。普通 rootful Debian 中，三个秘密文件为 root:10001、0640，部署目录由操作者保管且为 0700。Engine 以管理员权限挂载单个文件；容器只需在自己的 `/run/epp` 路径以 UID/GID 10001 读取，不需要遍历宿主 `/opt/epp74`。rootless 或用户映射需按实际映射另行调整。只读挂载限制写入，不自动赋予读权。
 
@@ -147,15 +153,18 @@ dc 是本章固定选择部署目录与插值文件的简写，新开 Bash 要�
 ```bash
 dc config --quiet
 dc config --images
+(
 for role in api mail notify; do
   dc run --rm --no-deps "$role" -e \
-    'require("node:fs").accessSync("/run/epp/"+process.argv[1]+".env",4)' "$role" || break
+    'require("node:fs").accessSync("/run/epp/"+process.argv[1]+".env",4)' "$role" || exit "$?"
 done
+)
 ```
 
-成功应无应用输出且退出 0。路径不存在查绑定挂载源，EACCES 查数值身份和文件权限。接着分别用三个角色做只读数据库连接检查，显式加载本角色 env，不启动任何消费者：
+循环在子 Shell 中执行，一项失败就带着该项的退出码返回当前终端。紧接着用 `echo $?` 看结果，只有三个角色都成功才继续。路径不存在查绑定挂载源，EACCES 查数值身份和文件权限。接着分别用三个角色做只读数据库连接检查，显式加载本角色 env，不启动任何消费者：
 
 ```bash
+(
 for role in api mail notify; do
   dc run --rm --no-deps "$role" "--env-file=/run/epp/$role.env" \
     --input-type=module -e '
@@ -165,8 +174,9 @@ const client=new Client({connectionString:process.env.DATABASE_URL,connectionTim
 try {
   await client.connect();
   console.log((await client.query("SELECT current_database() AS db,current_user AS role")).rows[0]);
-} finally {await client.end();}' || break
+} finally {await client.end();}' || exit "$?"
 done
+)
 ```
 
 三次输出必须是原目标库及分别对应的角色。连接拒绝查网关监听，超时查路由与防火墙，认证失败查实际角色的口令与 HBA，不打印连接串。这次查询只证明身份和目标；第 70 章的逐项授权与后面的旧业务验收仍要保留。
@@ -221,6 +231,8 @@ services:
 
 API 在容器里监听 `0.0.0.0:3000`，发布为宿主 `127.0.0.1:3374`；Compose 的 environment 覆盖角色文件里原来的 PORT 与 LISTEN_HOST。宿主 nginx 的 API location 将 `proxy_pass` 从 `http://[::1]:3374` 改成 `http://127.0.0.1:3374`。为了让限流读取真实客户端地址，这里还把原清空转发头的两行改成 `proxy_set_header X-Forwarded-For $remote_addr;` 与 `proxy_set_header X-Forwarded-Proto $scheme;`，继续清空 Forwarded。使用覆盖值而非拼接来访者传入的 X-Forwarded-For，防止用户自行伪造来源；TRUST_PROXY_IPS 只信任已经观察的网关 IP，不接受整个 CIDR。
 
+第 41 章的登录限流按请求来源在数据库中计数。即使容器仍连原库，如果代理调整后 API 看到的地址变了，新请求也会计入另一个来源。用同一客户端从原 HTTPS 入口发请求，结合代理对端与转发配置核对来源，再比较限流结果。
+
 第 71 章的 HTTPS unit 还用 Wants 关联原 API。编辑 `/etc/systemd/system/epp74-https.service`，从 Wants 和 After 中去掉 `epp72-api.service`，保留其余依赖；否则以后重启入口可能重新拉起旧 API。执行 `sudo systemctl disable epp72-api epp72-mail epp72-notify`，保存之前记录的启用状态供回退，然后 daemon-reload。确认原三个 unit 仍 inactive、3374 已释放。nginx 配置检查通过后 reload；短暂维护期间 API 上游未启动，502 属于这段切换窗口，下一节启动后必须消失。
 
 ## 73.5 就绪、重启和停止为什么必须分开
@@ -233,30 +245,47 @@ dc ps -a
 dc logs --since 5m --tail 100 api notify
 ```
 
-`up -d` 创建或更新指定服务后返回终端，Engine 继续运行容器。HTTP 探针以匿名 `/profile/me` 返回 401 为成功，因为此处预期就是鉴权拒绝；它不能证明数据库里的旧记录存在，也没有检查通知积压。notify 的 ready 也只是启动证据，随后必须让一笔有效任务成为 done 并被原用户读取。
+`up -d` 创建或更新指定服务后返回终端，Engine 继续运行容器。HTTP 探针要求匿名 `/profile/me` 返回 401，且 JSON 的 `code` 为 `AUTH_REQUIRED`，因为此处预期就是鉴权拒绝；它不能证明数据库里的旧记录存在，也没有检查通知积压。notify 的 ready 也只是启动证据，随后必须让一笔有效任务成为 done 并被原用户读取。
 
 本例数据服务在外部，Compose 不会代它们等待数据库授权或完成迁移。把依赖也纳入 Compose 后，普通 `depends_on` 只安排启动顺序，`service_healthy` 才等待定义的健康检查；启动后依赖掉线仍由应用处理错误与重连。迁移应由独立身份完成，再放行普通应用，不让每个副本都带管理员凭据改表。[依赖就绪](https://docs.docker.com/compose/how-tos/startup-order/)
 
 API 与通知按既有恢复约定使用 unless-stopped。邮件配置为 `restart: "no"`：现有 Worker 遇 unknown、paused 或发送后失去占用会退出 2，原生 systemd 用 RestartPreventExitStatus=2 保留人工核对。Docker 的 on-failure 会将非零退出纳入重启，不能原样表达这个排除条件。邮件停止后，接班人必须按原消息 ID、尝试次数与占用查明外部结果，再决定是否运行 `dc up -d mail`。宿主重启后的寄信恢复也遵守同一约定。
 
+`restart: "no"` 控制引擎自动重启。操作者执行不带服务名的 `dc up -d` 时，Compose 会把 mail 也列入启动范围，即使它上一轮已退出 2。邮件待核对期间，只恢复 API 和通知就执行 `dc up -d api notify`，再用 `dc ps -a` 查看三个角色的实际状态。
+
 健康检查失败会把状态标为 unhealthy，普通 Engine 不因此自动重启；重启策略依据进程退出工作。把“还活着”“能接 HTTP”“依赖可用”“一笔业务完成”混成一种健康状态，会让通知积压与未知投递被掩盖。[重启策略](https://docs.docker.com/engine/containers/start-containers-automatically/)
 
-停止时，Node 直接接到 TERM，40 秒等待预算覆盖当前 API 排空与 Worker 退出期限。用 `dc stop api` 对照在途请求、临时文件和退出状态，随后再启动。`restart` 沿用已有定义，改变镜像、环境或挂载来源要用 `up` 重新核对和创建；只读文件被原子替换后也应重建以确认新挂载。不要把“命令成功返回”当作业务已经恢复。
+停止时，Node 直接接到 TERM，40 秒等待预算覆盖当前 API 排空与 Worker 退出期限。在一个客户端保持原上传请求，另开部署终端，恢复 docker 和 dc 函数，先执行 `old_api=$(dc ps -q api)` 记录正在服务的容器 ID，再执行 `dc stop api`。趁旧容器仍在，用 `docker logs --tail 30 "$old_api"` 核对排空过程，并用 `docker inspect --format '{{.State.Status}} {{.State.ExitCode}} {{.State.OOMKilled}}' "$old_api"` 核对停止结果。正常排空应为 `exited 0 false`。留下请求结果与日志后执行 `dc start api`，等匿名探针再次通过。
+
+`restart` 沿用已有定义，改变镜像、环境或挂载来源要用 `up` 重新核对和创建；若只把新的 api.env 原子改名到原路径，Compose 定义可以完全相同，普通 `dc up -d api` 可能沿用正在运行的旧容器。此时执行 `dc up -d --no-deps --force-recreate api`，让新进程重新挂载并读取文件。随后用受修改项影响的一次实际请求核对效果，避免在日志中打印配置秘密。
 
 ## 73.6 从重建结果判断演进是否完成
 
 用原生部署留下的同一账号和旧会话，经原 HTTPS 来源读素材、预览并发布头像，按原对象键和摘要对照旧头像。先按前节检查原邮件已退出、旧 unknown 占用仍按原 ID 保留；只有本轮通道允许发送且现有待办都允许交给本次 Mailpit，才执行 `dc up -d mail`。有未知投递时先完成原处置，不用新消息覆盖它。然后申请一次改密，在私有 Mailpit 取得令牌并完成确认，验证旧会话失效、新密码登录、通知按同一 ID 入箱。第 71 章的客户端验收继续适用，容器名称和日志不能替代它。
 
-随后只重建 API：
+随后只重建 API，先记下当前容器 ID：
 
 ```bash
+before=$(dc ps -q api)
 dc up -d --no-deps --force-recreate api
 dc ps -a api
+after=$(dc ps -q api)
+printf 'before=%s\nafter=%s\n' "$before" "$after"
 ```
 
-这次换掉了容器身份和可写层；镜像、配置、库与桶仍是同一组。重建后旧素材和当前头像仍能读取，才说明持久状态没有误放在应用层。`down` 删除项目容器与它管理的网络；`down -v` 还会删除项目管理的命名卷及附属匿名卷，本章 external 网络不在它的删除范围。日常修复应先按角色处理，保留可用于判断故障的现场。
+确认两次 ID 都非空且不同。用 `dc ps api` 等到新容器 healthy，在浏览器刷新原 HTTPS 页面，用改密后取得的新会话打开同一条素材和当前头像。在开发者工具的 Network 中核对素材 ID，取回头像文件与重建前记录的对象键及内容摘要对照。容器 ID 改变后仍读回同一份内容，才能把这次重建与业务数据保留对应起来。
 
-原生托管的回退材料仍保留：若容器切换失败，先 `dc stop` 停妥三个角色并确认宿主端口释放，核对在途邮件；恢复原 nginx upstream、转发头和 unit 依赖，撤回本轮 epp-inbox 的 SMTP 覆盖并重启到原回环，按保存记录恢复原生 API、通知配置及开机状态。配置检查通过后重新加载 nginx，启动原生 API、通知，用同一数据验收；邮件仍按通道核对结果启动。PG 保留回环入口，因此可先恢复应用，之后再在维护窗口撤回本轮网关监听和 HBA。数据若已经发生迁移，则先按后文发布章判断旧程序是否仍兼容，不能仅凭旧 unit 能启动就放行。完成这一轮后，交接单同时记录镜像摘要、Compose 定义、各角色配置来源、网络、数据位置及邮件接手条件，后续进入有人使用时的运维。
+![API 容器重建后，Firefox 读回原素材并显示已解码的灯塔头像](images/01-recreated-api-readback.png)
+
+图 73-1　这次对照在原生 API 上创建素材并发布灯塔头像。Compose 接管后，以及单独重建 API 后，都在同一个 Firefox 会话点击“按 ID 读取”和“打开当前头像”。图中是最后一次读回，素材 ID 和原文与基线相同，当前头像 ID 仍以 `43759681` 开头，浏览器解码为 256 × 256。三次分别用当时的签名地址下载 WebP，对象路径与文件 SHA-256 均相同。
+
+`down` 删除项目容器与它管理的网络；`down -v` 还会删除项目管理的命名卷及附属匿名卷，本章 external 网络不在它的删除范围。日常修复应先按角色处理，保留可用于判断故障的现场。
+
+回退从切换实际停下的位置开始。在 73.3 就遇到故障时，Compose 项目可能尚未创建。先用 `systemctl show epp72-api epp72-mail epp72-notify -p ActiveState -p MainPID` 核对原进程，按备份恢复已经改过的数据监听和入口。若 PostgreSQL 重启失败，先恢复原配置并确认原实例能从回环连接。
+
+若已执行过 Compose 启动，则在原部署目录恢复 dc 函数，用 `dc ps -a` 确认已创建的角色，再 `dc stop` 并核对在途邮件。用 `ss -lnt 'sport = :3374'` 确认端口释放后，恢复原 nginx upstream、转发头和 unit 依赖，撤回本轮 epp-inbox 的 SMTP 覆盖并重启到原回环，按保存记录恢复原生 API、通知配置及开机状态。配置检查通过后重新加载 nginx，启动原生 API、通知，用同一数据验收；邮件仍按通道核对结果启动。
+
+PG 的回环入口已可用时，可以先恢复应用。完全撤回桥接通路时，按备份移除 nginx 对网关 9443 的监听及对应 allow，检查配置并 reload。再在维护窗口撤回 PG 网关监听和 HBA，复查原页面、对象入口和回环服务。网关仍被宿主服务监听期间保留 external 网络。数据若已经发生迁移，则先按后文发布章判断旧程序是否仍兼容，不能仅凭旧 unit 能启动就放行。完成这一轮后，交接单同时记录镜像摘要、Compose 定义、各角色配置来源、网络、数据位置及邮件接手条件，后续进入有人使用时的运维。
 
 ## 附录：本章必要技术点速查
 
