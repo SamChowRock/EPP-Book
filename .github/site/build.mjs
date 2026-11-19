@@ -6,13 +6,29 @@ import MarkdownIt from 'markdown-it';
 import GithubSlugger from 'github-slugger';
 import { load } from 'cheerio/slim';
 import { chromium } from 'playwright-core';
+import { createHighlighter } from 'shiki';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 const out = path.join(root, '_site');
 const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
   .split('\0').filter(file => file && !file.startsWith('.') && path.basename(file) !== 'AGENTS.md');
-const md = new MarkdownIt({ html: true });
+const theme = 'github-dark';
+const highlighter = await createHighlighter({
+  themes: [theme],
+  langs: ['bash', 'typescript', 'javascript', 'sql', 'json', 'prisma', 'ini', 'dotenv',
+    'dockerfile', 'yaml', 'powershell', 'http', 'toml', 'ssh-config', 'nginx'],
+});
+const languages = new Set(highlighter.getLoadedLanguages());
+const aliases = new Map([['psql', 'sql'], ['sshconfig', 'ssh-config'], ['conf', 'ini']]);
+const md = new MarkdownIt({
+  html: true,
+  highlight(source, label) {
+    const lang = aliases.get(label) ?? label;
+    if (!languages.has(lang)) return '';
+    return highlighter.codeToHtml(source, { lang, theme });
+  },
+});
 const escape = md.utils.escapeHtml;
 const pages = new Map();
 const targets = new Set();

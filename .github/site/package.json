@@ -2,12 +2,15 @@
   "name": "epp-book-pages",
   "private": true,
   "type": "module",
-  "scripts": { "build": "node build.mjs" },
+  "scripts": {
+    "build": "node build.mjs"
+  },
   "dependencies": {
     "cheerio": "1.1.2",
     "github-slugger": "2.0.0",
     "markdown-it": "14.1.1",
     "mermaid": "11.12.2",
-    "playwright-core": "1.56.1"
+    "playwright-core": "1.56.1",
+    "shiki": "4.6.0"
   }
 }
