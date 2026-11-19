@@ -92,7 +92,12 @@ try {
     $('table').wrap('<div class="table-scroll"></div>');
     const title = $('h1').first().text();
     const base = path.relative(path.dirname(dest), '.') || '.';
-    const nav = '<nav aria-label="阅读导航"><a class="brand" href="' + base + '/index.html">EPP 后端开发实践</a><a href="' + base + '/index.html#上部-开发一个后端服务">全书目录</a><a href="' + base + '/environment-setup.html">环境配置</a></nav>';
+    const nav = `<nav aria-label="阅读导航">
+      <a class="brand" href="${base}/index.html">EPP 后端开发实践</a>
+      <a href="${base}/index.html#上部-开发一个后端服务">全书目录</a>
+      <a href="${base}/environment-setup.html">环境配置</a>
+      <a href="https://github.com/SamChowRock/EPP-Book">GitHub 仓库</a>
+    </nav>`;
     const body = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' +
       escape(title) + '</title><link rel="stylesheet" href="' + base + '/assets/book.css"></head><body>' +
       nav + '<main class="' + (dest === 'index.html' ? 'contents' : 'reader') + '">' + $.html() + '</main></body></html>';
