@@ -182,7 +182,7 @@
 
 #### [第 78 章 发布、迁移与回退](part-09-deployment/chapter-78-compatible-release/chapter.md)
 
-#### [第 79 章 原主机失联以后，哪些业务能先恢复](part-09-deployment/chapter-79-disaster-recovery/outline.md)
+#### [第 79 章 原主机失联以后，哪些业务能先恢复](part-09-deployment/chapter-79-disaster-recovery/chapter.md)
 
 #### [第 80 章 第九篇回顾：接手一次原因未知的报障](part-09-deployment/chapter-80-operations-review/outline.md)
 

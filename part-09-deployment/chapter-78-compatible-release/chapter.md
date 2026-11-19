@@ -215,4 +215,4 @@ VALUES (CAST(:owner_id AS uuid), CAST(:capture_id AS uuid),
 
 阅读约 35～48 分钟；已有可用恢复副本、受限角色和 HTTPS 入口时，构建、客户端验证、迁移与两轮回退另加 75～110 分钟，首次取得依赖及大归档传输按环境另计。
 
-[上一章 · 备份与恢复](../chapter-77-backups/chapter.md) · [下一章 · 原主机失联后的恢复](../chapter-79-disaster-recovery/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[上一章 · 备份与恢复](../chapter-77-backups/chapter.md) · [下一章 · 原主机失联后的恢复](../chapter-79-disaster-recovery/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
