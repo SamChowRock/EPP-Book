@@ -44,6 +44,7 @@
 | 第 72 章镜像构建 | [ca-certificates、Python 3、make、g++](#为容器部署准备引擎与-compose)（Dockerfile 的镜像阶段） | CA 集合供运行时验证出站 TLS；后三项只在构建阶段支持原生模块编译，无须在操作 Mac 另装 |
 | 第 76 章 | [复用 PostgreSQL 18、curl 和 Mailpit](#让两个实例接到同一份练习数据) | 用同一份业务数据检查两个 API、后台进程和旧连接 |
 | 支线 77A | [PostgreSQL 18 物理备份、校验与启动工具](#为隔离恢复演练准备-postgresql-18)（数据库练习主机） | 选做按时间点恢复时使用，检查基础备份并在独立数据目录回放 WAL |
+| 第 78 章 | 沿用第 77 章独立恢复库、受限 API 登录、第 71 章同源 HTTPS 和已有 Firefox／Postman、DBeaver、systemd、Compose | 分别保留 A、B 的源码、可恢复的制品和网页目录；迁移端使用带 Prisma CLI 的完整源码，操作端保存旧请求和发布后的素材 ID。 |
 
 <details>
 <summary>后续选做路线和下部还会用到什么？</summary>

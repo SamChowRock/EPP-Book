@@ -24,4 +24,4 @@
 
 以第二台设备完成约定的读写并取回数据作为业务恢复时刻。按第 77 章从中断起算总耗时，与 RTO 比较；另列接报到业务恢复的处置用时。若只能确定中断时刻的范围，就保留上下界。列明恢复点之后哪些写入能证明保留、哪些只能给出损失区间，以及仍暂停的外部工作和下一位接班人需要的证据。账号处置后防止旧数据复活的门禁在下部综合篇接入。
 
-[上一章 · 发布 迁移与回退](../chapter-78-compatible-release/chapter.md) · [下一章 · 第九篇回顾：接手一次原因未知的报障](../chapter-80-operations-review/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[上一章 · 发布、迁移与回退](../chapter-78-compatible-release/chapter.md) · [下一章 · 第九篇回顾：接手一次原因未知的报障](../chapter-80-operations-review/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

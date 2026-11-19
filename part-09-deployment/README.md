@@ -54,7 +54,7 @@
 
 ## [第 78 章 发布、迁移与回退](chapter-78-compatible-release/chapter.md)
 
-阅读约 20～28 分钟，隔离发布与回退另加 45～70 分钟。
+跟同一笔素材穿过原生与 Compose 两次回退，观察迁移前后旧请求的结果。阅读约 35～48 分钟，已有恢复副本、受限角色与 HTTPS 入口时，构建与演练另加 75～110 分钟。
 
 ## [第 79 章 原主机失联以后，哪些业务能先恢复](chapter-79-disaster-recovery/outline.md)
 
