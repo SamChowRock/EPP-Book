@@ -4,7 +4,7 @@
 
 ## 1. 需要准备哪些软件
 
-第九篇第 69～80 章依次准备原生托管、容器、运行维护、备份、发布与故障恢复所需工具；第 79～80 章沿用已有工具，在独立恢复目标与事故副本操作。第 79 章先[安排旧机、接替端与独立收件箱](#准备第-79-章的两端与独立收件箱)，再取发布后的备份。具体主机、身份与安装验证仍按下表和各章入口核对。
+第九篇第 69～81 章依次准备原生托管、容器、运行维护、备份、发布与故障恢复所需工具；第 79 与 81 章分别在独立恢复目标与事故副本操作。第 80 章准备 Northflank 项目、Backblaze B2 私有桶、Cloudflare DNS 管理的域名、Resend 发信身份和受控邮箱，在公网交付。第 79 章先[安排旧机、接替端与独立收件箱](#准备第-79-章的两端与独立收件箱)，再取发布后的备份。具体主机、身份与安装验证仍按下表和各章入口核对。
 
 | 读到哪里 | 软件与安装位置 | 用它完成什么 |
 | --- | --- | --- |
@@ -46,11 +46,12 @@
 | 支线 77A | [PostgreSQL 18 物理备份、校验与启动工具](#为隔离恢复演练准备-postgresql-18)（数据库练习主机） | 选做按时间点恢复时使用，检查基础备份并在独立数据目录回放 WAL |
 | 第 78 章 | 沿用第 77 章独立恢复库、受限 API 登录、第 71 章同源 HTTPS 和已有 Firefox／Postman、DBeaver、systemd、Compose | 分别保留 A、B 的源码、可恢复的制品和网页目录；迁移端使用带 Prisma CLI 的完整源码，操作端保存旧请求和发布后的素材 ID。 |
 | 第 79 章 | [复用独立恢复目标、Mailpit 与 HTTPS 客户端](#准备第-79-章的两端与独立收件箱) | 旧机关停后仍可取回库桶、验证用户读写并查询外部收件证据 |
+| 第 80 章公网交付 | [Northflank 控制台与 CLI、Backblaze B2、Cloudflare DNS、Resend](#准备-northflank-公网试运行) | Mac 管理私网库与构建镜像，云端运行服务，由受邀设备验收 |
 
 <details>
 <summary>后续选做路线和下部还会用到什么？</summary>
 
-第 72 章正文开始使用 Docker 与 Compose，接在已经完成的原生托管与 HTTPS 交付之后。第 71 章沿用已经托管的私网 HTTPS 入口，从独立设备验收。Mac 上优先在 Docker Desktop 查看容器与日志，Debian 部署端使用 Engine 自带命令。第十篇真实模型调用需要供应商账号、密钥和额度，第 90 章用到 pgvector，第十三篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
+第 72 章正文开始使用 Docker 与 Compose，接在已经完成的原生托管与 HTTPS 交付之后。第 71 章沿用已经托管的私网 HTTPS 入口，从独立设备验收。Mac 上优先在 Docker Desktop 查看容器与日志，Debian 部署端使用 Engine 自带命令。第十篇真实模型调用需要供应商账号、密钥和额度，第 91 章用到 pgvector，第十三篇按所选 MCP 宿主准备客户端。[全书目录](README.md)
 
 </details>
 
@@ -578,6 +579,16 @@ pg_ctl --version
 在虚拟机管理器或云控制台标明旧机和恢复目标。旧机运行第 78 章最终 B，目标有独立的系统、空 PostgreSQL 18 实例、同版本单机 SeaweedFS、可取到的目标平台 B 制品，以及能从测试客户端验证的应用与对象 HTTPS 域名。复习[Debian 部署端](#准备-debian-13-部署端)、[HTTPS 接入](#给原来的-http-服务接上-https)和[第 77 章的库桶恢复](part-09-deployment/chapter-77-backups/chapter.md#774-在空目标恢复保留原权限边界)。在 DBeaver 分别保存清楚命名的两条连接，核对各自 host、port、库名和数据目录。相同端口可出现在两个独立系统上。
 
 Mailpit 的 SMTP 和网页放在旧机之外的私有环境，使用新练习收件箱。旧发送端沿已授权的私网或 SSH 转发连接它，接班人能从自己的设备打开网页查看来信。在原机以外保管备份、配置版本、合成账号的登录材料与解密授权；准备另一客户端独立访问恢复目标。先核对目标没有任何邮件、通知或清理自动启动，再回到[第 79 章](part-09-deployment/chapter-79-disaster-recovery/chapter.md)布置故障。练整台物理机失效时，这些材料和目标必须在另一故障范围。
+
+### 准备 Northflank 公网试运行
+
+在 Northflank 控制台选择 **Sandbox** 托管项目，检查免费服务、数据库、作业和用量；对象存储选 Backblaze B2 的私有桶，并在 Caps & Alerts 核对支出限制。先使用平台提供的 HTTPS 地址。准备更换为自有域名时，再办理域名注册并在 Cloudflare 管理 DNS；真实邮件复用[第 54 章的发信域与受控邮箱](#第-54-章准备发送记录与签名回执)。
+
+操作端沿用 GitHub Desktop 或 Git、编辑器、Node 24.22.1 和 npm、Docker Desktop（含 Buildx）、本地 PostgreSQL 18 实例和客户端、DBeaver、Postman 与浏览器。DBeaver 的 Backup 和 Restore 选择 PostgreSQL 18 的本地客户端；私有数据库归档和配对头像另备独立保存位置。预留两个独立浏览器会话、一部可用手机流量的设备和一个可查收验证信的邮箱。
+
+在使用上述 Node 版本的终端执行 `npm i -g @northflank/cli`，用 `nf --version` 确认当前终端能找到它。执行 `nf login`，在浏览器选择本次 Sandbox 项目所属团队，等终端显示登录成功。回到数据库 addon 的 **Overview → Local access**，复制该库专属的转发命令，保持这个终端打开。在 DBeaver 的 PostgreSQL 连接页填写转发主机名、端口、实际库名和身份，在 SSL 页选择 `verify-full` 并配置受信 CA。点 **Test Connection** 后，按正文 SQL 核对实际库名和 TLS；完成数据库管理、断开 DBeaver 后可结束转发，云端服务继续通过私网连接。[CLI 安装与浏览器登录](https://northflank.com/docs/v1/api/use-the-cli) · [私网端口转发](https://northflank.com/docs/v1/api/forwarding)
+
+构建、导入镜像、分离运行身份及外网验收见[第九篇公网试运行](part-09-deployment/chapter-80-public-deployment/chapter.md)。
 
 ### 为公网回调准备连接器（选做）
 
