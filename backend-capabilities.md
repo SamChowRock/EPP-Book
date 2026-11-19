@@ -262,7 +262,7 @@ SQL、网络、运行环境等基础以它们自身的问题和机制为单位�
 | [第 74 章](part-09-deployment/chapter-74-observability/chapter.md) | 第 53、55、57、71～73 章 | 在独立检查处按最老待办的等待时间触发告警，恢复后由原账号验证同一通知并收到解除 | 为维护失败与积压建立判断依据 |
 | [第 75 章](part-09-deployment/chapter-75-maintenance-jobs/chapter.md) | 第 51 章及 51A、第 60、62、70、74 章 | 用宿主计时器分别调用原生 CLI 与一次性容器，漏跑或重复启动后逐物判断剩余工作 | 区分业务上欠一份报表和需要再次扫描 |
 | [第 76 章](part-09-deployment/chapter-76-rotate-credentials/chapter.md) | 第 70～75 章 | 以同一 HTTPS 来源复核轮换前后的业务；分别识别还在使用旧登录的连接和两端不兼容的签名 | 保留可用于恢复的现行身份与配置 |
-| [第 77 章](part-09-deployment/chapter-77-backups/chapter.md) | 第 62、68、71～76 章 | 在共同恢复点保存数据库、桶和配置，从异地材料还原一条引用和对应的对象 | 原主机丢失时接班；支线改变为单条误改 |
+| [第 77 章](part-09-deployment/chapter-77-backups/chapter.md) | 第 62、68、71～76 章 | 核清写入者，在共同恢复点保存库与桶；从异地材料恢复对象引用与轮换后的权限，核验定时失败后保留的好副本和业务中断用时 | 原主机丢失时接班；支线改变为单条误改 |
 | [第 78 章](part-09-deployment/chapter-78-compatible-release/chapter.md) | 第 23 章及 23A、第 67、71、77 章 | 对照过渡版、新约束、旧写入方和升级后的新记录，逐步确定还能回退什么 | 选择退程序、停写或修复 |
 | [第 79 章](part-09-deployment/chapter-79-disaster-recovery/outline.md) | 第 71～78 章 | 在独立主机还原，按数据损失区间和未决任务决定何时开放服务 | 核对实际恢复时间与承诺 |
 | [第 80 章](part-09-deployment/chapter-80-operations-review/outline.md) | 第 74～79 章 | 自行缩小一个未知故障的范围，恢复业务并交还仍有疑问的工作 | 独立处理改变条件后的故障 |

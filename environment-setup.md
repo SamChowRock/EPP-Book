@@ -569,7 +569,7 @@ pg_verifybackup --version
 pg_ctl --version
 ```
 
-三个程序都应显示 18.x。用明确指定的实例地址、端口和管理员连接运行 `SHOW data_directory`、`SHOW hba_file`，对照本轮隔离副本。基础备份需要允许复制连接的数据库角色，且这条连接在该副本的 pg_hba.conf 有匹配的 replication 规则。按本次实际使用的本地套接字或回环地址授权，重新加载该副本配置；普通业务登录成功只验证了业务库的连接规则。再按支线保存 WAL、校验备份并恢复到另一空目录，使用不同的端口。[支线 78A](part-09-deployment/chapter-77-backups/side-01-pitr.md)
+三个程序都应显示 18.x。用明确指定的实例地址、端口和管理员连接运行 `SHOW data_directory`、`SHOW hba_file`，对照本轮隔离副本。基础备份需要允许复制连接的数据库角色，且这条连接在该副本的 pg_hba.conf 有匹配的 replication 规则。按本次实际使用的本地套接字或回环地址授权，重新加载该副本配置；普通业务登录成功只验证了业务库的连接规则。再按支线保存 WAL、校验备份并恢复到另一空目录，使用不同的端口。[支线 77A](part-09-deployment/chapter-77-backups/side-01-pitr.md)
 
 ### 为公网回调准备连接器（选做）
 
