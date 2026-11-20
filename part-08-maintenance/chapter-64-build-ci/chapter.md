@@ -2,7 +2,7 @@
 
 第 63 章末尾，你可以带着库名、用户 ID 和操作 ID 找回一次暂停的收据。现在换一位接班人。他拿到了同一份 Git 提交，在一个新目录里按说明安装运行。你机器上的 CLI 能查到收据，他的 API 却在监听端口之前就退出了。最值得先交换的证据是什么？一份完整数据库备份帮不上多少忙，他可能只漏拿了一个 19 字节的配置文件。
 
-这次从[第 63 章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-63)出发，不增加业务表或接口。我们给同一份提交安排三个可以独立观察的结果：开发依赖下能检查源码，生产依赖下能运行交付物，从源码生成的图与接口文件能和随提交交付的版本对上。最后让一台新的机器重复这些步骤。读者可以从头跟写，也可以在[第 64 章配套目录](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-64)直接做故障实验。
+这次从[第 63 章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-63)出发，不增加业务表或接口。我们给同一份提交安排三个可以独立观察的结果：开发依赖下能检查源码，生产依赖下能运行交付物，从源码生成的图与接口文件能和随提交交付的版本对上。最后让一台新的机器重复这些步骤。你可以从头跟写，也可以在[第 64 章配套目录](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-64)直接做故障实验。
 
 ## 64.1 从一份干净的工作目录开始
 
@@ -259,6 +259,6 @@ checkout 决定这次检查的源码，setup-node 读取项目指定版本。cac
 
 [npm 11 的 ci](https://docs.npmjs.com/cli/v11/commands/npm-ci/) · [Biome 配置](https://biomejs.dev/reference/configuration/) · [Prisma 生成器](https://www.prisma.io/docs/orm/prisma-schema/overview/generators) · [Mermaid 实体关系图](https://mermaid.js.org/syntax/entityRelationshipDiagram.html) · [VS Code 内置 Mermaid 预览](https://code.visualstudio.com/updates/v1_121/) · [GitHub Actions 的 PostgreSQL 服务](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers)
 
-阅读约 48～64 分钟，已有 PostgreSQL 18 时，从干净目录构建、运行、制造差异再恢复另加 65～90 分钟。有自己的 GitHub 仓库时配置并检查一次远程运行另加 10～18 分钟，网络下载与 runner 排队另计。按正文代码、两图和实操步骤估算。
+阅读约 48～64 分钟，已有 PostgreSQL 18 时，从干净目录构建、运行、制造差异再恢复另加 65～90 分钟。有自己的 GitHub 仓库时配置并检查一次远程运行另加 10～18 分钟，网络下载与 runner 排队另计。
 
 [本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-64) · [上一章：为后台操作提供可靠的管理命令](../chapter-63-account-cli/chapter.md) · [下一章：调试性能与资源问题](../chapter-65-performance/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)

@@ -47,7 +47,7 @@ pg_dump --format=custom --dbname=epp_ch66_source --file="$CH66_BACKUP_DIR/before
 pg_restore --exit-on-error --no-owner --dbname=epp_ch66_verify "$CH66_BACKUP_DIR/before.dump"
 ```
 
-5432 是常见端口，若实例使用别的端口必须改；本文实图来自独立实例 55666。`--no-owner` 让目标对象由恢复角色拥有，不改变备份行内容。若目标不是空库，不加 `--clean` 硬覆盖，另建一个空 verify。任一命令失败都停在这里，修正后重新取得完整备份。给 verify 单独建 DBeaver 连接，按四个 ID 对照父字段、每一版的 ID、序号、内容、来源、chunks 和时间；只比较总行数不足以证明能恢复同一条历史。若导出 JSON 作逐值比较，先在两边观察会话执行 `SET TIME ZONE 'UTC';`；同一 timestamptz 在不同会话时区会显示成不同字符串，先统一表示，再判断数据是否变化。保存备份路径，终端重开后恢复这个路径，而不是新建一个空临时目录假装沿用。
+5432 是常见端口，若实例使用别的端口必须改；图中独立实例用的是 55666。`--no-owner` 让目标对象由恢复角色拥有，不改变备份行内容。若目标不是空库，不加 `--clean` 硬覆盖，另建一个空 verify。任一命令失败都停在这里，修正后重新取得完整备份。给 verify 单独建 DBeaver 连接，按四个 ID 对照父字段、每一版的 ID、序号、内容、来源、chunks 和时间；只比较总行数不足以证明能恢复同一条历史。若导出 JSON 作逐值比较，先在两边观察会话执行 `SET TIME ZONE 'UTC';`；同一 timestamptz 在不同会话时区会显示成不同字符串，先统一表示，再判断数据是否变化。记下备份路径，重开终端后仍要指向存放这份备份的目录。
 
 旧版目录里还没有本章故障脚本。先从另开的 66 完成代码目录取得 [failure.sql](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-66/database/chapter-66/failure.sql) 与 Postman 集合，旧 API 仍运行 65；不提前复制新业务代码或应用新迁移。现在回到 **source**，在 DBeaver 打开这份 `failure.sql`，把两个占位 UUID 换成本轮 recoverable/unproven 的 ID。它检查库名、两条固定合成文本、两版加一版的前提，锁住两个父记录，再只删除这两个 ID 的修订。不要绕过外键；若旧样本已有候选或回执，删除应失败。单独执行 `ROLLBACK`，另建干净的合成样本并重新备份，不能用 CASCADE 清掉其他业务。
 
@@ -442,7 +442,7 @@ GROUP BY c.id,c.original_text,q.id,q.state ORDER BY c.original_text;
 
 从 verify 导出时使用同一 REPEATABLE READ 只读事务，取得父记录和全部有序修订，记录 sourceDatabase、来源说明和导出时间。格式规定 version=1、一个父 ID、从1开始连续的序号、互不重复的原修订 ID；每条的 capture_id 必须等于父 ID。最多10000版且文件8MiB，超限停止并另审大数据恢复方案。这个限制保护单次维护成本，不表示超过它的合法历史可以截断。
 
-导出函数也放进同一维护模块。多取一条到 10001，交给最多 10000 条的 schema 拒绝超限；不能先截成 10000 再假装是完整历史。
+导出函数也放进同一维护模块。多取一条到 10001，交给最多 10000 条的 schema 拒绝超限；如果先截成 10000 条，导出结果缺了记录也看不出来。
 
 ```ts
 export async function exportCaptureEvidence(client: pg.Client, captureId: string, sourceRef: string): Promise<Evidence> {

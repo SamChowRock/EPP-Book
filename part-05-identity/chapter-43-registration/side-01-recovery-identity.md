@@ -61,6 +61,6 @@
 
 可回查[OWASP邮箱验证](https://cheatsheetseries.owasp.org/cheatsheets/Email_Validation_and_Verification_Cheat_Sheet.html)、[OWASP密码恢复](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html)与[Node 24 HMAC](https://nodejs.org/download/release/v24.22.1/docs/api/crypto.html#cryptocreatehmacalgorithm-key-options)。这里的版本与事务推导针对主线模型，不把某一种恢复产品政策写成所有系统都必须采用的规则。
 
-时间参考：阅读约30～40分钟（按本支线机制推导与反例估算）；没有新增运行步骤，不并入主线跟做时间。
+阅读约 30～40 分钟，无需另做实验。
 
 [返回第43章](chapter.md#435-换成短信以前先看哪些前提一起改变) · [第五篇导读](../README.md)

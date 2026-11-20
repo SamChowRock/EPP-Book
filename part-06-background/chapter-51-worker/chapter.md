@@ -4,7 +4,7 @@
 
 本章从[第 50 章统一完成代码](https://github.com/SamChowRock/epp-public/tree/part-06/chapter-50)继续。没有选择小程序实践时，先按[50.4 的短路径](../chapter-50-login-integration/chapter.md#进入下一章)在第 49 章非空副本补齐结构、核对原会话和消息；无需配置微信。沿用 PostgreSQL、Mailpit、verification_intents、verification_outbox 和一次性函数 `sendOne`。要交付的变化很具体：把 API 和寄信程序各启动一次，以后每次获准签发的注册或重置意图都可以由正在运行的 Worker 接手；关掉 API，Worker 可以投递已经提交的工作；关掉 Worker，API 可以继续受理申请。最后让一封信正发送到一半时再关机，核对哪些承诺还能兑现。
 
-阅读约 75～90 分钟，实现、迁移、双进程调试及联调另加 100～130 分钟，按本章代码与操作步骤估算。
+阅读约 75～90 分钟，实现、迁移、双进程调试及联调另加 100～130 分钟。
 
 ## 51.1 谁来发现下一条待办
 

@@ -37,6 +37,6 @@ WHERE relid = 'public.learning_records'::regclass;
 | indisready／indisvalid | 区分维护写入与可供查询使用 | [索引目录](https://www.postgresql.org/docs/18/catalog-pg-index.html) |
 | pg_stat_progress_create_index | 观察进行中的构建与等待 | [进度视图](https://www.postgresql.org/docs/18/progress-reporting.html) |
 
-时间参考（估算）：阅读约12～18分钟；两条只读查询可在现有 VERIFY 核对，无需启动线上索引构建。
+阅读约 12～18 分钟，两条只读查询可在现有 VERIFY 核对，无需启动线上索引构建。
 
 [返回第三十五章](chapter.md) · [第四篇导读](../README.md)

@@ -222,6 +222,6 @@ npm run db:verify -- migrate deploy
 | pg.Pool | 用 totalCount、idleCount、waitingCount 辨别借用与等待 | [node-postgres 连接池](https://node-postgres.com/apis/pool) |
 | CREATE INDEX、migrate deploy | 在有数据的校验库落实模型选定的索引 | [PostgreSQL 建索引](https://www.postgresql.org/docs/18/sql-createindex.html) |
 
-时间参考（估算）：阅读约65～85分钟，跟做另加50～70分钟。依据五节推导、四种读取计划、接口与断点对照、连接池实验和一次校验库升级估算，支线单列。
+阅读约 65～85 分钟，比较四种查询计划、检查连接池和升级校验库另加约 50～70 分钟。支线另计。
 
 [上一章：已有素材列表怎样从全量读取迁到分页](../chapter-34-paging-upgrade/chapter.md) · [下一章：第四篇回顾：让采纳经得起竞争与重试](../chapter-36-review/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)

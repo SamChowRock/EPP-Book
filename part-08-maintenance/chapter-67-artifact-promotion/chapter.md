@@ -286,6 +286,6 @@ SELECT current_database() AS database,
 
 官方参考：[npm ci](https://docs.npmjs.com/cli/v11/commands/npm-ci)、[Node 24 环境文件](https://nodejs.org/docs/latest-v24.x/api/cli.html#--env-filefile)、[Node 诊断报告](https://nodejs.org/docs/latest-v24.x/api/report.html)、[sharp 跨平台安装](https://sharp.pixelplumbing.com/install/#cross-platform)、[PostgreSQL 18 会话信息](https://www.postgresql.org/docs/18/functions-info.html#FUNCTIONS-INFO-SESSION)。Mac 上 tar 与 shasum 的随系统版本用法可用 `man tar`、`man shasum` 查阅。
 
-阅读约 32～42 分钟；已有非空配对副本时，封包、双环境核对和退回演练另加 55～80 分钟。首次复制数据、安装下载与准备旧包另计。估时按正文推理、命令阅读和实际操作步骤分别估算。
+阅读约 32～42 分钟；已有非空配对副本时，封包、双环境核对和退回演练另加 55～80 分钟。首次复制数据、安装下载与准备旧包另计。
 
-[本章沿用的完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66) · [上一章 · 一条历史坏记录应该让多少服务停下来](../chapter-66-bad-data/chapter.md) · [下一章 · 第八篇回顾：从维护动作到可交付产物](../chapter-68-review/chapter.md) · [本篇导读](../../part-09-deployment/README.md) · [全书目录](../../README.md)
+[本章沿用的完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-66) · [上一章 · 一条历史坏记录应该让多少服务停下来](../chapter-66-bad-data/chapter.md) · [下一章 · 第八篇回顾：从维护动作到可交付产物](../chapter-68-review/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

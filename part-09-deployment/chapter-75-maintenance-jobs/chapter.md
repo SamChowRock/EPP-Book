@@ -329,6 +329,6 @@ sudo journalctl -u epp-container-clean.service --since '10 minutes ago' --no-pag
 
 计时与补跑语义见 [Debian 13 的 systemd.timer(5)](https://manpages.debian.org/trixie/systemd/systemd.timer.5.en.html)。行锁与会话级咨询锁见 [PostgreSQL 18 锁文档](https://www.postgresql.org/docs/18/explicit-locking.html)。按键删除随桶版本配置变化的行为见 [S3 DeleteObject](https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObject.html)。
 
-按五节 SQL、原生与容器调度定义、三幅运行现场估计，阅读约 36～48 分钟。已有 Linux 练习机、可登录的副本和配对桶时，原生配置、断点、五分钟等待与恢复另加 50～75 分钟，容器调度接手与失败复查另加 20～30 分钟；首次复制环境和可选的整机关机演练另计。
+阅读约 36～48 分钟。已有 Linux 练习机、可登录的副本和配对桶时，原生配置、断点、五分钟等待与恢复另加 50～75 分钟，容器调度接手与失败复查另加 20～30 分钟；首次复制环境和可选的整机关机演练另计。
 
 配套检出命令 `git switch part-10/chapter-76` · [上一章 · 运行观测](../chapter-74-observability/chapter.md) · [下一章 · 更换凭据与签名密钥](../chapter-76-rotate-credentials/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

@@ -173,6 +173,6 @@ sequenceDiagram
 | 操作身份与回执 | 区分同一成功请求重放、同身份换目标、候选已终结 | [第29章](../chapter-29-idempotency/chapter.md) |
 | 游标与归属 | 原查询范围内从已返回边界续读；签名与索引都不授予访问权 | [第33章](../chapter-33-pagination/chapter.md) |
 
-时间参考（估算）：阅读约45～60分钟；跟做另加40～60分钟。按两种相反的状态变化、一次响应丢失、三个预约场次、六张实拍对照和来源翻页估算；不含前章环境准备。
+阅读约 45～60 分钟，跟做另加约 40～60 分钟，沿用前章的环境。
 
 [本章配套代码](https://github.com/SamChowRock/epp-public/tree/part-04/chapter-36) · [上一章：索引与执行计划：查询为什么变慢](../chapter-35-indexes/chapter.md) · [下一章：安全地保存密码与秘密](../../part-05-identity/chapter-37-secrets/chapter.md) · [第四篇导读](../README.md) · [全书目录](../../README.md)

@@ -120,7 +120,7 @@ ORDER BY created_at DESC, id DESC LIMIT 21;
 
 图 65-4　第一行的实际输出是 21 行；第 4 行的 Index Cond 是 user_id = 7。再看下一行的 **Heap Fetches: 21**：「Only」表示索引包含查询要返回的值，但执行器仍可能需要到表页确认可见性。
 
-这次 DBeaver 实拍中，两份计划末尾的 Execution Time 分别为 1.390 和 0.032 ms。换一台机器时，先核对过滤行数、排序节点和提前停止的位置，不要求毫秒数相同。临时表此处报告 local buffers，不能把 hit 数当磁盘读次数，也不能把规划成本 cost 当毫秒。EXPLAIN ANALYZE 会真的执行语句；这里测的是隔离库上的 SELECT。
+在 DBeaver 的两份计划末尾， Execution Time 分别为 1.390 和 0.032 ms。换一台机器时，先核对过滤行数、排序节点和提前停止的位置，不要求毫秒数相同。临时表此处报告 local buffers，不能把 hit 数当磁盘读次数，也不能把规划成本 cost 当毫秒。EXPLAIN ANALYZE 会真的执行语句；这里测的是隔离库上的 SELECT。
 
 还有一种「越来越慢」与单条 SQL 无关。打开专用练习库的 SQL 编辑器，先运行配套 [mail.sql](https://github.com/SamChowRock/epp-public/blob/part-08/chapter-65/examples/performance/mail.sql)。保持本机 Mailpit 已启动、邮件 Worker 未启动（[本机邮件环境](../../environment-setup.md)有启动命令）。另一个终端从配套根目录启动正常 API；端口可换成空闲端口，两端 SMTP 必须一致：
 
@@ -213,6 +213,6 @@ ORDER BY execution_ms DESC LIMIT 15;
 
 [Node 24 的 CPU 采样参数](https://nodejs.org/docs/latest-v24.x/api/cli.html#--cpu-prof) · [事件循环延迟](https://nodejs.org/docs/latest-v24.x/api/perf_hooks.html#perf_hooksmonitoreventloopdelayoptions) · [Node 堆快照注意事项](https://nodejs.org/en/learn/diagnostics/memory/using-heap-snapshot) · [Chrome DevTools 的堆快照](https://developer.chrome.com/docs/devtools/memory-problems/heap-snapshots) · [pg.Pool 的计数](https://node-postgres.com/apis/pool) · [PostgreSQL 18：读执行计划](https://www.postgresql.org/docs/18/using-explain.html) · [数据库活动视图](https://www.postgresql.org/docs/18/monitoring-stats.html)
 
-阅读约 35～48 分钟；已有 PostgreSQL 18 和本机 Mailpit 时，跟做登录、两类采样、执行计划和投递对照另加 45～65 分钟。按四幅界面图与实际操作估算，首次安装与下载另计。
+阅读约 35～48 分钟；已有 PostgreSQL 18 和本机 Mailpit 时，跟做登录、两类采样、执行计划和投递对照另加 45～65 分钟。首次安装和下载的时间另计。
 
 [本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-65) · [上一章：构建与持续集成](../chapter-64-build-ci/chapter.md) · [下一章：一条历史坏记录应该让多少服务停下来](../chapter-66-bad-data/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md)

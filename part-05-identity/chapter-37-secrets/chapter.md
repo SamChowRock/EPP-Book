@@ -267,7 +267,7 @@ console.log({ tokenCharacters: token.length, digestCharacters: digest.length, to
 chmod 600 .env .env.database .env.database-verify .env.test
 ```
 
-某个文件尚未建立就先按前章建立，不用为避免报错创建空配置。`600` 表示只有文件所属用户可读写；它不能防住同一账号下的恶意程序或管理员。不要在书稿、截图、issue 或聊天里复制连接串。出现连接错误时先核对数据库名、主机和错误代码，分享时仍去掉密码等敏感部分。
+某个文件尚未建立就先按前章建立，不用为避免报错创建空配置。`600` 表示只有文件所属用户可读写；它不能防住同一账号下的恶意程序或管理员。不要把连接串贴进笔记、截图、issue 或聊天记录。出现连接错误时先核对数据库名、主机和错误代码，分享时仍去掉密码等敏感部分。
 
 Node 加载 env 文件时，已有进程环境变量优先。若终端里残留 DATABASE_URL，命令看起来指定 VERIFY，实际仍可能读到旧值。执行迁移和密码命令前，在当前终端清除这些覆盖项，再用 DBeaver 确认两份配置对应的连接。生产进程由托管环境注入秘密，不把开发 `.env` 随 dist 复制；同一把签名密钥的持久性与轮换仍按第33章处理，不能每次启动随机换掉后又要求旧游标继续有效。
 
@@ -510,7 +510,7 @@ console.log("PASSWORD_RUNTIME_OK");'
 
 官方入口：[npm 安装脚本策略](https://docs.npmjs.com/cli/install/)、[Node 24.22.1 crypto](https://nodejs.org/download/release/v24.22.1/docs/api/crypto.html)、[argon2 0.45.1](https://github.com/ranisalt/node-argon2/tree/v0.45.1)、[Argon2 RFC 9106](https://www.rfc-editor.org/rfc/rfc9106.html)、[PostgreSQL 18 约束](https://www.postgresql.org/docs/18/ddl-constraints.html)。本章原理与参数依据的核查日期为 2026-11-06。
 
-时间参考（估算）：阅读约100～120分钟；编码与跟做另加65～90分钟。按密码与令牌机制、两个独立实验、一次非空库升级、三种凭据结果及干净产物检查估算，不含前章环境安装。
+阅读约 100～120 分钟，编码、升级已有数据库和验证凭据另加约 65～90 分钟，沿用前章的环境。
 
 本章完成代码分支：`part-05/chapter-37`，起点：`part-04/chapter-36`。
 

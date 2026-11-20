@@ -320,7 +320,7 @@ ORDER BY opened_at, source_key;
 
 ### 把“同时发起”推进到“确实在等锁”
 
-DBeaver用两个独立SQL编辑器连接VERIFY。A执行BEGIN并取得与实现相同的双int锁后，先不要提交。此时从观察页发一个请求，再用B查看 `pg_stat_activity` 的 `wait_event_type`、`wait_event` 与 `pg_locks` 的 `granted`。看到请求对应连接在等advisory，才知道已经走到这把锁。正式API最多等锁1秒，手动观察慢了会得到503，这是预定的等待预算，不要为了截图把正式期限调长。
+DBeaver用两个独立SQL编辑器连接VERIFY。A执行BEGIN并取得与实现相同的双int锁后，先不要提交。此时从观察页发一个请求，再用B查看 `pg_stat_activity` 的 `wait_event_type`、`wait_event` 与 `pg_locks` 的 `granted`。看到请求对应连接在等advisory，才知道已经走到这把锁。正式API最多等锁1秒，手动观察慢了会得到503。要再次观察，先结束这轮事务，再按原来的 1 秒期限重做。
 
 ```sql
 -- A：只在本轮VERIFY执行，保持事务未结束

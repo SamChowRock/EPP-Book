@@ -10,14 +10,16 @@
 
 先完成第 63～67 章及相关支线，再进入第 68 章回顾。
 
-| 章节 | 要处理的现场 |
-| --- | --- |
-| [63　为后台操作提供可靠的管理命令](chapter-63-account-cli/chapter.md) | 上午暂停后断线，下午已有恢复决定，能否重发上午的命令？ |
-| [64　构建与持续集成](chapter-64-build-ci/chapter.md) | 在干净目录还原依赖，检查不同运行入口及生成文件。 |
-| [65　调试性能与资源问题](chapter-65-performance/chapter.md) | 两次登录都慢且都成功，哪一次真的在数据库里等锁？ |
-| [66　一条历史坏记录应该让多少服务停下来](chapter-66-bad-data/chapter.md) | 分批发现缺修订记录，保留健康读取，并按可信历史逐项恢复。 |
-| [67　把验过的那份运行制品从验收环境交给发布环境](chapter-67-artifact-promotion/chapter.md) | 从同一归档验收与晋级，区分程序字节、数据目标和旧包兼容范围。 |
-| [68　第八篇回顾：从维护动作到可交付产物](chapter-68-review/chapter.md) | 找回收据、解释等待并验证产物，再判断空间回收与坏记录应怎样交接。 |
+## 章节导航
+
+| 章节 | 本章解决的问题 | 阅读入口 |
+| --- | --- | --- |
+| 第 63 章 为后台操作提供可靠的管理命令 | 上午暂停后断线，下午已有恢复决定，能否重发上午的命令？ | [阅读正文](chapter-63-account-cli/chapter.md) · [技术点速查](chapter-63-account-cli/chapter.md#附录本章必要技术点速查) |
+| 第 64 章 构建与持续集成 | 在干净目录还原依赖，检查不同运行入口及生成文件。 | [阅读正文](chapter-64-build-ci/chapter.md) · [技术点速查](chapter-64-build-ci/chapter.md#附录本章必要技术点速查) |
+| 第 65 章 调试性能与资源问题 | 两次登录都慢且都成功，哪一次真的在数据库里等锁？ | [阅读正文](chapter-65-performance/chapter.md) · [技术点速查](chapter-65-performance/chapter.md#附录本章必要技术点速查) |
+| 第 66 章 一条历史坏记录应该让多少服务停下来 | 分批发现缺修订记录，保留健康读取，并按可信历史逐项恢复。 | [阅读正文](chapter-66-bad-data/chapter.md) · [技术点速查](chapter-66-bad-data/chapter.md#附录本章必要技术点速查) |
+| 第 67 章 把验过的那份运行制品从验收环境交给发布环境 | 从同一归档验收与晋级，区分程序字节、数据目标和旧包兼容范围。 | [阅读正文](chapter-67-artifact-promotion/chapter.md) · [技术点速查](chapter-67-artifact-promotion/chapter.md#附录本章必要技术点速查) |
+| 第 68 章 第八篇回顾：从维护动作到可交付产物 | 找回收据、解释等待并验证产物，再判断空间回收与坏记录应怎样交接。 | [阅读正文](chapter-68-review/chapter.md) · [技术点速查](chapter-68-review/chapter.md#附录本章必要技术点速查) |
 
 第 63 章阅读约 32～43 分钟，已有练习账号时，编码、迁移与两窗口操作另加 48～70 分钟。
 

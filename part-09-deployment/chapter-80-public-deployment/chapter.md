@@ -2,13 +2,13 @@
 
 第 79 章关掉了源虚拟机，恢复端仍在同一台 Mac 上。这次把运行位置移出开发机：两名受邀者各用自己的设备登录，一个人写入的素材，另一个人即使知道 ID 也读不到。开发者关机后，两人仍能回来读原文、打开头像。先用平台提供的 HTTPS 地址做到这一步，再为已经能用的服务买域名。Northflank 运行应用并为业务域名签发 HTTPS 证书，Cloudflare 托管权威 DNS。用户输入自有域名后，浏览器根据 DNS 解析结果连接 Northflank。头像由 Backblaze B2 的私有桶保存，注册和重置邮件由 Resend 投递到受邀者已有的邮箱。
 
-本章的交付目标是让两名受邀使用者从外网完成登录、素材读写与头像读取，并交接他们实际用过的入口和记录。从第 78 章的 B 版开始，另建空库和私有桶，只录入受邀者同意用于试用的数据。平台界面、规格、费用按创建当天的控制台核对。Northflank 将免费 Sandbox 定位于测试和个人项目；需要承担正式生产承诺时，还要确定运行保障、备份留存和故障响应。以下用时为估计：阅读 35～45 分钟，首次配置和两端验收约 110～175 分钟，镜像传输、DNS 生效、独立恢复和次日复验另计。[Northflank 套餐定位](https://northflank.com/docs/v1/application/billing/pricing-on-northflank)
+本章的交付目标是让两名受邀使用者从外网完成登录、素材读写与头像读取，并交接他们实际用过的入口和记录。从第 78 章的 B 版开始，另建空库和私有桶，只录入受邀者同意用于试用的数据。平台界面、规格、费用按创建当天的控制台核对。Northflank 将免费 Sandbox 定位于测试和个人项目；需要承担正式生产承诺时，还要确定运行保障、备份留存和故障响应。阅读约 35～45 分钟，首次配置和两端验收另需约 110～175 分钟，镜像传输、DNS 生效、独立恢复和次日复验另计。[Northflank 套餐定位](https://northflank.com/docs/v1/application/billing/pricing-on-northflank)
 
 ## 80.1 在控制台划出本次试用的范围
 
 在 Northflank 选择 **Sandbox → Create project**，例如命名为 `epp-invite`。选 Northflank 托管区域。本章按**域名注册和续费以外，云服务月预算为 0** 来配置。截至 2026 年 11 月 19 日，Sandbox 价格页列出两个常驻服务、两个作业、一个数据库，每月最多包含价值 20 美元的 Northflank Cloud 资源。创建每项时核对 Sandbox 标识、项目合计用量估算和应付金额；若需要转为按量付费才能继续，就停在该项。[套餐与限额](https://northflank.com/pricing)
 
-首次开户还要核对一个条件。Northflank 价格页写着 Sandbox 无需绑卡，计费文档却写着创建资源前所有方案都要添加付款方式以验证身份。以自己账号的创建页面为准。遇到绑卡提示时，先辨明是身份验证还是切换套餐；只接受免绑卡的读者可停在创建资源之前。官方将 Sandbox 用于测试和个人项目，本章的公网目标是两人受邀试用。[价格页](https://northflank.com/pricing) · [计费文档](https://northflank.com/docs/v1/application/billing/pricing-on-northflank)
+首次开户还要核对一个条件。Northflank 价格页写着 Sandbox 无需绑卡，计费文档却写着创建资源前所有方案都要添加付款方式以验证身份。以自己账号的创建页面为准。遇到绑卡提示时，先辨明是身份验证还是切换套餐；如果你只接受免绑卡方案，就在创建资源前停下。官方将 Sandbox 用于测试和个人项目，本章的公网目标是两人受邀试用。[价格页](https://northflank.com/pricing) · [计费文档](https://northflank.com/docs/v1/application/billing/pricing-on-northflank)
 
 | 在哪里 | 建什么 | 怎样识别配置正确 |
 |---|---|---|

@@ -593,7 +593,7 @@ npm run dev
 
 本章对应代码分支：`part-01/chapter-03`。后续章节在此基础上继续演进，本章分支保留这一阶段的实现。
 
-时间参考（估算）：阅读约 35～42 分钟，创建、拒绝、断点和重启观察另加约 25～35 分钟。
+阅读约 35～42 分钟，创建、拒绝、断点和重启观察另加约 25～35 分钟。
 
 延伸查阅：[nvm 版本管理](https://github.com/nvm-sh/nvm#nvmrc)、[Node.js 24.22.1 发布说明](https://nodejs.org/en/blog/release/v24.22.1)、[Node.js HTTP 文档](https://nodejs.org/docs/v24.22.1/api/http.html)、[Node.js 流文档](https://nodejs.org/docs/v24.22.1/api/stream.html)、[Node.js 调试说明](https://nodejs.org/en/learn/getting-started/debugging)。这些文档用于核对 API 与按需查错，正文已经给出本章实现所需的关键代码。
 

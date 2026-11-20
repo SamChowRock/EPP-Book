@@ -168,7 +168,7 @@ export class PrismaCaptureStore implements CaptureStore {
 
 `selection` 只选择公开映射需要的三个字段，`project` 再明确构造业务对象。`Prisma.CaptureGetPayload` 从选择条件得到 TypeScript 行类型，不额外手写一份可能漂移的 ORM 模型。原来的响应 Interceptor 继续运行时校验和投影；数据库查询投影、业务映射和响应边界各解决一个问题：减少取出的字段、转换内部表示、守住对外输出。
 
-`$queryRaw<Row[]>` 的泛型是作者给出的类型承诺，不是数据库返回值的运行时校验。如果把 SQL 中别名写错，泛型不会替数据库验证；后面的映射和响应检查会失败。改 raw SQL 时必须核对实际行，不能把编译通过当成查询已经正确。
+`$queryRaw<Row[]>` 的泛型告诉 TypeScript 预期拿到哪些字段，数据库返回时仍须核对实际行。如果把 SQL 中别名写错，泛型不会替数据库验证；后面的映射和响应检查会失败。改 raw SQL 时必须核对实际行，不能把编译通过当成查询已经正确。
 
 ### 存储实现完成后再切换模块
 
@@ -415,6 +415,17 @@ Body 中的 `\u0000` 是 JSON 转义，解析后是一个 NUL；若写成 `\\u00
 这里的 `\ud800` 没有配对的低代理项。响应沿用“合法 Unicode 且不含 NUL”的共同规则，不意味着这次输入也含有 NUL。两张图展示的是请求输入被拒绝；拒绝后数据库行数是否保持，仍按前面的数据库查询核对，不能单靠一张 400 响应图得出结论。图中服务端口为 3219，跟做使用自己的实际端口。
 
 记录本轮新建记录的完整 ID、原文和 UTC 时间，再回到 DBeaver 按 ID 查询一次。确认输入拒绝前后行没有增加。下一章关闭和重启 API 时仍要查这条记录；若中途停下，保留数据库和集合变量。
+
+## 附录：本章必要技术点速查
+
+| 名称 | 在哪里用 | 怎样核对 |
+| --- | --- | --- |
+| `CaptureStore` | 让 Service 通过 `insert`、`list`、`find` 访问存储 | 先在 DBeaver 找到一条旧记录，再用 Postman 按完整 ID 读取，对上原文和 UTC 时间。 |
+| `strpos`、`COLLATE "C"` | 按字面片段搜索原文，保留大小写差异 | 搜索 `%` 时只应命中含百分号的原文。`strpos` 未找到片段时返回 0。 |
+| `ORDER BY created_at, id` | 按创建时间升序排列，同一时刻用 ID 排出稳定顺序 | 比较列表和 SQL 查询的有序 ID，时间相同的行也要逐一核对。 |
+| NUL、孤立代理项 | 在写入 PostgreSQL 前拒绝无法原样保存的文本 | Postman 应返回 400 和 `VALIDATION_ERROR`，再到 DBeaver 确认没有新增记录。 |
+
+查阅 `strpos` 的参数和返回值，可看 [PostgreSQL 18 字符串函数](https://www.postgresql.org/docs/18/functions-string.html)。
 
 [上一章：Prisma：将已有表纳入 Schema 与迁移管理](../chapter-20-prisma/chapter.md) · [下一章：管理连接池、等待与服务关闭](../chapter-22-prisma-nest/chapter.md) · [返回第三篇](../README.md) · [返回全书目录](../../README.md)
 

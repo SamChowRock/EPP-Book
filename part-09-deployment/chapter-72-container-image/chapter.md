@@ -126,7 +126,7 @@ src/generated/**
 
 构建命令末尾的点表示把当前目录当作“构建上下文”，构建器可以从中 COPY 文件。这里先排除全部文件，再用感叹号放行构建必需的目录；config 只放行公开的 service.json，生成的 Prisma 客户端由构建时重新生成。还须检查获准进入的源码目录没有凭据或业务数据。后面的 COPY 再逐项选择输入。把秘密 COPY 进去后另起一层删除，旧层仍可能保留内容，因此生产配置从一开始就不参加构建。
 
-Dockerfile 如下。这里的 Python、make、C++ 编译器只装进构建阶段，为原生模块需要从源码编译时提供工具，不要求在宿主另装一套，也不用于编写随书脚本。
+Dockerfile 如下。这里的 Python、make、C++ 编译器只装进构建阶段，为原生模块需要从源码编译时提供工具。宿主机无需另装这些工具。
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -328,6 +328,6 @@ dk rm epp73-first epp73-layer epp73-native-check epp73-signal
 
 命令细节参阅 [docker run](https://docs.docker.com/reference/cli/docker/container/run/)、[Dockerfile](https://docs.docker.com/reference/dockerfile/)、[tmpfs](https://docs.docker.com/engine/storage/tmpfs/)；缓存和停止语义的官方依据见各节。
 
-阅读参考（估算）：正文与代码约 38～48 分钟；准备好引擎后的构建、图形观察、文件寿命与权限对照约 40～55 分钟，不含首次下载、网络等待与跨机交接。
+阅读约 38～48 分钟。准备好引擎后，构建镜像、查看图形界面、比较重建前后的文件和访问权限另需 40～55 分钟，不含首次下载、网络等待与跨机交接。
 
 [上一章：让客户端通过可信入口访问服务](../chapter-71-service-access/chapter.md) · [下一章：用 Compose 接管同一套服务](../chapter-73-compose-deployment/chapter.md) · [本篇导读](../README.md) · [本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-73)

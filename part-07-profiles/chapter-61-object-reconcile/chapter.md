@@ -26,7 +26,7 @@ chmod 700 .chapter51-store
 
 安装工具仍按[私有存储准备](../../environment-setup.md#启动私有存储)，只运行安装脚本取得 `.chapter51-tools/weed`，用 `version` 确认 4.52。同一台 Mac 的原存储与副本不能同时占用那十个端口。上述目录复制只用于本书同版本、停机的单机 mini 练习，不是分布式对象服务通用备份方案。
 
-新目录的 `.env.database-verify` 中 `DATABASE_URL` 指向新库，`.env.test` 中 `TEST_DATABASE_URL` 也改为这个 VERIFY，供后续章节现有的练习启动函数使用。不要把生产或日常开发连接放进这两个文件。保留 `.env` 中原签名配置与原应用存储身份。在这个新目录先 `nvm use`、`npm ci`、`npm run check`，再从副本启动存储。另开项目终端启动 API：
+新目录的 `.env.database-verify` 中 `DATABASE_URL` 指向新库，`.env.test` 中 `TEST_DATABASE_URL` 也改为这个 VERIFY，后面启动练习服务时也会用到它。不要把生产或日常开发连接放进这两个文件。保留 `.env` 中原签名配置与原应用存储身份。在这个新目录先 `nvm use`、`npm ci`、`npm run check`，再从副本启动存储。另开项目终端启动 API：
 
 ```bash
 unset DATABASE_URL TEST_DATABASE_URL SHADOW_DATABASE_URL DB_QUERY_DEBUG
@@ -44,7 +44,7 @@ JS
 
 ### 观察者需要另一组权限
 
-API 的桶身份可以读写头像，却没有 List 权限。这是前章有意保留的区别：知道键后取对象，与枚举桶中的键，是两种能力。为了清点给 API 加 List，会扩大所有 API 实例的权限。我们另建观察身份，只授权读取和列举；数据库也不用所有者账号做日常扫描。
+API 的桶身份可以读写头像，却没有 List 权限。API 知道键就能取头像，列出桶里所有键还需要另一项权限。为了清点给 API 加 List，会扩大所有 API 实例的权限。我们另建观察身份，只授权读取和列举；数据库也不用所有者账号做日常扫描。
 
 在第 60 章工程增加[本章完整工具目录](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-61/database/chapter-61-reconcile)：`inventory.mjs` 是命令入口，`db.mjs` 读取数据库，`lib.mjs` 负责对象读取、校验与分类，`compare.mjs` 输出离线报告，`readonly.sql` 和 `init-observer.mjs` 只供管理员首次配置。先把这些文件放齐；它们是直接运行的 `.mjs`，不需要编译，不改应用启动方式。同时把[定向回归文件](https://github.com/SamChowRock/epp-public/blob/part-07/chapter-61/test/object-reconcile.test.mjs)放入 `test/object-reconcile.test.mjs`，供章末检查工具边界。`.gitignore` 增加 `.chapter61-private/`。下面逐步解释其中决定结论的部分。
 
@@ -201,7 +201,7 @@ RETURNING id, user_id, state, created_at, check_after;
 
 ![两份完整观察中的四种关系](images/four-cases.jpg)
 
-图 61-1　同一轮真实只读清点。当前缺键、writing 占位与没有记录的对象分别保留，报告没有输出删除名单。界面中的账号与对象 ID 是本轮合成练习数据；这次实测用了三个账号，writing 占位属于第三个账号，另两个分别保留完整头像和缺件。正文用两个账号即可复现四种关系。
+图 61-1　一次只读清点的结果。当前缺键、writing 占位与没有记录的对象分别保留，报告没有输出删除名单。界面中的账号与对象 ID 是本轮合成练习数据；这次实测用了三个账号，writing 占位属于第三个账号，另两个分别保留完整头像和缺件。你用甲、乙两个练习账号也能复现这四种关系。
 
 比较先把 `users.avatar_id` 转成 `avatars/<id>.webp`，再按**完整键字符串**连接尝试行和桶观察。不能只取文件名的一部分，也不能把所有键转成小写：对象服务里的键区分大小写，`avatars/X.webp` 与 `avatars/x.webp` 不一定是同一个对象。
 
@@ -255,7 +255,7 @@ node database/chapter-61-reconcile/compare.mjs \
 
 ![发布穿过扫描边界后的再次核对](images/rechecked-publication.jpg)
 
-图 61-2　第二次数据库观察已经包含新发布。第一次报告中没有记录的新键，现在是同一用户的当前头像；另一个无记录练习键仍然保留。图中仍是 writing 的那行属于第三个样本账号，未参与甲的这次发布；按正文给甲准备的占位则会被甲的新预约淘汰。
+图 61-2　第二次数据库观察已经包含新发布。第一次报告中没有记录的新键，现在是同一用户的当前头像；另一个无记录练习键仍然保留。图中仍是 writing 的那行属于第三个样本账号，未参与甲的这次发布；如果占位也属于甲，甲的新预约就会将它淘汰。
 
 第二次观察也不是终局证明。若服务持续写入，新的扫描仍可能穿过下一次发布。日常核对先用只读报告缩小范围，再按同一用户与精确键复查；需要稳定恢复点时，要安排写入暂停或采用明确的业务版本协议。本章没有给两个系统增加分布式事务。
 
@@ -276,7 +276,7 @@ node --env-file=.chapter61-private/s3.env database/chapter-61-reconcile/inventor
 
 图 61-3　这次实测由独立回环故障入口转发真实存储请求，并在第二页返回 503；第一页面两条对象已保留，未完成的清点没有将其他当前头像判为缺件。这与上面的停服务实验是两种不同的故障注入，图中错误码不要求与你相同。
 
-重新扫描固定的 `avatars/` 范围，写一个新文件，恢复页数上限，直到得到明确终页。工具在同一轮内按精确键合并重复观察，保留最后一次看到的对象属性以及原页记录。它不会拼接两个半截文件，宣称得到一个全量快照：两轮之间可能新增、替换或删除对象，旧轮没有看到的键也可能恰好又错过。上一轮作为调查证据保留，新完整轮作为新的观察。
+重新扫描固定的 `avatars/` 范围，写一个新文件，恢复页数上限，直到得到明确终页。工具在同一轮内按精确键合并重复观察，保留最后一次看到的对象属性以及原页记录。两个只扫了一半的文件即使拼在一起，也可能漏掉同一个键，因为两轮之间可能有人新增、替换或删除对象。上一轮作为调查证据保留，新完整轮作为新的观察。
 
 如果数据库只读事务失败，处理也一样。尤其用户页没读全时，某尝试没有连到 current 指针，只能称 `tracked-current-unverified-状态`，不能断言它非当前。`complete` 不是装饰字段，它改变了哪些判断成立。
 
@@ -308,7 +308,7 @@ node --env-file=.env.database-verify --env-file=.chapter51-store/app.env \
 
 完成代码：[part-07/chapter-61](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-61)。第 62 章从这一阶段继续，原请求集合仍是 `requests/chapter-51.postman_collection.json`。本章没有新增迁移；原库与空库的结构准备仍沿用第 60 章，切换代码不会替你选择或复制数据。
 
-## 技术点速查
+## 附录：本章必要技术点速查
 
 | 观察或工具 | 能证明的范围 |
 | --- | --- |
@@ -320,6 +320,6 @@ node --env-file=.env.database-verify --env-file=.chapter51-store/app.env \
 | 当前头像修复 | 可信备份按身份恢复，或正常发布新头像并实际取图 |
 | 已跟踪旧键清理 | 原命令重新检查到期、状态和当前引用，再按 ID 处置 |
 
-阅读约 50～65 分钟；已有第 60 章环境时，复制、编码、身份配置与故障跟做另加 80～115 分钟。估算包括四种差异、跨扫描发布和一次中断恢复；下载等待与保护期等待不计入操作时间。可在两份完整初始清单后暂停，回来先核对来源和当前状态。
+阅读约 50～65 分钟；已有第 60 章环境时，复制副本、写代码、配置身份和排查故障另需 80～115 分钟，其中包括核对四种差异、在两次扫描之间发布，以及从一次中断中恢复。下载和等待保护期结束的时间另计。可在两份完整初始清单后暂停，回来先核对来源和当前状态。
 
 [上一章 · 对象存储与数据库如何协作](../chapter-60-avatar-storage/chapter.md) · [下一章 · 第七篇回顾：文件与数据库没有一起成功时怎么办](../chapter-62-review/chapter.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

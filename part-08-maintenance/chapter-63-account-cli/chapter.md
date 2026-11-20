@@ -216,6 +216,6 @@ admin apply "$account" off "$suspend_id"
 
 [Nest 独立应用上下文](https://docs.nestjs.com/standalone-applications) · [PostgreSQL 18 行锁](https://www.postgresql.org/docs/18/explicit-locking.html#LOCKING-ROWS) · [PostgreSQL 18 事务隔离](https://www.postgresql.org/docs/18/transaction-iso.html) · [Node 24 进程退出](https://nodejs.org/docs/latest-v24.x/api/process.html#processexitcode)
 
-阅读约 32～43 分钟，已有练习账号时，编码、迁移与两窗口操作另加 48～70 分钟。按事务代码、两幅响应图和两次资格变化估算，首次准备账号另计。
+阅读约 32～43 分钟，已有练习账号时，编码、迁移与两窗口操作另加 48～70 分钟。第一次准备练习账号还要另留时间。
 
 [本章完成代码](https://github.com/SamChowRock/epp-public/tree/part-08/chapter-63) · [上一章：第七篇回顾：文件与数据库没有一起成功时怎么办](../../part-07-profiles/chapter-62-review/chapter.md) · [第八篇导读](../README.md) · [全书目录](../../README.md) · [下一章：构建与持续集成](../chapter-64-build-ci/chapter.md)

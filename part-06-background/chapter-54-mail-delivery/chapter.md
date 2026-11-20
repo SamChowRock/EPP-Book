@@ -4,7 +4,7 @@
 
 需要保存的是几个不同主体的观察：发送者交付了什么，供应商后来报告了什么，收件端实际看到了什么，以及用户有没有完成原来的验证。它们可以互相对应，却不能互相替代。本章从[第53章完整代码](https://github.com/SamChowRock/epp-public/tree/part-06/chapter-53)建立独立练习副本，保留原账号、会话、素材与邮件记录；增加逐次发送记录、签名回执和按地址恢复。第55章仍从第53章继续，做完要回到原主线目录与数据库，不能只切源码却继续连接本章已升级的副本。
 
-阅读约 90～115 分钟，实现、非空升级与本地回执演练另加 130～170 分钟；真实域名、供应商与受控邮箱联调另加 45～75 分钟，不含域名验证等待（估算）。
+阅读约 90～115 分钟，实现、非空升级与本地回执演练另加 130～170 分钟；真实域名、供应商与受控邮箱联调另加 45～75 分钟。等待域名验证的时间另计。
 
 ## 54.1 从本地接收跨到受控邮箱
 
@@ -311,11 +311,11 @@ old来自 `(provider,scope,endpoint,eventId)` 查询，count来自 `(provider,sc
 
 这把锁只是所有本章写入的串行化位置，不代表“通道开放才能记回执”。unknown 时尤其需要继续接收证据。回执、人工绑定与地址恢复都不改 paused_by，也不改 outbox.status。网络读写、正文读取和验签均在锁外；锁内只做有界数据库工作。
 
-同一供应商邮件最多保存100个不同事件身份，重复检查先于容量检查，满额后原事件仍能幂等重放；第101个新身份返回503，不假装已经接受，也不删旧记录腾位置。这个界限让发送应答绑定时最多处理100条早到事件，短事务不会随着回调数量无限增长。接近上限应按该消息调查事件来源与订阅配置，再调整接收预算；供应商可能最终停止重试，不能把503解释为“以后必然补齐”。对持续高事件量的业务，应另设计分批归并与积压告警。[重试与重播](https://resend.com/docs/webhooks/retries-and-replays)
+同一供应商邮件最多保存100个不同事件身份，重复检查先于容量检查，满额后原事件仍能幂等重放；第101个新身份返回503，旧记录仍然保留。这个界限让发送应答绑定时最多处理100条早到事件，短事务不会随着回调数量无限增长。接近上限应按该消息调查事件来源与订阅配置，再调整接收预算；供应商可能最终停止重试，不能把503解释为“以后必然补齐”。对持续高事件量的业务，应另设计分批归并与积压告警。[重试与重播](https://resend.com/docs/webhooks/retries-and-replays)
 
 ### 把各个入口接成可编译的阶段
 
-跟写53源码时，先把上面讨论的新增文件建立完整，再开始下面的实验。`mail-delivery-facts.ts`统一导出mailTransaction、recordMailEvent、bindAttemptTx、bindAttempt、releaseAddress；ID规范化函数canonicalResendMessageId由resend-delivery.ts导出并供事实模块复用；54.4继续解释其中的恢复规则，函数本身此时就要接好。可复制完整文件的入口见[本章src目录](https://github.com/SamChowRock/epp-public/tree/part-06/chapter-54/src)，不把正文节选误当成完整文件。
+跟写53源码时，先把上面讨论的新增文件建立完整，再开始下面的实验。`mail-delivery-facts.ts`统一导出mailTransaction、recordMailEvent、bindAttemptTx、bindAttempt、releaseAddress；ID规范化函数canonicalResendMessageId由resend-delivery.ts导出并供事实模块复用；54.4继续解释其中的恢复规则，函数本身此时就要接好。需要补齐这些函数时，可直接从[本章 src 目录](https://github.com/SamChowRock/epp-public/tree/part-06/chapter-54/src)复制完整文件。
 
 按依赖顺序核对这几组接线：
 
@@ -355,7 +355,7 @@ npm run check
 
 先让整个对应关系在本机可控。独立的 `examples/mail-delivery` 用真实HTTP接收适配器请求，再交给真实Mailpit，并生成合成供应商ID。它只在脚本构造ResendDelivery时显式替换请求函数，正式Worker仍只有local与固定官方Resend地址两种配置。这样能主动安排“SMTP已经收到，应答却丢了”，同时保留真实网络与数据库的边界。
 
-跟写53源码的读者可以单独取得这些观察辅助文件，无需切换正在修改的应用源码；完成快照已经带有它们。新建的三个辅助目录／集合未自行修改时，在本章目录执行：
+如果你正接着第 53 章写代码，可以单独取这几个观察工具，继续用手头的源码。如果用的是本章完成快照，工具已经在里面。新建的三个辅助目录／集合未自行修改时，在本章目录执行：
 
 ```bash
 git fetch origin part-06/chapter-54:refs/remotes/origin/part-06/chapter-54

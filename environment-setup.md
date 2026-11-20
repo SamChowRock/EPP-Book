@@ -203,7 +203,7 @@ SELECT current_database(), current_user,
   --disable-version-check --block-remote-css-and-fonts
 ```
 
-保留这个终端，在 API 配置中将 `LOCAL_SMTP_PORT` 设为 `1025`。用虚构地址申请注册，再在浏览器打开 `http://127.0.0.1:8025`，按收件人找到本次邮件。第 43 章重置密码继续用同一个收件箱。若之后换端口，分别更新发送方的 SMTP 配置和浏览器地址。后文命令若简写为 `mailpit`，用解压安装的读者仍可从程序目录执行 `./mailpit`。[第 42 章注册验证](part-05-identity/chapter-42-verified-signup/chapter.md)
+保留这个终端，在 API 配置中将 `LOCAL_SMTP_PORT` 设为 `1025`。用虚构地址申请注册，再在浏览器打开 `http://127.0.0.1:8025`，按收件人找到本次邮件。第 43 章重置密码继续用同一个收件箱。若之后换端口，分别更新发送方的 SMTP 配置和浏览器地址。后文命令若简写为 `mailpit`，如果你是解压安装的，可以从程序目录执行 `./mailpit`。[第 42 章注册验证](part-05-identity/chapter-42-verified-signup/chapter.md)
 
 ### 真实平台登录（选做）
 
@@ -229,7 +229,7 @@ SELECT current_database(), current_user,
 
 第53章的 Mailpit 接受应答只覆盖本机 SMTP。第54章新增发送明细和独立回执进程，用签名确认异步通知来自预期供应商。仍在开发 Mac 操作；先按[备份与恢复](#用备份建立练习副本)把停写的53库恢复到独立 `epp_ch54_verify`，原主线库保留。不要用空库替代已有账号与消息的升级对照。
 
-Node仍为24.22.1。在54完成代码目录运行 `nvm use`、`npm ci`，然后 `npm ls svix`，应解析到2.10.0。Svix是随项目安装的验签库，不需全局CLI。沿53源码跟写时用 `npm install --save-exact svix@2.10.0`，一并保存锁文件。正文的本机签名请求还会验证库确实能核验原始字节，而非只检查版本号。[Svix JavaScript实现](https://github.com/svix/svix-webhooks/tree/main/javascript)
+Node仍为24.22.1。在54完成代码目录运行 `nvm use`、`npm ci`，然后 `npm ls svix`，应解析到2.10.0。Svix是随项目安装的验签库，不需全局CLI。沿53源码跟写时用 `npm install --save-exact svix@2.10.0`，一并保存锁文件。接下来在本机发送一次签名请求，确认验签库能用收到的原始字节核对签名。[Svix JavaScript实现](https://github.com/svix/svix-webhooks/tree/main/javascript)
 
 本机练习沿用[Mailpit安装](#在本机收取注册邮件)，为本轮单独启动 SMTP 1054、网页8054。打开浏览器输入 `http://127.0.0.1:8054`，页面可访问还不代表应用已发送；按正文发一笔新申请，在此找到那封邮件与原始头。第54章的本地供应商例子借这台Mailpit接收邮件，不连接外部邮件网络。
 
@@ -375,7 +375,7 @@ sudo -v
 
 ### 在 Debian 接手已有的数据库、桶和收件箱
 
-第 69 章要关闭操作 Mac 上的终端，Debian 上的 API 仍需读到昨天的账号和头像。本书用一台常驻的 Debian 练习机同时运行 PostgreSQL、SeaweedFS 和 Mailpit。管理端与浏览器可在同一台笔记本上。若用 Lima 在这台笔记本内模拟 Debian，退出 SSH 可以测试进程归属；关掉笔记本也会关掉虚拟机。要实际关掉操作机，部署机需独立供电和联网。已有独立数据主机的读者也可以保留它，[70B 的数据通路](part-09-deployment/chapter-70-service-runtime/side-02-private-data-link.md)说明怎样让 Debian 自行连接。
+第 69 章要关闭操作 Mac 上的终端，Debian 上的 API 仍需读到昨天的账号和头像。本书用一台常驻的 Debian 练习机同时运行 PostgreSQL、SeaweedFS 和 Mailpit。管理端与浏览器可在同一台笔记本上。若用 Lima 在这台笔记本内模拟 Debian，退出 SSH 可以测试进程归属；关掉笔记本也会关掉虚拟机。要实际关掉操作机，部署机需独立供电和联网。如果已经有独立的数据主机，可以继续使用，[70B 的数据通路](part-09-deployment/chapter-70-service-runtime/side-02-private-data-link.md)说明怎样让 Debian 自行连接。
 
 **先准备目标机。** 在第 69 章已核过指纹的 Debian SSH 页运行 `hostname`、`cat /etc/os-release` 和 `dpkg --print-architecture`。下面按 Debian 13 的 amd64 或 arm64 操作。PostgreSQL 用 18.x，SeaweedFS 用 4.52，邮件收进本机的 Mailpit 1.33.0。三个服务都只接受部署端回环连接。
 
@@ -533,7 +533,7 @@ nginx_bin=/usr/sbin/nginx
 "$nginx_bin" -V 2>&1 | grep -o -- '--with-http_ssl_module'
 ```
 
-最后一行应输出 `--with-http_ssl_module`。以前按练习说明单独解过 Debian 软件包的读者，也可把 nginx_bin 设为那份持久目录下的绝对路径并做同样的检查。第 71 章在 Debian 使用 nginx-private.conf，把访问范围限定到练习网。8443 的两个精确路径提供页面和脚本，其余业务请求转发到同机 3374。9443 使用同一名称的证书，把带原 Host 和签名参数的请求送往原桶，默认上游为回环 18633；单独数据机路线按 70B 的通路填写上游。
+最后一行应输出 `--with-http_ssl_module`。如果手头已有解压到持久目录的 Debian 软件包，也可以把 nginx_bin 设为其中 nginx 的绝对路径，做同样的检查。第 71 章在 Debian 使用 nginx-private.conf，把访问范围限定到练习网。8443 的两个精确路径提供页面和脚本，其余业务请求转发到同机 3374。9443 使用同一名称的证书，把带原 Host 和签名参数的请求送往原桶，默认上游为回环 18633；单独数据机路线按 70B 的通路填写上游。
 
 入口需要证书，按 71.2 生成并核对公开根、服务证书和完整链。随后在 71.3 把已核指纹的公开根安装到 Debian，给 epp72-api 服务设置 `NODE_EXTRA_CA_CERTS=/etc/epp72/practice-root.crt`，在 API 配置使用真实的 HTTPS Origin 和对象地址，预检 nginx 候选并托管入口，重启 API 使 Node 从进程启动时就能读取额外的根。管理端用自己的 curl 指定这份根，从私网名称请求本人资料，匿名收到 EPP 的 `401 AUTH_REQUIRED` 后准备交接。若要定位存储故障，可按 71.4 用部署者的练习账号上传新图并从 9443 实际下载，比对 avatarId 与文件字节。日常交付时，使用者在第 71 章用自己的账号完成浏览器端的首次发布与读回。[71.3 入口与存储配置](part-09-deployment/chapter-71-service-access/chapter.md#713-接通同源页面api-和头像存储)
 
@@ -625,7 +625,7 @@ Desktop 已包含 Engine、Buildx 和 Compose。安装后新开一个 Mac 终端
 
 首次运行 `docker run --name epp-install-check hello-world`，保留测试容器供界面查看。回到 **Containers → epp-install-check → Logs**，应看到 **Hello from Docker!**；它完成输出就正常退出，因此显示 **Exited (0)**。再次检查时直接打开已有容器；若重复运行同一创建命令，会因名称已占用而失败。日常从 **Containers** 查看状态、启停及打开 **Logs / Inspect**，从 **Images** 查看镜像，从 **Volumes** 查看卷；构建时在 **Builds → 本次构建 → Logs** 观察步骤与失败位置。第 72 章用真实镜像做文件寿命、权限和停止实验，第 73 章接管前再在 Debian 目标引擎验收。Desktop 管理的是 Mac 上的引擎，Debian 上的容器不会自动出现在这里。关掉 Mac 后仍要交付服务时，镜像与持久数据须在持续在线的部署环境运行。
 
-进入 Compose 应用集成前，另准备已验证的 EPP Linux 镜像、三份受限角色配置、容器可达的数据库/SMTP/对象端点，以及练习 HTTPS 所用的公开根证书。它们来自前文已有交付，不由 hello-world 自动提供。第 72 章使用 `node:24.22.1-bookworm-slim`，先拉取并记录实际摘要，再用于应用构建；不把可变标签当作固定交付凭据。Dockerfile 在 base 阶段安装 ca-certificates，在 build 阶段安装 Python 3、make、g++，用途是验证出站 TLS 和编译可能缺少预编译产物的原生依赖。最终 runtime 只复制生产依赖与完整 dist，通过镜像里的 Node 版本、argon2 和 sharp 实际运算检查这些依赖。回到[第 72 章镜像交付](part-09-deployment/chapter-72-container-image/chapter.md)，接着完成[第 73 章 Compose](part-09-deployment/chapter-73-compose-deployment/chapter.md)，再进入[第 74 章运行观测](part-09-deployment/chapter-74-observability/chapter.md)。
+进入 Compose 应用集成前，另准备已验证的 EPP Linux 镜像、三份受限角色配置、容器可达的数据库/SMTP/对象端点，以及练习 HTTPS 所用的公开根证书。这些材料可以沿用前面章节的交付。第 72 章使用 `node:24.22.1-bookworm-slim`，先拉取并记录实际摘要，再用于应用构建；以后核对交付物时用这个摘要，因为同一个标签可能指向新镜像。Dockerfile 在 base 阶段安装 ca-certificates，在 build 阶段安装 Python 3、make、g++，用途是验证出站 TLS 和编译可能缺少预编译产物的原生依赖。最终 runtime 只复制生产依赖与完整 dist，通过镜像里的 Node 版本、argon2 和 sharp 实际运算检查这些依赖。回到[第 72 章镜像交付](part-09-deployment/chapter-72-container-image/chapter.md)，接着完成[第 73 章 Compose](part-09-deployment/chapter-73-compose-deployment/chapter.md)，再进入[第 74 章运行观测](part-09-deployment/chapter-74-observability/chapter.md)。
 
 ## 7. 停下后怎样接着做
 

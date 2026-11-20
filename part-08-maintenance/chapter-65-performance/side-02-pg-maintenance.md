@@ -62,7 +62,7 @@ FROM lab65.versions WHERE id = 1;
 
 B 看到 `1 / 2 / 512`；切回 A，只重发 SELECT，仍是 `1 / 1 / 512`。这不是客户端缓存。数据库保存了行的多个版本，按照各次读取的快照判断哪个版本可见，这就是 MVCC 在眼前的作用。B 已成功提交不等于所有读者都应立刻看到新值；若把旧版本马上抹掉，A 的一致读取便无法继续。
 
-下面两张 DBeaver 实图是在 B 提交之后取得的。查询多加了 `pg_backend_pid() AS pid` 与 `current_setting('transaction_isolation') AS isolation`，便于核对连接与隔离级别：A 的 PID 为 4095，仍读到第 1 版；独立观察会话 C 的 PID 为 5663，读到已经提交的第 2 版。PID 是当次值，不要照抄。这次拍图由独立 psql 会话承担 B 的写入，A、C 的读取与后续维护在 DBeaver 执行；判断依据仍是不同后端与明确的提交顺序。
+两张 DBeaver 截图都取自 B 提交之后。查询多加了 `pg_backend_pid() AS pid` 与 `current_setting('transaction_isolation') AS isolation`，便于核对连接与隔离级别：A 的 PID 为 4095，仍读到第 1 版；独立观察会话 C 的 PID 为 5663，读到已经提交的第 2 版。PID 是当次值，不要照抄。图中 B 在独立的 psql 会话写入，A、C 在 DBeaver 读取，后续维护也在 DBeaver 执行。你用三个 DBeaver 连接做同样的实验时，先确认它们的 PID 各不相同，再按相同顺序提交。
 
 ![B 提交后，A 的可重复读事务仍看到第 1 版](images/pg-snapshot-a.png)
 
@@ -232,6 +232,6 @@ ALTER TABLE lab65.versions RESET (autovacuum_enabled);
 
 [PostgreSQL 18：事务隔离](https://www.postgresql.org/docs/18/transaction-iso.html) · [常规清理](https://www.postgresql.org/docs/18/routine-vacuuming.html) · [VACUUM 参数](https://www.postgresql.org/docs/18/sql-vacuum.html) · [活动与统计视图](https://www.postgresql.org/docs/18/monitoring-stats.html) · [HOT](https://www.postgresql.org/docs/18/storage-hot.html)
 
-阅读约 30～40 分钟，已有 PostgreSQL 18 与 DBeaver 时，三连接对照另加 30～45 分钟；均为按本支线篇幅及操作估算。
+阅读约 30～40 分钟，已有 PostgreSQL 18 与 DBeaver 时，三连接对照另加 30～45 分钟。
 
 [返回第 65 章](chapter.md) · [第八篇导读](../README.md)
