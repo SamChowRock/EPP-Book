@@ -1,5 +1,34 @@
 # EPP 实践环境：从 Mac 开发到 Debian 部署
 
+## 开读前一次备齐
+
+- [ ] [安装 Xcode Command Line Tools（含 Git）](#准备-mac-命令行)
+- [ ] [安装 Homebrew](#homebrew-与数据库程序)
+- [ ] [安装 nvm，切换到 Node.js 24.22.1（含 npm）](#选择项目使用的-node)
+- [ ] [安装 Visual Studio Code](#打开项目并启动-api)
+- [ ] [安装 Postman 桌面版](#发送并保存第一个请求)
+- [ ] [安装 Google Chrome](#观察请求如何经过代码)
+- [ ] [安装 PostgreSQL 18.x，启动本机练习实例](#homebrew-与数据库程序)
+- [ ] [安装 DBeaver Community，保存练习库连接](#用-dbeaver-确认连的是哪个库)
+- [ ] [安装 Mailpit 1.33.0，打开本地收件箱](#在本机收取注册邮件)
+- [ ] [安装 SeaweedFS 4.52，建好私有桶](#启动私有存储)
+- [ ] [安装 Docker Desktop，打开后确认显示 Engine running](#在-mac-用-docker-desktop-管理容器)
+- [ ] [准备 Debian 13 主机（只有一台 Mac 时用 Lima 创建虚拟机）](#准备-debian-13-部署端)
+- [ ] [从 Mac 通过 SSH 登录 Debian](#从-mac-建立-ssh-连接)
+- [ ] [在 Debian 安装 Linux 版 Node.js 24.22.1](#安装部署端共用的-linux-node)
+- [ ] [在 Debian 配好 PostgreSQL 18、SeaweedFS 4.52、Mailpit 1.33.0 和 lsof](#在-debian-接手已有的数据库桶和收件箱)
+- [ ] [在 Mac 和 Debian 确认 OpenSSL 为 3.x](#两端准备-openssl)
+- [ ] [在 Debian 安装 nginx](#在-debian-准备-nginx)
+- [ ] [在 Debian 安装 Docker Engine、Buildx 和 Compose](#为容器部署准备引擎与-compose)
+- [ ] [准备独立恢复环境、外部备份位置和独立收件箱](#准备第-79-章的两端与独立收件箱)
+- [ ] [创建 Northflank 项目，在 Mac 安装 Northflank CLI 并登录](#准备-northflank-公网试运行)
+- [ ] [创建 Backblaze B2 私有桶](#准备-northflank-公网试运行)
+- [ ] [将自有域名接入 Cloudflare DNS](#准备-northflank-公网试运行)
+- [ ] [在 Resend 验证发信域，准备一个能收测试邮件的邮箱](#第-54-章准备发送记录与签名回执)
+- [ ] [安装微信开发者工具，准备小程序 AppID](#真实平台登录选做)（选做微信登录）
+- [ ] [安装 cloudflared](#为公网回调准备连接器选做)（选用 Cloudflare Tunnel）
+- [ ] [在 Debian 安装 Firefox ESR 和 libnss3-tools](#用-firefox-查看证书错误选做)（选做证书诊断）
+
 第一次跟做时，只要能从 Mac 上的 Postman 向你启动的 Node 程序发送请求，读回空列表，就准备好了。直接从[在 Mac 上跑通第一个请求](#2-在-mac-上跑通第一个请求)开始。读到第 17 章，才需要给这个程序接上数据库。以后每当一章用到新的软件，都可以从下表回到它的准备步骤。
 
 ## 1. 需要准备哪些软件
