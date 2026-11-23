@@ -76,6 +76,22 @@ node --input-type=module -e 'process.nextTick(() => console.log("tick")); queueM
 
 ## 再把事件循环阶段放回位置
 
+若一个 nextTick 是在微任务执行到一半时才登记的呢？先前的“回调返回后先处理 nextTick”有一个前提：Node 已经回到可以选择队列的位置。可以在终端做一次只安排三个输出的对照：
+
+```bash
+node --input-type=module <<'JS'
+setImmediate(() => {
+  queueMicrotask(() => {
+    console.log('first');
+    process.nextTick(() => console.log('tick'));
+  });
+  queueMicrotask(() => console.log('second'));
+});
+JS
+```
+
+从 immediate 回调返回时，已登记的是两个微任务。第一个执行到打印 first 时，second 已经排好；它新登记的 tick 没有把正在进行的微任务清理打断。先看到 second，再看到 tick。若把登记 tick 的那行移出第一个微任务，放到 immediate 回调开头，则回调返回时两个队列都已有工作，会先看到 tick。两次没有更换模块类型或改动任何时间参数，只改变了工作何时入队。判断应用中的两行日志也可以这样做：先写清当前是哪段代码在运行，再列它返回时已经就绪的工作。
+
 回到文件读取回调中，它还安排了一个 `setTimeout(..., 0)` 和一个 `setImmediate()`。二者都没有加入刚才的微任务队列，它们等待事件循环继续推进到对应处理位置。
 
 理解当前实验只需抓住三处：poll 负责观察 I/O 就绪并处理相关回调；check 执行 `setImmediate()`；定时器达到阈值后，在运行时安排的定时器处理位置执行。除此以外还有某些延后的系统回调、关闭回调和内部阶段，不必把所有工作强行压成一条“宏任务 FIFO 队列”。不同来源有不同的就绪条件。
@@ -114,7 +130,7 @@ node examples/scheduling-order.js --starve
 
 选 API 时，可以按目标逐步缩小：需要关联任务结果，就保留能观察失败的 Promise；需要微任务级别的极短时序安排，就理解它在当前上下文中的优先级；需要留机会给 I/O，就不要用递归微任务模拟分段。这样回到 EPP 的慢请求时，我们判断的是工作放在哪里、谁有机会执行、失败由谁观察，而不是能否背出一串阶段名。
 
-阅读约 12～15 分钟，操作另加约 5～8 分钟。
+阅读约 14～17 分钟，操作另加约 7～10 分钟。
 
 ## 附录：本支线必要技术点速查
 

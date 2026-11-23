@@ -38,6 +38,30 @@ if (workerData.mode !== 'empty') {
 
 ## 父线程负责失败、期限与退出
 
+如果输入换成一段专为任务分配的字节，发送方还要决定谁继续拥有这段内存。用 Node 内置的 MessageChannel 就能单独观察消息这一步，不必为比较复制和转移各跑一次长计算。下面两次发送同样的字节，只有第二次给出 transferList：
+
+```bash
+node --input-type=module <<'JS'
+import { MessageChannel } from 'node:worker_threads';
+import { once } from 'node:events';
+const { port1, port2 } = new MessageChannel();
+try {
+  for (const move of [false, true]) {
+    const bytes = Uint8Array.of(7, 8);
+    const arriving = once(port2, 'message');
+    port1.postMessage(bytes, move ? [bytes.buffer] : []);
+    const [received] = await arriving;
+    console.log({ move, senderLength: bytes.byteLength, received: [...received] });
+  }
+} finally {
+  port1.close();
+  port2.close();
+}
+JS
+```
+
+两次接收方都能读到七和八。复制后发送方还持有两字节；转移专用 ArrayBuffer 后，发送方的视图只剩零字节。由此决定谁适合用转移：如果父线程还要拿原字节校验返回结果，就得保留可用的输入或另存校验依据；如果父线程已经把这块专用内存完全交给计算方，转移才符合所有权约定。实验刻意使用单独分配的数组，不能凭一个切片很短就推断它独占底层缓冲。前面的普通 workerData 对象仍按复制理解。
+
 新建 `examples/worker-boundary.js`，完整内容如下：
 
 ```javascript
@@ -174,7 +198,7 @@ echo $?
 
 回到正文最后的导入场景：如果主要耗时是可隔离的文本计算，可以考虑有限 Worker；如果主要耗时是外部 API 等待，先用原生异步 I/O 和并发限制；如果必须跨服务重启继续执行，任务事实需要落到持久化存储，再选择具体执行者。这三个结论分别来自计算位置、资源容量和恢复要求，不应被一个“后台”词语合并。
 
-阅读约 18～22 分钟，操作另加约 8～12 分钟。
+阅读约 20～25 分钟，操作另加约 10～15 分钟。
 
 ## 附录：本支线必要技术点速查
 
