@@ -285,6 +285,6 @@ Get-NetTCPConnection -LocalPort 3000 -State Listen
 
 查阅 Node 的请求、响应和监听接口，可看 [Node.js 24 HTTP 文档](https://nodejs.org/docs/latest-v24.x/api/http.html)。
 
-[上一章：先认识我们要建设的 EPP](../chapter-01-epp/chapter.md) · [下一章：可靠接收请求正文并保存原文](../chapter-03-minimal-service/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：保存一句英语之后](../chapter-01-epp/chapter.md) · [下一章：可靠接收请求正文并保存原文](../chapter-03-minimal-service/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
 
 [本章配套代码](https://github.com/SamChowRock/epp-public/tree/part-01/chapter-02)

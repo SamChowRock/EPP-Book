@@ -39,7 +39,7 @@ docker inspect --format 'reference={{.Config.Image}} image={{.Image}}' "$api_id"
 
 [第 65 章](../../part-08-maintenance/chapter-65-performance/chapter.md)已经区分 CPU 计算、连接池排队和数据库锁等待。本节先确定故障位于哪个部署组件；定位到应用或查询后，回到那套计时与采样方法，不凭容器资源数字直接猜测瓶颈。
 
-先从原客户端重发请求，区分 TLS 错误、nginx 502 与 EPP 业务 JSON。502 表示代理没取得可用上游响应，还不能断言 API 程序有错。容器部署继续比较内外两跳：
+先从原客户端重发请求，区分 TLS 错误、nginx 502 与应用返回的业务 JSON。502 表示代理没取得可用上游响应，还不能断言 API 程序有错。容器部署继续比较内外两跳：
 
 ```bash
 dc port api 3000

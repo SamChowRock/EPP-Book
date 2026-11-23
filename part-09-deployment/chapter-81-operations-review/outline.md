@@ -29,4 +29,4 @@
 
 交接已恢复的业务、仍有疑问的记录、继续开放的条件。写清哪条新证据会让你改变当前决定。
 
-[上一章 · 用 Northflank 部署 EPP，用 Cloudflare DNS 接入自有域名](../chapter-80-public-deployment/chapter.md) · [下一章 · 上部独立交付：发布预约服务并带旧单升级](../../upper-capstone/chapter-82-booking/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)
+[上一章 · 用 Northflank 部署后端服务，用 Cloudflare DNS 接入自有域名](../chapter-80-public-deployment/chapter.md) · [下一章 · 上部独立交付：发布预约服务并带旧单升级](../../upper-capstone/chapter-82-booking/outline.md) · [本篇导读](../README.md) · [全书目录](../../README.md)

@@ -1,4 +1,4 @@
-# 第 80 章　用 Northflank 部署 EPP，用 Cloudflare DNS 接入自有域名
+# 第 80 章　用 Northflank 部署后端服务，用 Cloudflare DNS 接入自有域名
 
 第 79 章关掉了源虚拟机，恢复端仍在同一台 Mac 上。这次把运行位置移出开发机：两名受邀者各用自己的设备登录，一个人写入的素材，另一个人即使知道 ID 也读不到。开发者关机后，两人仍能回来读原文、打开头像。先用平台提供的 HTTPS 地址做到这一步，再为已经能用的服务买域名。Northflank 运行应用并为业务域名签发 HTTPS 证书，Cloudflare 托管权威 DNS。用户输入自有域名后，浏览器根据 DNS 解析结果连接 Northflank。头像由 Backblaze B2 的私有桶保存，注册和重置邮件由 Resend 投递到受邀者已有的邮箱。
 
@@ -15,7 +15,7 @@
 | Northflank Services | `api`、`notify` 各一个实例 | 只有 API 有公开 HTTP 端口；无人浏览时通知仍能消费 |
 | Northflank Addons | 一个私网 PostgreSQL 18 | API、通知与邮件用三个不同的登录访问同一库 |
 | Northflank Jobs | `mail-one`，先手动，后按需定时 | 一次最多领取一封，退出码和数据库结果能互相印证 |
-| Backblaze B2 | 一个私有头像桶 | 未签名访问拒绝；本人登录 EPP 后取得的短时地址能打开图片 |
+| Backblaze B2 | 一个私有头像桶 | 未签名访问拒绝；本人登录记录服务后取得的短时地址能打开图片 |
 | Cloudflare DNS | 试用通过后添加业务子域 | 同一地址提供交付网页和 API；手机使用默认受信证书 |
 | Resend 与受控收件箱 | 第 80.6 节在 Resend 验证发信域，为邮件作业配置仅可发送的密钥；收件人使用已有邮箱 | 在 Resend 查到此次发送，收件人实际收到邮件并在有效期内完成确认 |
 

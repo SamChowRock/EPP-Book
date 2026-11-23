@@ -194,7 +194,7 @@ sudo systemd-analyze verify /etc/systemd/system/epp74-https.service
 
 预检通过后执行 `sudo systemctl restart epp72-api epp74-https`。用 `systemctl show epp72-api epp74-https -p Id -p MainPID -p ActiveState` 对上两项进程，用 `ss -lnt` 核对 8443、9443 在预期私网地址、3374 在 ::1。若端口缺席，按 unit 用 `sudo journalctl -u epp74-https -b -n 20 --no-pager` 查绑定和文件读取；若 502，检查上游 app.ready 及 3374。需要开机自启时先让数据服务也能独立恢复，再用 `sudo systemctl enable epp72-api epp74-https` 登记。
 
-**在管理端检验信任，再发密码。** 管理 Mac 也须按 71.1 将该名称解析到真实的私网地址。在原 Bash 直接访问，不做 SSH 本地转发。第一次使用默认信任，未曾信任此根时通常在握手处报 60；第二次只为本次调用指定已核实的根。应读到 EPP 的 401 AUTH_REQUIRED，并且 remote_ip 是部署机的私网地址。
+**在管理端检验信任，再发密码。** 管理 Mac 也须按 71.1 将该名称解析到真实的私网地址。在原 Bash 直接访问，不做 SSH 本地转发。第一次使用默认信任，未曾信任此根时通常在握手处报 60；第二次只为本次调用指定已核实的根。应读到记录服务的 401 AUTH_REQUIRED，并且 remote_ip 是部署机的私网地址。
 
 ```bash
 site=https://api.epp.test:8443
@@ -406,7 +406,7 @@ WHERE j.user_id = '本轮用户UUID'::uuid AND j.id = '浏览器显示的通知U
 | curl 6，或 7 / HTTP 000 | 在使用设备查名称是否解析；再查私网可达性、防火墙和部署机监听 |
 | curl 60 / HTTP 000 | 查 URL、SAN、有效期、受信根和线上出示的链 |
 | nginx 502 | 握手已通过，检查同机 API 或对象存储上游 |
-| EPP 401 / 403 | 用项目错误码定位登录会话、Origin 或写令牌 |
+| 应用返回 401 或 403 | 用项目错误码定位登录会话、Origin 或写令牌 |
 | 页面成功，对象取图失败 | 区分 API 签发、浏览器到 9443 的握手与 S3 签名验证 |
 | 对象可读，上传失败 | 查上传响应、API 的 Node 根与 DNS、桶身份和写权限 |
 

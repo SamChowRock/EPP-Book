@@ -135,7 +135,7 @@ npm run db:verify -- migrate diff --from-config-datasource \
   --to-schema database/chapter-18/design-lab/retain-index.prisma --exit-code
 ```
 
-结果应为 0。结束观察后仍删除本次实验索引，再对正式模型确认 diff 为 0；“有效优化”是条件变式，不是给 EPP 正式增加这个索引。
+结果应为 0。结束观察后仍删除本次实验索引，再对正式模型确认 diff 为 0；“有效优化”是条件变式，不是给记录服务正式增加这个索引。
 
 这次零差异只证明模型接受了对象，**还没有补齐历史**。从空库重放原来的 0_init，仍不会得到这个索引。由此可以推导两个不同阶段的安排：
 

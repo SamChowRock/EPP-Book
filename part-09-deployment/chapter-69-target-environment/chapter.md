@@ -58,7 +58,7 @@ uname -s
 
 ## 69.2 把已验程序送到空主机
 
-现在 SSH 已能登录。部署端还没有 EPP，先取第 68 章验收的程序路径、实际提交和平台。若已有同系统、同架构、同 libc 和同 Node 版本的 Linux 运行归档，按[第 67 章的制品约定](../../part-08-maintenance/chapter-67-artifact-promotion/chapter.md)核对交接摘要，把原包解到新 release。归档根应有 dist、package.json、package-lock.json、.npmrc 和 node_modules。从 Mac 起步时，sharp 和 argon2 的原生模块属于 Darwin，下面在 Debian 为同一程序安装 Linux 生产依赖。
+现在 SSH 已能登录。部署端还没有记录服务，先取第 68 章验收的程序路径、实际提交和平台。若已有同系统、同架构、同 libc 和同 Node 版本的 Linux 运行归档，按[第 67 章的制品约定](../../part-08-maintenance/chapter-67-artifact-promotion/chapter.md)核对交接摘要，把原包解到新 release。归档根应有 dist、package.json、package-lock.json、.npmrc 和 node_modules。从 Mac 起步时，sharp 和 argon2 的原生模块属于 Darwin，下面在 Debian 为同一程序安装 Linux 生产依赖。
 
 **如果手头已经有验过的 Linux 完整包**，在 Mac 的 Bash 先将 `artifact` 设为归档绝对路径。执行 `ssh -F ~/.ssh/epp71.conf epp-lab 'umask 077; mkdir "$HOME/epp71"'`，成功后用 `scp -F ~/.ssh/epp71.conf "$artifact" epp-lab:epp71/linux.tgz` 传输。在 Debian 的 Bash 进入 `cd "$HOME/epp71"`，用 `sha256sum linux.tgz` 对照交接摘要，匹配后执行 `umask 077; mkdir release work && tar -xzf linux.tgz -C release`。按下文的环境说明取得同版 Node，在 release 中用下方 require 命令验证模块，然后跳到“让部署端自己找到原数据”。回到 Mac 后，在打包页执行 `umask 077`，将 `api_env` 设为第 68 章 `.env.handoff` 的绝对路径，再执行 `stage=$(mktemp -d)`。这两项供下方复制和编辑配置使用；无需再执行 Mac 产物的打包步骤。
 

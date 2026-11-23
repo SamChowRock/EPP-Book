@@ -10,7 +10,7 @@
 
 原生部署已把只读 release、可写工作目录与数据库目录分开。容器继续遵守这个边界：镜像层保存程序，每个容器另有自己的可写层。停止再启动原容器会保留可写层，删除重建则会失去它。把数据库放进可写层，即使重启实验成功，也不能证明发布新版时数据还在。
 
-命名卷由引擎管理，绑定挂载将引擎主机上的指定路径接进容器，两者都独立于应用容器。tmpfs 将临时写入放在内存文件系统里，停止后丢弃；它占用内存预算，还可能进入宿主交换空间。EPP 的头像预览暂存适合限额 tmpfs，已经发布的对象和数据库需要持久存储。[存储类型](https://docs.docker.com/engine/storage/) · [tmpfs 边界](https://docs.docker.com/engine/storage/tmpfs/)
+命名卷由引擎管理，绑定挂载将引擎主机上的指定路径接进容器，两者都独立于应用容器。tmpfs 将临时写入放在内存文件系统里，停止后丢弃；它占用内存预算，还可能进入宿主交换空间。记录服务的头像预览暂存适合限额 tmpfs，已经发布的对象和数据库需要持久存储。[存储类型](https://docs.docker.com/engine/storage/) · [tmpfs 边界](https://docs.docker.com/engine/storage/tmpfs/)
 
 先用已构建的 `epp:chapter-73` 做一份文本收据，借此区分容器身份与数据身份。以下两条 run 都会创建临时容器，并在退出后删除它。镜像入口已经是 Node，命令从 `-e` 开始；卷实验临时以 root 写入新卷，真实应用继续使用 UID 10001。
 
@@ -117,7 +117,7 @@ ExecStart=/opt/epp-data/bin/mailpit --smtp 172.28.74.1:1025 --listen 127.0.0.1:8
 
 这些网关监听依赖 Docker 先恢复外部网络。对 `postgresql@18-epp`、`epp-inbox` 和第 71 章的 `epp74-https`，分别执行 `sudo systemctl edit 单元名`，在保留已有覆盖项的同时追加 `[Unit]` 下的 `Wants=docker.service`、`After=docker.service`。Wants 请求启动引擎，After 安排先后，并不证明网关和依赖已经可用。执行 daemon-reload；以后开机仍须核对网关接口、监听与实际业务，不能只看三个 unit 都为 active。若宿主已有防火墙，按原规则管理方式仅允许本网络访问本次网关的 55471、1025 和下文 9443，不改成全网放行。原生 SeaweedFS 继续监听回环，由 HTTPS 对象入口承接容器调用。
 
-当前 EPP 的 `AVATAR_S3_ENDPOINT` 同时承担上传、删除与生成浏览器签名 URL，非回环地址必须使用 HTTPS。填 `http://s3:8333` 会在应用启动时被拒，也不能让用户设备解析容器内部别名。因此本章继续使用第 71 章的带名 HTTPS 入口：容器将 api.epp.test 解析到本次宿主网关，用户设备解析到部署主机的私网地址；两端都验证同名证书。Node 通过 `NODE_EXTRA_CA_CERTS` 在进程启动前加载只读的公开根，浏览器按第 71 章保留自己的信任设置。
+当前记录服务的 `AVATAR_S3_ENDPOINT` 同时承担上传、删除与生成浏览器签名 URL，非回环地址必须使用 HTTPS。填 `http://s3:8333` 会在应用启动时被拒，也不能让用户设备解析容器内部别名。因此本章继续使用第 71 章的带名 HTTPS 入口：容器将 api.epp.test 解析到本次宿主网关，用户设备解析到部署主机的私网地址；两端都验证同名证书。Node 通过 `NODE_EXTRA_CA_CERTS` 在进程启动前加载只读的公开根，浏览器按第 71 章保留自己的信任设置。
 
 第 71 章 nginx 的对象 server 只监听部署机私网 IP，且只允许该私网段。仅把容器内名称映射到网关仍会连接拒绝；即使添加监听，也会被旧 allow/deny 拒绝。在原 `nginx-private.conf` 的 **9443 对象 server** 中保留原有 listen，再添加 `listen 172.28.74.1:9443 ssl;`，并在 `deny all;` 之前添加 `allow 172.28.74.0/24;`。8443 页面 server 不需要面向这张容器网增加监听。
 

@@ -151,7 +151,7 @@ try {
     const title = $('h1').first().text();
     const base = path.relative(path.dirname(dest), '.') || '.';
     const nav = `<nav aria-label="阅读导航"><div class="bar">
-      <a class="brand" href="${base}/index.html">EPP 后端开发实践</a>
+      <a class="brand" href="${base}/index.html">后端开发实践</a>
       <a href="${base}/index.html#上部-开发一个后端服务">${icon('contents')}全书目录</a>
       <a href="${base}/environment-setup.html">${icon('settings')}环境配置</a>
       <a href="https://github.com/SamChowRock/EPP-Book">${githubMark}GitHub 仓库</a>

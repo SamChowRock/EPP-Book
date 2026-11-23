@@ -1,6 +1,6 @@
 # 第 72 章　把应用和运行环境一起交付
 
-第 71 章的 EPP 已经能从可信 HTTPS 入口使用：API、邮件和通知由 systemd 分别托管，数据库权限也按角色拆开。现在要保存一份可以重新部署的版本，问题不再只是“源码是哪次提交”：同一份 dist 在另一台机器上，是否仍有相同的 Node、系统库和原生模块？几个月后换回旧 release，宿主上的运行库可能已经升级。
+第 71 章的记录服务已经能从可信 HTTPS 入口使用：API、邮件和通知由 systemd 分别托管，数据库权限也按角色拆开。现在要保存一份可以重新部署的版本，问题不再只是“源码是哪次提交”：同一份 dist 在另一台机器上，是否仍有相同的 Node、系统库和原生模块？几个月后换回旧 release，宿主上的运行库可能已经升级。
 
 本章从[第 71 章代码](https://github.com/SamChowRock/epp-public/tree/part-09/chapter-72)继续，把应用及其用户态运行环境构建成镜像，实际检查身份、文件权限、原生依赖与停止过程。原生服务继续处理原有业务；下一章再用 Compose 接管同一套有历史的服务。本章不修改数据库结构，也不启动第二个邮件发送者。
 
@@ -8,7 +8,7 @@
 
 第 70 章的 systemd 解决了谁启动进程、以哪个身份运行、退出后怎样处理。固定 Node 路径、按锁安装依赖、核对 release 摘要，也已经让原生交付有据可查。继续用脚本管理这些步骤完全可行；若机器环境长期受控，原生服务有直接、容易观察的优点。
 
-但应用会加载 release 之外的文件。EPP 的 argon2 要执行原生密码哈希，sharp 要调用图像处理库；它们受操作系统、CPU 架构、Node 接口和 C 库等条件约束。把 Mac 的 node_modules 原样复制到 Debian，JavaScript 文件虽然还在，二进制模块却未必能加载。即使两边都叫 Linux，换用不同 C 库的发行版，也可能让原先可用的二进制失效。这些差异不会由 package-lock.json 一并固定。
+但应用会加载 release 之外的文件。服务使用的 argon2 要执行原生密码哈希，sharp 要调用图像处理库；它们受操作系统、CPU 架构、Node 接口和 C 库等条件约束。把 Mac 的 node_modules 原样复制到 Debian，JavaScript 文件虽然还在，二进制模块却未必能加载。即使两边都叫 Linux，换用不同 C 库的发行版，也可能让原先可用的二进制失效。这些差异不会由 package-lock.json 一并固定。
 
 镜像把 Node、应用文件、依赖和所需的用户态系统库作为一份产物保存。部署者取得已验收的内容，再提供该环境自己的配置与数据连接。替换版本时，应用与这些运行文件一起替换，减少逐台重建环境导致的差异。代价也很具体：要维护基础镜像、管理镜像存储，并重新理解容器里的路径和网络。基础镜像升级后，仍要构建与验收新产物，不能以为应用源码没变就无需检查。
 
@@ -225,7 +225,7 @@ console.log({hashVerified: true, decoded: "16x16", uid: process.getuid(),
   prismaImported: true, workMode: "0700", buildCompilerAbsent: true});'
 ```
 
-在 **Containers → epp73-native-check → Logs** 查看结果：`hashVerified: true`、`decoded: '16x16'`、UID 10001，并且生成客户端可导入、工作目录为 0700、构建用的 g++ 没有进入运行镜像。顶部应为 **Exited (0)**；Debian 用 `dk logs epp73-native-check` 和 `dk inspect --format '{{.State.ExitCode}}' epp73-native-check` 核对。它证明这份镜像上的两条原生调用确实工作；EPP 的登录策略、上传限制和历史头像仍要在下一章通过原接口验证。`ERR_DLOPEN_FAILED` 等加载错误优先核对架构、基础系统与依赖安装阶段；网络断开不会解释本段纯本地运算的加载失败。
+在 **Containers → epp73-native-check → Logs** 查看结果：`hashVerified: true`、`decoded: '16x16'`、UID 10001，并且生成客户端可导入、工作目录为 0700、构建用的 g++ 没有进入运行镜像。顶部应为 **Exited (0)**；Debian 用 `dk logs epp73-native-check` 和 `dk inspect --format '{{.State.ExitCode}}' epp73-native-check` 核对。它证明这份镜像上的两条原生调用确实工作；记录服务的登录策略、上传限制和历史头像仍要在下一章通过原接口验证。`ERR_DLOPEN_FAILED` 等加载错误优先核对架构、基础系统与依赖安装阶段；网络断开不会解释本段纯本地运算的加载失败。
 
 ![镜像内实际运行原生模块的结果](images/04-native-check.png)
 
@@ -237,7 +237,7 @@ console.log({hashVerified: true, decoded: "16x16", uid: process.getuid(),
 
 原生部署已经区分只读 release 与可写 work。镜像仍应如此：`/opt/epp` 的文件由 root 拥有，Node 以 UID/GID 10001 运行，工作目录是权限为 0700 的 `/work`。账号名不是权限判断依据；挂载宿主目录时，内核核对的是数值身份与权限。
 
-下面用同一镜像启动独立长进程。`--read-only` 禁止根文件系统写入；tmpfs 在 `/work` 提供有容量上限的临时存储，覆盖镜像原有目录，因此必须再次指定属主和权限。`--memory` 限制容器内存，tmpfs 也消耗内存，并可能进入宿主交换空间；这组数值只服务于这个小实验，不是 EPP 的生产容量结论。
+下面用同一镜像启动独立长进程。`--read-only` 禁止根文件系统写入；tmpfs 在 `/work` 提供有容量上限的临时存储，覆盖镜像原有目录，因此必须再次指定属主和权限。`--memory` 限制容器内存，tmpfs 也消耗内存，并可能进入宿主交换空间；这组数值只服务于这个小实验，不是记录服务的生产容量结论。
 
 ```bash
 dk run -d --name epp73-signal --network none --stop-timeout 40 \
@@ -293,7 +293,7 @@ dk run --rm --network none --read-only \
 
 第一条没有提供可写挂载，预期 `EROFS`；第二条挂上了 tmpfs，却没有指定 UID/GID，目录由 root 持有且只允许属主进入，UID 10001 预期得到 `EACCES`。前者要补可写暂存位置，后者要修挂载权限；统一改成 root 或去掉只读限制都没有解释原来的失败。tmpfs 在容器停止后丢弃，**Start** 也不会恢复旧内容，这与 72.2 的可写层对照不同。
 
-若得到 137，先查 OOMKilled，再对照停止耗时与日志，区分内存终止、超时 KILL 或其他外部 KILL，不能单凭退出码说“内存不足”。本实验只验证信号路径；EPP 仍需先拒收新工作、处理在途请求、关闭资源，容器停止期限必须覆盖这些已有预算。邮件发送结果未知时仍保留人工核对，不能因换了托管方式就无限重启重发。
+若得到 137，先查 OOMKilled，再对照停止耗时与日志，区分内存终止、超时 KILL 或其他外部 KILL，不能单凭退出码说“内存不足”。本实验只验证信号路径；记录服务仍需先拒收新工作、处理在途请求、关闭资源，容器停止期限必须覆盖这些已有预算。邮件发送结果未知时仍保留人工核对，不能因换了托管方式就无限重启重发。
 
 ## 72.6 镜像完成之后，服务还缺什么
 
@@ -305,7 +305,7 @@ dk run --rm --network none --read-only \
 
 如果 Mac 是 arm64、部署端是 amd64，应在目标架构构建并验收，或配置多平台构建后分别验证；不要把本机 arm64 镜像硬交给 amd64。采用在 Debian 重新构建的路线时，得到的是新的候选镜像，须重新记录摘要并完成本章检查。正式接管仍按第 73 章的 Debian 网络与权限步骤进行。
 
-结束本章时，确认实验容器都已停止，再在 Desktop 的 Containers 中按名称删除，或执行下面的精确删除命令。保留 EPP 镜像与原生服务：
+结束本章时，确认实验容器都已停止，再在 Desktop 的 Containers 中按名称删除，或执行下面的精确删除命令。保留记录服务镜像与原生服务：
 
 ```bash
 dk rm epp73-first epp73-layer epp73-native-check epp73-signal

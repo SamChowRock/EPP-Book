@@ -205,7 +205,7 @@ export async function createApp(): Promise<NestExpressApplication> {
 
 自动发送也引入了一项实际的 HTTP 语义变化。Express 默认为 JSON 响应生成 ETag，用它标识这份响应表示。客户端已经保存正文及其 ETag 后，可以在下一次 GET 中用 `If-None-Match` 提交这个标记；当前结果仍匹配时，发送层将响应改成 `304 Not Modified`，不再发送正文，客户端复用已有缓存。没有条件头或标记不匹配时，仍发送 `200` 和完整 JSON。这不是“多了一个头部”而已：Controller 返回同一个对象，客户端也可能收到没有正文的304。
 
-本章接受这个默认行为。304没有 JSON 响应体，当前适配器也会移除 Content-Type；客户端不能把它当成一份空 JSON 再解析。Express 对 GET／HEAD 提供条件响应，但 EPP 主线的 HEAD 仍在 `httpBoundary` 被拒绝为405，不能越过上游约定。支线9B会用独立应用把返回值、缓存条件和最终响应的关系实际走一遍。
+本章接受这个默认行为。304没有 JSON 响应体，当前适配器也会移除 Content-Type；客户端不能把它当成一份空 JSON 再解析。Express 对 GET／HEAD 提供条件响应，但主线服务的 HEAD 仍在 `httpBoundary` 被拒绝为405，不能越过上游约定。支线9B会用独立应用把返回值、缓存条件和最终响应的关系实际走一遍。
 
 动态 `Location` 只有创建出 ID 后才知道，无法用固定头部值表示。这里使用 `@Res({ passthrough: true })`：让 Controller 只设置头部，仍把响应体返回给 Nest。不能再调用 `json()` 或 `end()` 抢先发送；如果采用普通 `@Res()`，又只 return 一个对象，则这条路由的自动发送被关闭，请求可能一直等待。
 

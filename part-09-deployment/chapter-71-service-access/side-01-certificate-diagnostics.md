@@ -27,7 +27,7 @@ ssh -F ~/.ssh/epp71.conf -N -o ExitOnForwardFailure=yes -L 127.0.0.1:8443:127.0.
 
 | 同样的重试 | 握手之后收到了什么 |
 | --- | --- |
-| 甲 | HTTP 401，EPP 回 AUTH_REQUIRED |
+| 甲 | HTTP 401，记录服务回 AUTH_REQUIRED |
 | 乙 | curl 60，HTTP 000，仍找不到签发者 |
 
 </details>
@@ -140,7 +140,7 @@ certutil -L -d "sql:$profile"
 firefox-esr --no-remote --profile "$profile" 'https://api.epp.test:8443/profile/me'
 ```
 
-打开正确名称，看 EPP 的 JSON。再把同一地址栏改为 `https://other.epp.test:8443/profile/me`，观察图 71A-2 的两处名称。保留配置目录，收尾时还要从它撤掉信任。
+打开正确名称，看记录服务的 JSON。再把同一地址栏改为 `https://other.epp.test:8443/profile/me`，观察图 71A-2 的两处名称。保留配置目录，收尾时还要从它撤掉信任。
 
 </details>
 做过 Firefox 对照的读者，还可以趁入口在线验证撤去信任的效果。退出练习 Firefox，执行 `certutil -D -d "sql:$profile" -n EPP75-Practice-Root`，用 `certutil -L -d "sql:$profile"` 确认练习根已移除。用同一配置重新打开正确 URL。本轮它又回到图 71A-1 的拒绝页。若先停 nginx，这个实验就只能得到连接失败，区分不了是谁撤回了信任。

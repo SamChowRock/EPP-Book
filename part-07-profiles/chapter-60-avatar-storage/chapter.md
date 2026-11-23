@@ -32,7 +32,7 @@
 
 ## 60.2 在本机启动一个私有桶
 
-SeaweedFS 是本章运行在 Mac 上的文件存储软件，发行包里的程序叫 `weed`。启动后，你用浏览器里的 Filer 查看文件，EPP 通过同一服务的 S3 接口读写。先单独启动存储，等 60.3 建桶后再打开网页。下面的命令在配套代码项目根运行。若从前章跟写，先把[本章操作文件](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-60/database/chapter-51)取到 `database/chapter-51/`；用完整的章节副本时文件已经在位。将 `.chapter51-tools/`、`.chapter51-store/` 加入项目的 .gitignore。前者放本机程序，后者放本轮数据和私有凭据，两者都在你控制的本机目录。
+SeaweedFS 是本章运行在 Mac 上的文件存储软件，发行包里的程序叫 `weed`。启动后，你用浏览器里的 Filer 查看文件，记录服务通过同一服务的 S3 接口读写。先单独启动存储，等 60.3 建桶后再打开网页。下面的命令在配套代码项目根运行。若从前章跟写，先把[本章操作文件](https://github.com/SamChowRock/epp-public/tree/part-07/chapter-60/database/chapter-51)取到 `database/chapter-51/`；用完整的章节副本时文件已经在位。将 `.chapter51-tools/`、`.chapter51-store/` 加入项目的 .gitignore。前者放本机程序，后者放本轮数据和私有凭据，两者都在你控制的本机目录。
 
 ```bash
 nvm use
@@ -43,7 +43,7 @@ sh database/chapter-51/start-store.sh
 
 固定 SeaweedFS 4.52。安装脚本按原生 macOS 终端的 `uname -m` 选择 darwin_arm64 或 darwin_amd64 发行包，用固定 SHA-256 核对下载内容，然后只取 `weed`，输出版本应为 4.52。若已经有 `.chapter51-tools/weed`，脚本会停下；用 `.chapter51-tools/weed version` 核对后继续即可。不要用另一个全局安装的不同版本去解释本章监听结果。[SeaweedFS 4.52 发行物](https://github.com/seaweedfs/seaweedfs/releases/tag/4.52)
 
-初始化要在首次启动服务**之前**进行。它创建权限 0700 的目录，分别生成管理身份和应用身份，各有自己的随机 access key 和 secret key。服务读取 `s3.json` 以便识别两者；建桶程序读 `admin.env`，EPP 只加载 `app.env`。以下是 `init-store.mjs` 中真正划分权限的两行。这里的 Write 涵盖本桶写入与删除，应用无需列举桶中所有人的对象。
+初始化要在首次启动服务**之前**进行。它创建权限 0700 的目录，分别生成管理身份和应用身份，各有自己的随机 access key 和 secret key。服务读取 `s3.json` 以便识别两者；建桶程序读 `admin.env`，记录服务只加载 `app.env`。以下是 `init-store.mjs` 中真正划分权限的两行。这里的 Write 涵盖本桶写入与删除，应用无需列举桶中所有人的对象。
 
 ```js
 const admin = identity('chapter51-admin', ['Admin', 'List', 'Read', 'Write']);
@@ -85,7 +85,7 @@ node database/chapter-51/store-probe.mjs buckets
 
 建桶命令用管理身份创建两个私有桶。先看看文件存在哪里，再验证谁可以读写。
 
-**用浏览器操作 SeaweedFS。** 保持存储服务运行，把 `http://127.0.0.1:18632/` 复制到 Chrome 访客窗口的地址栏并打开。页面标题是 SeaweedFS Filer。这个入口能直接改动底层文件，只供本章的单用户本机实验使用。访客窗口避免把日常浏览器中的 EPP 登录 Cookie 带到同一主机的另一个端口。
+**用浏览器操作 SeaweedFS。** 保持存储服务运行，把 `http://127.0.0.1:18632/` 复制到 Chrome 访客窗口的地址栏并打开。页面标题是 SeaweedFS Filer。这个入口能直接改动底层文件，只供本章的单用户本机实验使用。访客窗口避免把日常浏览器中的记录服务登录 Cookie 带到同一主机的另一个端口。
 
 1. 点 `buckets`。应能看见业务桶 `avatars` 和对照桶 `chapter51-private-control`。进入 `avatars`，点右上角 **New Folder**，输入 `gui-lab`。若已有同名目录，换一个新名字，再点进刚建的目录。
 2. 点 **Upload**，从配套项目的 `examples/avatar-preview/` 选 `harbor.png`。再点一次，选 `harbor.jpg`。表中应出现两行，可以比较类型与大小。点 PNG 文件名能打开灯塔原图，再用浏览器后退回到列表。
@@ -541,7 +541,7 @@ await import("./scripts/dev.mjs");' epp_ch51_verify
 取[第 60 章请求集合](https://github.com/SamChowRock/epp-public/blob/part-07/chapter-60/requests/chapter-51.postman_collection.json)单独导入 Postman；本地章节副本中为 `requests/chapter-51.postman_collection.json`。01～24 原样保留，本章按编号单发。保持一个练习账号 A 作为头像主人，另准备同库的 B 作为来看卡片的人。baseUrl 指向本机 API；只用旧账号 ID 登录时沿用[第 58 章运行说明](https://github.com/SamChowRock/epp-public/blob/part-07/chapter-58/database/chapter-49/README.md)里的 05 本地副本。新导入集合有独立变量，profileTargetId **手工保存 A 的 ID**，不要在 B 登录时覆盖。以下会改 A 的头像和展示意愿，使用专用练习用户。
 
 1. A 的旧 Cookie 仍有效时先发 20 核对本人，失效则用 05 重新登录。发 15 获取当前写入令牌，发 29 查头像开关。在 27 使用集合变量 avatarVisible=false，并发 29 确认。首次迁移、没有头像时将 expectedAvatarStatus 设为 404，发 26 应得到 AVATAR_NOT_FOUND；重复实践的账号先看 SQL 的 current_id 再选 200 或 404。不要用同名环境变量盖住这几个集合变量。
-2. 在 24 选取上章 harbor.png，仍能得到方形灯塔。25 的 Body 也要**独立选择本机文件**，发送相同 PNG 和 image/png。200 返回本次 avatarId。把 expectedAvatarStatus 改成 200，再发 26。数据库当前指针、25 返回的 ID、26 返回的 ID 应相同，观察 SQL 中这行是 live。26 的 URL 是拿图凭证，在独立、不含 API Cookie 的客户端立即 GET 它，才拿到 image/webp 字节。可用从未登录 API、Cookie 为空的独立浏览器配置读取这个地址，或用不带 Cookie 与写请求头的独立 HTTP 客户端；用完关闭。本机 3360 与 18633 虽是两个端口，Cookie 却按主机和路径匹配，普通新标签页仍可能把 EPP Cookie 发给存储端。签名 URL 不要复制到共享记录。
+2. 在 24 选取上章 harbor.png，仍能得到方形灯塔。25 的 Body 也要**独立选择本机文件**，发送相同 PNG 和 image/png。200 返回本次 avatarId。把 expectedAvatarStatus 改成 200，再发 26。数据库当前指针、25 返回的 ID、26 返回的 ID 应相同，观察 SQL 中这行是 live。26 的 URL 是拿图凭证，在独立、不含 API Cookie 的客户端立即 GET 它，才拿到 image/webp 字节。可用从未登录 API、Cookie 为空的独立浏览器配置读取这个地址，或用不带 Cookie 与写请求头的独立 HTTP 客户端；用完关闭。本机 3360 与 18633 虽是两个端口，Cookie 却按主机和路径匹配，普通新标签页仍可能把记录服务 Cookie 发给存储端。签名 URL 不要复制到共享记录。
 3. 用 B 的信息发 05、20，确认 B 和固定目标 A 不同。保持 profileTargetId 为 A，expectedAvatarStatus=404，发 28。A 自己有图，B 仍读不到。切回 A 发 05、20、15，设 avatarVisible=true，发 27、29。切回 B 发 05、20，expectedAvatarStatus=200，再发 28。这次 B 获得的 avatarId 应是 A 当前的版本。在 Postman 中另开请求标签页仍会共享 Cookie，换标签之前先弄清是哪位用户。
 4. 看一次时间边界。让 B 留在 Postman，让 A 在独立浏览器的同源 Swagger 登录，准备把展示改为 `{"visible":false}`；在 A 的浏览器用 GET /auth/csrf 取令牌，PATCH 时带本次令牌及 X-EPP-Request: 1。准备好关闭请求，B 先发 28 并记下链接，A 再点 Execute。B 把 expectedAvatarStatus 改成 404，再发 28 应被拒，刚签出的那一个却可能仍能读图。等该链接过期后再次使用**原地址**，在本机的 30 秒签名实验里应见 403。若操作太慢，先恢复展示再取新地址重做；不要用新签的链接验证旧签名。关闭开关本身既不删图，也不撤销已经取回的副本。
 

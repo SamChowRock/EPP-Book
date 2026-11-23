@@ -23,7 +23,7 @@ pg_ctl -D "$source_data" -m fast -w stop || exit 1
 test "$restore_rc" -eq 0 || exit 1
 ```
 
-该练习源专供后面的 SQL 修复路径。若已有自包含的停机练习集群，可直接使用；先确认它的配置、include、认证文件及 `postgresql.auto.conf` 没有继续借用生产路径或外部归档、复制、日志设置。在 Bash 设置 `source_data` 为停机目录、`PGUSER` 为该集群的练习管理员、`PGDATABASE` 为其中的 EPP 库。用独立的私有 Unix 套接字，表明下面每条命令要去哪一台实例。临时目录使用没有空格或引号的绝对路径；源、基础备份、两份恢复目录及 WAL 都需预留空间。
+该练习源专供后面的 SQL 修复路径。若已有自包含的停机练习集群，可直接使用；先确认它的配置、include、认证文件及 `postgresql.auto.conf` 没有继续借用生产路径或外部归档、复制、日志设置。在 Bash 设置 `source_data` 为停机目录、`PGUSER` 为该集群的练习管理员、`PGDATABASE` 为其中的素材库。用独立的私有 Unix 套接字，表明下面每条命令要去哪一台实例。临时目录使用没有空格或引号的绝对路径；源、基础备份、两份恢复目录及 WAL 都需预留空间。
 
 ```bash
 umask 077

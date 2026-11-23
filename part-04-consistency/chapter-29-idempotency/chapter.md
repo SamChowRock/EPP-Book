@@ -400,7 +400,7 @@ OpenAPI的accept requestBody指向AcceptCandidate，components加入它；201说
 node examples/lost-acceptance-response.mjs
 ```
 
-这个独立Node脚本只监听本机3010，转发采纳请求到本机3000。它不挂进EPP路由，也不进入生产dist。若API端口不同，使用 `TARGET_PORT=实际API端口 PORT=实验端口` 启动；不能把代理端口与目标设成同一个值。
+这个独立Node脚本只监听本机3010，转发采纳请求到本机3000。它不挂进业务路由，也不进入生产dist。若API端口不同，使用 `TARGET_PORT=实际API端口 PORT=实验端口` 启动；不能把代理端口与目标设成同一个值。
 
 代理不是随机断网。它会消费第一份上游201，然后断开客户端连接，确保这次演示对应“服务已经成功，返回路上丢了”。关键处理如下，完整转发、超时及错误收尾在配套文件中：
 
