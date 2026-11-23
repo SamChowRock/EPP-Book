@@ -1,6 +1,6 @@
 # 支线 18B：从一张宽表走到可维护的模型
 
-正文已经用用户与记录说明事实归属，但两张小表还不足以暴露所有设计问题。这里换成一个培训报名场景，完整推导拆表，再回到 EPP 判断一对一扩展、历史、冗余、JSON 与删除。下面的表是设计草图，U1、C1 等是便于阅读的身份代号；不在 epp_dev 中创建这些对象，也不改动正文的两条记录。
+正文已经用用户与记录说明事实归属，但两张小表还不足以暴露所有设计问题。这里换成一个培训报名场景，完整推导拆表，再回到 EPP 判断一对一扩展、历史、冗余、JSON 与删除。报名表是设计草图，U1、C1 是便于阅读的身份代号。修订归属一节会在独立会话创建临时表，实验结束后回滚。
 
 ## 先让一张看起来方便的表经历变化
 
@@ -79,6 +79,66 @@
 
 EPP 当前只保存创建时原文，没有修订行为，因此不现在增加一套版本表。将来需求要求“旧候选必须对应生成时的原文”，才需要把内容版本与引用一起落到模型里。历史、审计和当前状态可以协作，但单加 updated_at 无法恢复被覆盖的旧内容，也不能回答是谁因为什么改了它。
 
+## 修订存在，为什么当前指针还会指错素材
+
+拿两张纸代表素材 1、2，各自写上唯一的修订 ID：素材 1 有修订 11，素材 2 有修订 21。给素材 1 的“当前修订”填入 21。这个数在修订表中确实能找到，错误在于找到的是另一张纸。需要数据库证明的是**这一对值同时出现在同一条修订上**。分别检查素材存在、修订存在，两次都可以通过，却没有把它们配成一对。
+
+在 DBeaver 新开一个独立的 DEV 编辑器，使用自动提交模式，从下面的显式 BEGIN 开始，按段在同一会话执行。配套为 `part-03/chapter-18` 的 `database/chapter-16/07-revision-owner.sql`。实验表只存在于本会话，最后回滚。先按最简单的规则建表并写入那个错误指针：
+
+```sql
+BEGIN;
+
+CREATE TEMP TABLE side18_revision (
+  revision_id integer PRIMARY KEY,
+  capture_id integer NOT NULL,
+  UNIQUE (capture_id, revision_id)
+);
+INSERT INTO pg_temp.side18_revision VALUES (11, 1), (21, 2);
+
+CREATE TEMP TABLE side18_current (
+  capture_id integer PRIMARY KEY,
+  revision_id integer REFERENCES pg_temp.side18_revision (revision_id)
+);
+INSERT INTO pg_temp.side18_current VALUES (1, 21);
+
+SELECT c.capture_id AS claimed_owner, r.capture_id AS actual_owner
+FROM pg_temp.side18_current AS c
+JOIN pg_temp.side18_revision AS r USING (revision_id);
+```
+
+看结果网格，登记的素材是 1，实际拥有者却是 2。数据库已经执行了声明的每一项约束。这里故意省去了主线的其他业务列，把注意力集中在两份身份上。接下来单独建立另一张当前指针表，让它引用修订表上的整对列：
+
+```sql
+CREATE TEMP TABLE side18_checked (
+  capture_id integer PRIMARY KEY,
+  revision_id integer,
+  FOREIGN KEY (capture_id, revision_id)
+    REFERENCES pg_temp.side18_revision (capture_id, revision_id)
+);
+INSERT INTO pg_temp.side18_checked VALUES (1, 11), (2, NULL);
+SAVEPOINT before_wrong_owner;
+```
+
+两次正常登记覆盖了不同业务状态。素材 1 指向自己的 11。素材 2 可以先没有当前版，revision_id 为 NULL；默认的组合外键在任一引用列为空时免于匹配，素材身份自身仍由主键要求非空。若产品规定“有这行就必须已选定修订”，还得给 revision_id 加 NOT NULL，或者用没有指针行表达尚未选择。这是空值语义的选择，不能指望加上外键就自动决定。
+
+为什么修订表已经以 revision_id 作主键，还显式声明 `UNIQUE (capture_id, revision_id)`？从业务上讲，revision_id 唯一已经意味着这对值不会重复；从建立引用看，PostgreSQL 还需要被引用的这一组列有可作为外键目标的唯一性保证。这里用成对的 UNIQUE 明确提供它。如果模型原本就用“素材内的版本号”标识修订，`(capture_id, version_no)` 本身可以做主键，两个素材各自拥有第 1 版也完全合理。该选哪组列，取决于外部拿到的是全局修订 ID，还是只在素材内部有意义的编号。
+
+将光标放在下面的 UPDATE，使用 Execute SQL Statement 单条执行；若按整份脚本运行，编辑器的出错回滚设置可能提前结束整个事务。预期错误码 23503，表示外键拒绝；它与“目标修订根本不存在”用同一类错误码，所以还要一起核对被引用的两个值及约束名称。
+
+```sql
+UPDATE pg_temp.side18_checked SET revision_id = 21 WHERE capture_id = 1;
+```
+
+现在会话在失败事务中。仍在原编辑器，先回到刚才的保存点，读取两个指针，再单独执行最后的 ROLLBACK：
+
+```sql
+ROLLBACK TO SAVEPOINT before_wrong_owner;
+SELECT capture_id, revision_id FROM pg_temp.side18_checked ORDER BY capture_id;
+ROLLBACK;
+```
+
+应先看见 `1 / 11` 与 `2 / NULL`，原先的正确选择仍在。若失去连接或已结束外层事务，重新开一个干净编辑器从 BEGIN 开始；保存点属于建立它的那次事务。回看建表语句，沿复合外键的两对列名各画一条线，它们必须共同连向同一行。这个约束很适合维护“选中的对象确实属于当前对象”，但它不能说明某个 HTTP 调用者是否有权更改这个选择，那要到实际写入入口再核对。
+
 ## 反规范化要先回答谁负责修复副本
 
 假设列表需要显示每位用户的记录数。先从 captures 按用户统计，数值来自已有事实；数据多了以后若确实成为瓶颈，再考虑在 users 保存 capture_count，减少反复计算。这是派生值缓存式的反规范化。
@@ -103,7 +163,7 @@ EPP 当前只保存创建时原文，没有修订行为，因此不现在增加�
 
 回到自己的模型，先让它经历一次改名、关系增加、历史回看和删除恢复，再检查哪些数据应该变化、哪些必须保持。如果答案要求反复同步同一事实，考虑规范化；如果要求保留当时事实，考虑快照或版本；如果只是为了更快地读取可计算结果，明确派生副本的维护与重建。模式是对这些约束的回应，不能替代对需求的判断。
 
-阅读约 40～50 分钟，可以直接对照表中的样例推演，无需建表。
+阅读约 48～60 分钟，临时表的归属与约束对照另加约 8～12 分钟。
 
 ## 附录：本支线必要技术点速查
 
@@ -114,6 +174,7 @@ EPP 当前只保存创建时原文，没有修订行为，因此不现在增加�
 | 无损分解 | 拆表后保留原有信息与关系 | 不丢归属，也不通过任意配对制造假关系 |
 | 共享主键的一对一扩展 | 为同一实体分离可选资料 | 保证至多一份，不自动保证每位用户必有资料 |
 | 关联实体 | 保存关系自己的属性 | 组合唯一性与两端存在性分别表达 |
+| 复合外键 | 约束两列同时匹配同一条修订 | 可空引用与必有当前版，是不同的业务规则 |
 | 快照／版本／当前状态 | 区分当时内容、修订与当前选择 | 时间语义与引用归属必须明确 |
 | 反规范化 | 用派生副本减少重复读取成本 | 明确权威来源、并发更新、重试与重建 |
 | jsonb | 保存边界明确的可变文档 | 不自动获得内部成员的关系约束 |
