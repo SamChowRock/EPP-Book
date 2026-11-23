@@ -88,7 +88,7 @@
 
 ### 准备 Mac 命令行
 
-打开 Mac 的“终端”，使用默认的 Zsh。先看看开发工具是否已经就位：
+第一次打开终端，先跟[第 1 章 第一次读懂 Unix Shell](part-01-nodejs/chapter-01-unix-shell/chapter.md)练习选目录、传参数和判断退出状态；遇到 nvm 在新窗口找不到时，可回第 1.6 节重做加载函数的对照。回到这里，打开 Mac 的“终端”，使用默认的 Zsh。先看看开发工具是否已经就位：
 
 ```bash
 xcode-select -p

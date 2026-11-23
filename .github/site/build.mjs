@@ -65,7 +65,7 @@ function homeContent($) {
   const hero = $('<header class="overview"><div class="overview-copy"></div></header>');
   title.before(hero);
   hero.find('.overview-copy').append(title, firstParagraph).append(
-    `<a class="start" href="${escape(firstChapter)}">从第一章开始 <span aria-hidden="true">→</span></a>`
+    `<a class="start" href="${escape(firstChapter)}">从第 0 章开始 <span aria-hidden="true">→</span></a>`
   );
   const quickLinks = $('h2').toArray().map(el =>
     `<a href="#${escape(encodeURIComponent($(el).attr('id')))}">${escape($(el).text())}<span aria-hidden="true">↘</span></a>`

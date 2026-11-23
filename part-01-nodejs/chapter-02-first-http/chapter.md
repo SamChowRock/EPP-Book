@@ -1,6 +1,6 @@
 # 第 2 章 完成第一次 HTTP 往返
 
-上一章定下记录的用途。打开一个空列表时，客户端要知道两件事：本机是否有程序接收请求，接收后是否认得这个地址。今天先做一个只认识 `GET /captures` 的服务。先在 Postman 读到空列表，再改错路径、停掉服务，比较这三次结果。
+上一章在文件里读到了模拟的 200 和 404。现在让正在运行的服务真正返回这两种响应。打开一个空列表时，客户端要知道两件事：本机是否有程序接收请求，接收后是否认得这个地址。今天先做一个只认识 `GET /captures` 的服务。先在 Postman 读到空列表，再改错路径、停掉服务，比较这三次结果。
 
 **代码起点**为空项目。主线阅读约 32～40 分钟，建项目、对照请求、改动并恢复路由和复查监听另加约 22～32 分钟，首次安装 Node 的时间另计。可以在语法检查通过后暂停；下一次从项目目录选好 Node 版本，再启动服务。
 
@@ -285,6 +285,6 @@ Get-NetTCPConnection -LocalPort 3000 -State Listen
 
 查阅 Node 的请求、响应和监听接口，可看 [Node.js 24 HTTP 文档](https://nodejs.org/docs/latest-v24.x/api/http.html)。
 
-[上一章：保存一句英语之后](../chapter-01-epp/chapter.md) · [下一章：可靠接收请求正文并保存原文](../chapter-03-minimal-service/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：第一次读懂 Unix Shell](../chapter-01-unix-shell/chapter.md) · [下一章：可靠接收请求正文并保存原文](../chapter-03-minimal-service/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
 
 [本章配套代码](https://github.com/SamChowRock/epp-public/tree/part-01/chapter-02)
