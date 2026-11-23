@@ -10,6 +10,89 @@
 
 先试着把两页查询放进同一个只读事务。按 PostgreSQL 默认的 READ COMMITTED（读已提交），每条 SELECT 看的是它开始时已经提交的数据；第二页仍可能看到两次查询之间才付款的订单。要让两页都按第一次查询时的情况读取，可以选 REPEATABLE READ（可重复读）：第一次查询确定哪些行、哪些版本可见，后续查询沿用这份快照。如果十点零五才开始查，固定下来的也是十点零五的视图。要在事后还原十点的报表，需要十点时留下的快照或能够还原当时状态的历史记录。
 
+### 两个会话看同一份已付款清单
+
+报表要分两页读取已付款订单。为了一眼看清边界，练习只有五张订单，按唯一的整数 ID 降序，每页两张，金额以元计。两轮都由 A 读完第一页，B 随后在一次事务里确认一笔付款、修正另一笔金额并提交，A 再读第二页。两轮只换 A 的隔离级别。这样能分开看两件事：新付款的订单有没有取得一席之地，原本就合格的订单显示哪个金额。
+
+**准备。** 在 DBeaver 的数据库导航器选独立 VERIFY 连接，从 SQL 编辑器菜单打开两个脚本，分别记作 A（读报表）和 B（维护订单）。用同一练习角色连接，两边保持自动提交，由下文的显式事务控制每轮边界。在两个编辑器分别选中并执行：
+
+```sql
+SELECT current_database(), current_user, pg_backend_pid();
+```
+
+核对库名都是目标 VERIFY、PID 不同。若 PID 相同，两个编辑器正在共享会话；在导航器复制这份 VERIFY 连接，用副本打开 B，再查一次。后面按 A、B 顺序选中对应的语句块执行；批量从头跑到底会错过两页之间的提交。表必须能被两个会话看见，因此在 VERIFY 的 public 下建一张专用普通表。在 B 执行：
+
+```sql
+BEGIN;
+CREATE TABLE public.ch33a_paid_page (
+  id integer PRIMARY KEY,
+  paid boolean NOT NULL,
+  amount integer NOT NULL
+);
+INSERT INTO public.ch33a_paid_page (id, paid, amount) VALUES
+  (50, true, 50), (40, true, 40), (30, false, 30),
+  (20, true, 100), (10, true, 10);
+COMMIT;
+```
+
+若创建时提示同名表已存在，先在 B 执行 `ROLLBACK;`，核对是否是自己上一次留下的实验；只对本次确认创建的练习表做文末清理。准备成功后，在纸上写下最初的合格顺序：50、40、20、10。30 虽然位于 40 与 20 之间，尚未付款，不占页上的名额。假如没有任何人改动，第一页末项是 40，第二页应从 20 开始。
+
+**第一轮，读已提交。** 在 A 执行以下两句，记下结果后停在这里，保持 A 的事务打开。SELECT 只取合格订单，金额作为输出列，不参与排序。
+
+```sql
+BEGIN ISOLATION LEVEL READ COMMITTED READ ONLY;
+SELECT id, amount FROM public.ch33a_paid_page
+WHERE paid ORDER BY id DESC LIMIT 2;
+```
+
+第一行是 50／50，第二行是 40／40（ID／金额）。现在切到 B，整块执行，等到 COMMIT 成功再切回 A。两条 UPDATE 应各影响一行。
+
+```sql
+BEGIN;
+UPDATE public.ch33a_paid_page SET paid = true WHERE id = 30;
+UPDATE public.ch33a_paid_page SET amount = 125 WHERE id = 20;
+COMMIT;
+```
+
+在 A 写第二页时，保留第一页的付款条件和排序，加上末项给出的严格边界。先预测新入选的 30 排在哪里，再预测原来就入选的 20 会显示多少钱。
+
+```sql
+SELECT id, amount FROM public.ch33a_paid_page
+WHERE paid AND id < 40 ORDER BY id DESC LIMIT 2;
+```
+
+结果是 **30／30、20／125**。A 仍在同一个只读事务内，但读已提交为第二条 SELECT 取得了新视图，B 的两项变更都已经可见。10 仍然合格，只是排到这一页的两个名额以外。保存这两行结果，在 A 执行 `COMMIT;`，结束第一轮。
+
+**恢复起点，然后读可重复读。** 在 B 执行下面整块，将两项变化复原并提交。若省掉这一步，第二轮会从已经付款的 30 和已经涨到 125 元的 20 开始，便无法与第一轮比较。
+
+```sql
+BEGIN;
+UPDATE public.ch33a_paid_page SET paid = false WHERE id = 30;
+UPDATE public.ch33a_paid_page SET amount = 100 WHERE id = 20;
+COMMIT;
+```
+
+在 A 开始新的只读事务，执行与第一轮完全相同的首页查询，停在相同的末项 40。这里第一条 SELECT 建立了这轮要沿用的快照；单独发出 BEGIN 还没有读到首页。
+
+```sql
+BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
+SELECT id, amount FROM public.ch33a_paid_page
+WHERE paid ORDER BY id DESC LIMIT 2;
+```
+
+现在 B 再执行第一轮那段付款、改金额及 COMMIT。等提交完成，A **在仍然打开的事务中**再次执行上面的第二页 SELECT（`paid AND id < 40`）。这次得到 **20／100、10／10**。30 的新付款状态未出现在 A 的快照里；20 在两种结果里都出现，金额却仍是 100。只看行数会觉得两轮都成功读了两项，只比 ID 可以查出成员差异，再比同一个 20 的金额才能查出版本差异。
+
+最后在 A 执行 `COMMIT;`，再单独重发同一条第二页 SELECT。现在应看到 **30／30、20／125**。这第三个观察点能区分「B 忘记提交」和「B 已提交，A 暂时仍读旧版本」。如果可重复读轮在提交 A 之前就看到了新金额，先查 B 是否抢在 A 的首页 SELECT 之前提交，以及 A 两页之间是否结束或更换了事务。若 A 结束事务后仍只看到旧金额，回到 B 核对两条更新影响的行数、提交结果和连接的数据库。
+
+**清理。** 两轮结束，确认 A 的事务已提交；中途停下则先在各自仍有未结束事务的编辑器执行 `ROLLBACK;`。在 B 删除本次创建的练习表，并核对 cleaned 为真。读事务尚未结束时会持有表锁，应先结束 A 再清理。
+
+```sql
+DROP TABLE public.ch33a_paid_page;
+SELECT to_regclass('public.ch33a_paid_page') IS NULL AS cleaned;
+```
+
+A 能固定视图的条件，是两次 SELECT 由同一个数据库会话在同一个可重复读事务内执行。回到 EPP，浏览器在同一页点两次、换页签继续，或 Postman 原样传回游标，都会发出独立的 HTTP 请求。服务重新执行查询；即使连接池碰巧分到同一条连接，也不会继承这次 DBeaver 事务的快照。游标里的位置只回答从哪里接着读。第 34 章让界前和界后的素材分别改成匹配，用同一个区别解释实时遍历少见了哪一条。
+
 数据库不需要先复制整张订单表，但必须保留这次读取还可能用到的旧版本。事务越久，这些旧版本就越晚才能清理，而且导出期间一直占用连接；请求断开、工作进程退出、导出持续很久，都需要另外处理。不能把数据库事务留在浏览器两次点击之间，期待用户一定马上翻下一页。
 
 另一种方案是任务开始时保存成员ID，后续分批取详情。这样能恢复“名单里有哪些”，但不能自动恢复“当时金额是多少”：若详情后来被修改，只有ID仍不足以证明历史金额。业务若要求原值，可以在保存名单时一并存下当时的金额和币种，也可以引用不会改写的订单版本，或直接保留当时生成的导出文件。冻结成员和冻结内容是两个不同承诺。
@@ -47,7 +130,7 @@ flowchart LR
 
 EPP本章选择实时列表、当前不可由业务接口改写的毫秒排序键、显式UTC半开区间。它不阻止未来增加导出或地区日期入口，但新增能力需要重新说明一致性与日历语义，不能把一个可用游标扩张成所有读取问题的答案。
 
-阅读约 25～30 分钟，本支线没有独立运行步骤。主线DBeaver的23／25小时对照可用来检查日历推导，不能替代完整预约系统验证。
+阅读约 32～40 分钟，DBeaver 双会话准备、两轮对照与清理另加约 15～22 分钟。主线的 23／25 小时对照可用来检查日历推导。
 
 ## 附录：本支线必要技术点速查
 
@@ -59,4 +142,4 @@ EPP本章选择实时列表、当前不可由业务接口改写的毫秒排序�
 | IANA地区标识 | 依据日期换算当地钟表 | 规则可能更新，不等同固定UTC偏移，[时区数据库](https://www.iana.org/time-zones) |
 | 不存在与重复本地时间 | 决定预约的歧义处理 | 必须定义业务策略，[PostgreSQL无效时间解释](https://www.postgresql.org/docs/18/datetime-invalid-input.html) |
 
-[返回第三十三章](chapter.md) · [第四篇导读](../README.md)
+[返回第三十三章](chapter.md) · [接第 34 章：排序没变，匹配集合仍会变](../chapter-34-paging-upgrade/chapter.md#排序没变匹配集合仍会变) · [第四篇导读](../README.md)
