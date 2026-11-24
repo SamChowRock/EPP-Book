@@ -10,7 +10,7 @@
 
 ### [第一篇 先运行起来：从浏览器走进 Node.js](part-01-nodejs/README.md)
 
-#### [第 0 章 保存一句英语之后](part-01-nodejs/chapter-00-epp/chapter.md)
+#### [第 0 章 后端接口设计：从页面操作到数据读写](part-01-nodejs/chapter-00-epp/chapter.md)
 
 #### [第 1 章 Unix Shell：从第一条命令到独立写脚本](part-01-nodejs/chapter-01-unix-shell/chapter.md)
 

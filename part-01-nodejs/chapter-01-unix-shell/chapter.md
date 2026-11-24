@@ -1147,4 +1147,4 @@ cat out/assets.tsv
 - [1D　在自己的电脑上打开了页面，交给别人还能打开吗](side-04-portable-archive.md)。用 §[1.10](#110-比较归档与交付) 的归档知识，在另一个目录真正打开完整的页面。
 - [1E　从一份请求日志到一次值班交接](side-05-log-handoff.md)。八段连续实战，从编辑器搜索一路做到批量、缺件保留和下一班读回。六张实图可以对照操作位置和结果。
 
-[上一章：保存一句英语之后](../chapter-00-epp/chapter.md) · [下一章：完成第一次 HTTP 往返](../chapter-02-first-http/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
+[上一章：后端接口设计：从页面操作到数据读写](../chapter-00-epp/chapter.md) · [下一章：完成第一次 HTTP 往返](../chapter-02-first-http/chapter.md) · [返回第一篇](../README.md) · [返回全书目录](../../README.md)
