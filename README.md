@@ -12,7 +12,7 @@
 
 #### [第 0 章 保存一句英语之后](part-01-nodejs/chapter-00-epp/chapter.md)
 
-#### [第 1 章 第一次读懂 Unix Shell](part-01-nodejs/chapter-01-unix-shell/chapter.md)
+#### [第 1 章 Unix Shell：从第一条命令到独立写脚本](part-01-nodejs/chapter-01-unix-shell/chapter.md)
 
 #### [第 2 章 完成第一次 HTTP 往返](part-01-nodejs/chapter-02-first-http/chapter.md)
 

@@ -283,4 +283,4 @@ flowchart TD
 
 [返回第一篇](../README.md) · [返回全书目录](../../README.md)
 
-[下一章：第一次读懂 Unix Shell](../chapter-01-unix-shell/chapter.md)
+[下一章：Unix Shell：从第一条命令到独立写脚本](../chapter-01-unix-shell/chapter.md)
