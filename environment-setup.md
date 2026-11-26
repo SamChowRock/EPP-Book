@@ -147,7 +147,7 @@ npm ci
 
 ### 发送并保存第一个请求
 
-图形操作详见[附录 J 的Postman 请求、集合与变量](desktop-tools.md#j1postman发一条请求留下可以重做的现场)。
+第一次使用时，可以跟着[附录 J 保存列表请求，再用返回的 ID 读详情](desktop-tools.md#j1postman发一条请求留下可以重做的现场)。
 
 在第 2 章的终端看到 `EPP listening on http://127.0.0.1:3000` 后，让进程保持运行。安装并打开 **The Postman app**，新建一个 GET 请求，地址填 `http://127.0.0.1:3000/captures`，点击 **Send**。第一次应读到状态 **200** 和正文 `{"items":[]}`。保存这个请求，下次重启服务还可以原样再发一次。使用其他 HTTP 客户端时，填写相同的方法和地址即可。[Postman 桌面版下载](https://www.postman.com/downloads/)
 
@@ -184,7 +184,7 @@ psql --version
 
 ### 用 DBeaver 确认连的是哪个库
 
-图形操作详见[附录 J 的DBeaver 连接、查询与事务](desktop-tools.md#j2dbeaver从保存的连接找到这一条数据)。
+保存连接后，可以跟着[附录 J 建两行练习数据，在两个 DBeaver 会话里比较保存和提交](desktop-tools.md#j2dbeaver从保存的连接找到这一条数据)。
 
 安装与 Mac 芯片匹配的 DBeaver Community，选择 **New Database Connection → PostgreSQL**。Host 填 `127.0.0.1`，Port 填 `55432`，Database 填 `epp_dev`，Username 填 `epp_owner`，Password 填刚才设置的密码。点击 **Test Connection**；首次提示下载 PostgreSQL 驱动时完成下载再重试。[DBeaver Community 下载](https://dbeaver.io/download/)
 
@@ -652,7 +652,7 @@ Docker 服务应为 active，`version` 同时显示 Client 和 Server；Buildx �
 
 ### 在 Mac 用 Docker Desktop 管理容器
 
-图形操作详见[附录 J 的Docker Desktop 镜像、容器与卷](desktop-tools.md#j3docker-desktop从一行容器记录追到程序和文件)。
+第一次用桌面界面运行服务，可以跟着[附录 J 填写 Run 表单，在 Postman 打开自己的网页，再去容器看日志](desktop-tools.md#j3docker-desktop从一行容器记录追到程序和文件)。
 
 在 Mac 做独立进程、卷与网络实验时，优先使用 Docker Desktop 图形界面。先在“应用程序”中查找 Docker；已有安装就打开并检查版本，无须重复安装。缺少时，按处理器选择 [Docker 官方安装包](https://docs.docker.com/desktop/setup/install/mac-install/)，Apple Silicon 选 Apple 芯片版，Intel 选 Intel 版。打开下载的磁盘映像，把 Docker.app 拖入 Applications，再从“应用程序”启动。首次启动按界面完成条款确认和安装设置；本机练习可在登录页选择 **Skip**，进入主界面后等待底部显示 **Engine running**。
 
